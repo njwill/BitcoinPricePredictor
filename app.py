@@ -65,28 +65,35 @@ def main():
         display: none !important;
     }
     
-    /* Fix broken icon text */
-    *:contains("keyboard+double_arrow_right") {
-        display: none !important;
-    }
-    
-    /* Fix sidebar collapse/expand button */
+    /* Fix sidebar expand button with broken icon */
     [data-testid="collapsedControl"] {
         font-family: "Source Sans Pro", sans-serif !important;
     }
     
-    [data-testid="stSidebar"] button[kind="icon"] {
-        font-family: "Source Sans Pro", sans-serif !important;
+    /* Hide the broken keyboard+double_arrow_right text and replace with proper arrow */
+    button:contains("keyboard+double_arrow_right") {
+        font-size: 0 !important;
+        text-indent: -9999px !important;
     }
     
-    /* Replace broken arrow icons with simple text */
+    button:contains("keyboard+double_arrow_right"):before {
+        content: "▶" !important;
+        font-size: 16px !important;
+        font-family: "Source Sans Pro", sans-serif !important;
+        text-indent: 0 !important;
+        display: inline-block !important;
+        width: auto !important;
+        height: auto !important;
+    }
+    
+    /* Alternative approach - target by aria-label if available */
     button[aria-label*="Open sidebar"] {
         font-size: 0 !important;
     }
     
-    button[aria-label*="Open sidebar"]:after {
-        content: "☰" !important;
-        font-size: 20px !important;
+    button[aria-label*="Open sidebar"]:before {
+        content: "▶" !important;
+        font-size: 16px !important;
         font-family: "Source Sans Pro", sans-serif !important;
     }
     </style>

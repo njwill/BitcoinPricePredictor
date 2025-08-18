@@ -164,15 +164,18 @@ def main():
                     analysis = ai_analyzer.generate_comprehensive_analysis(
                         btc_3m, btc_1w, indicators_3m, indicators_1w, current_price
                     )
+                    # Debug: Show what we got back
+                    st.write(f"Debug - Analysis keys: {list(analysis.keys()) if analysis else 'None'}")
                     st.session_state.analysis_cache[analysis_key] = analysis
                 except Exception as e:
                     st.error(f"❌ AI Analysis failed: {str(e)}")
-                    return
+                    analysis = {"error": str(e)}
+                    st.session_state.analysis_cache[analysis_key] = analysis
         else:
             analysis = st.session_state.analysis_cache[analysis_key]
         
         # Display AI Analysis Results
-        if analysis:
+        if analysis and 'error' not in analysis:
             col1, col2 = st.columns([2, 1])
             
             with col1:
@@ -184,6 +187,10 @@ def main():
                 
                 st.subheader("📰 Market Sentiment & Key Events")
                 st.write(analysis.get('market_sentiment', 'Sentiment analysis not available'))
+        elif analysis and 'error' in analysis:
+            st.error(f"AI Analysis Error: {analysis['error']}")
+        else:
+            st.warning("No analysis data available. Please try refreshing.")
             
             with col2:
                 st.subheader("📊 Probability Assessment")

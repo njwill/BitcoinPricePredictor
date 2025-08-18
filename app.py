@@ -19,8 +19,7 @@ from utils import format_currency, get_eastern_time, calculate_time_until_update
 st.set_page_config(
     page_title="Bitcoin Analysis Dashboard",
     page_icon="₿",
-    layout="wide",
-    initial_sidebar_state="collapsed"
+    layout="wide"
 )
 
 # Initialize session state
@@ -55,175 +54,49 @@ def main():
         display: none !important;
     }
     
-    /* Hide broken sidebar toggle completely */
-    [data-testid="collapsedControl"] {
+    /* Hide the entire sidebar */
+    [data-testid="stSidebar"] {
         display: none !important;
     }
     
-    /* Custom sidebar toggle button */
-    .custom-sidebar-toggle {
-        position: fixed !important;
-        top: 60px !important;
-        left: 10px !important;
-        z-index: 9999 !important;
-        background: #ffffff !important;
-        border: 1px solid #e0e0e0 !important;
-        border-radius: 4px !important;
-        width: 40px !important;
-        height: 40px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        cursor: pointer !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
-        transition: all 0.2s ease !important;
-    }
-    
-    .custom-sidebar-toggle:hover {
-        background: #f8f9fa !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
-    }
-    
-    .sidebar-arrow {
-        font-size: 16px !important;
-        color: #262730 !important;
-        font-family: Arial, sans-serif !important;
-        transition: color 0.2s ease !important;
-    }
-    
-    .custom-sidebar-toggle:hover .sidebar-arrow {
-        color: #FF4B4B !important;
+    /* Hide sidebar toggle controls */
+    [data-testid="collapsedControl"] {
+        display: none !important;
     }
     </style>
     
-    <script>
-    // Create custom sidebar toggle button
-    function createCustomSidebarToggle() {
-        // Remove existing custom toggle if it exists
-        const existingToggle = document.querySelector('.custom-sidebar-toggle');
-        if (existingToggle) {
-            existingToggle.remove();
-        }
-        
-        // Create new toggle button
-        const toggleButton = document.createElement('div');
-        toggleButton.className = 'custom-sidebar-toggle';
-        toggleButton.innerHTML = '<span class="sidebar-arrow">▶</span>';
-        
-        // Add click functionality
-        toggleButton.addEventListener('click', function() {
-            const sidebar = document.querySelector('[data-testid="stSidebar"]');
-            const arrow = toggleButton.querySelector('.sidebar-arrow');
-            
-            if (sidebar) {
-                const isCollapsed = sidebar.style.marginLeft === '-21rem' || sidebar.style.marginLeft === '';
-                
-                if (isCollapsed) {
-                    // Show sidebar
-                    sidebar.style.marginLeft = '0rem';
-                    sidebar.style.transition = 'margin-left 0.3s ease';
-                    arrow.innerHTML = '◀';
-                } else {
-                    // Hide sidebar
-                    sidebar.style.marginLeft = '-21rem';
-                    sidebar.style.transition = 'margin-left 0.3s ease';
-                    arrow.innerHTML = '▶';
-                }
-            }
-        });
-        
-        // Add to page
-        document.body.appendChild(toggleButton);
-    }
-    
-    // Initialize custom sidebar
-    function initCustomSidebar() {
-        createCustomSidebarToggle();
-        
-        // Initially hide the sidebar
-        const sidebar = document.querySelector('[data-testid="stSidebar"]');
-        if (sidebar) {
-            sidebar.style.marginLeft = '-21rem';
-            sidebar.style.transition = 'margin-left 0.3s ease';
-        }
-    }
-    
-    // Run initialization
-    setTimeout(initCustomSidebar, 100);
-    setTimeout(initCustomSidebar, 500);
-    setTimeout(initCustomSidebar, 1000);
-    
-    // Re-create toggle on page changes
-    const observer = new MutationObserver(function(mutations) {
-        let shouldInit = false;
-        mutations.forEach(function(mutation) {
-            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                shouldInit = true;
-            }
-        });
-        if (shouldInit) {
-            setTimeout(createCustomSidebarToggle, 100);
-        }
-    });
-    
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-    </script>
+
     """, unsafe_allow_html=True)
     
     # Header
     st.title("₿ Bitcoin Analysis Dashboard")
     st.markdown("### Automated Weekly Bitcoin Chart Analysis & Probability Assessments")
     
-    # Sidebar for controls and info
-    with st.sidebar:
-        st.header("📊 Analysis Controls")
-        
-        # Show next update time
-        eastern_tz = pytz.timezone('US/Eastern')
-        current_time = datetime.now(eastern_tz)
-        next_update = calculate_time_until_update(current_time)
-        
+    # Settings moved to main content area
+    eastern_tz = pytz.timezone('US/Eastern')
+    current_time = datetime.now(eastern_tz)
+    next_update = calculate_time_until_update(current_time)
+    
+    # Show timing info
+    col1, col2, col3 = st.columns(3)
+    with col1:
         st.info(f"⏰ Next Update: {next_update}")
-        
-        # Show last analysis time
+    with col2:
         if 'last_update' in st.session_state and st.session_state.last_update:
             last_update_str = st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')
             st.info(f"📊 Last Analysis: {last_update_str} ET")
         else:
             st.info("📊 Last Analysis: Not yet performed")
-        
-        # Show current time
-        st.write(f"**Current ET:** {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        
-        # Analysis settings
-        st.subheader("⚙️ Settings")
+    with col3:
+        st.info(f"🕐 Current ET: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    # Analysis settings
+    st.subheader("⚙️ Settings")
+    col1, col2 = st.columns(2)
+    with col1:
         show_indicators = st.checkbox("Show Technical Indicators", value=True)
+    with col2:
         show_volume = st.checkbox("Show Volume", value=True)
-        
-        st.divider()
-        
-        # Password protected refresh button (moved to bottom)
-        st.subheader("🔄 Manual Refresh")
-        refresh_password = st.text_input("Enter password to refresh:", type="password", key="refresh_pwd")
-        if st.button("🔄 Refresh Analysis", type="primary"):
-            if refresh_password == "bitcoin2025":
-                # Clear all caches including file cache
-                st.session_state.data_cache = {}
-                st.session_state.analysis_cache = {}
-                try:
-                    import os
-                    cache_file = "bitcoin_analysis_cache.json"
-                    if os.path.exists(cache_file):
-                        os.remove(cache_file)
-                except:
-                    pass
-                st.success("Analysis refreshed successfully!")
-                st.rerun()
-            else:
-                st.error("Incorrect password. Access denied.")
 
     # Initialize components
     data_fetcher = BitcoinDataFetcher()
@@ -572,6 +445,33 @@ def main():
     except Exception as e:
         st.error(f"❌ An error occurred: {str(e)}")
         st.exception(e)
+    
+    # Manual refresh section at the bottom
+    st.divider()
+    st.subheader("🔄 Manual Refresh")
+    st.markdown("Use this section to manually refresh the analysis data when needed.")
+    
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        refresh_password = st.text_input("Enter password to refresh:", type="password", key="refresh_pwd")
+    with col2:
+        st.markdown("<br>", unsafe_allow_html=True)  # Add spacing
+        if st.button("🔄 Refresh Analysis", type="primary"):
+            if refresh_password == "bitcoin2025":
+                # Clear all caches including file cache
+                st.session_state.data_cache = {}
+                st.session_state.analysis_cache = {}
+                try:
+                    import os
+                    cache_file = "bitcoin_analysis_cache.json"
+                    if os.path.exists(cache_file):
+                        os.remove(cache_file)
+                except:
+                    pass
+                st.success("Analysis refreshed successfully!")
+                st.rerun()
+            else:
+                st.error("Incorrect password. Access denied.")
 
 if __name__ == "__main__":
     main()

@@ -198,7 +198,6 @@ class AIAnalyzer:
                     {"role": "user", "content": prompt}
                 ],
                 max_completion_tokens=400,
-                temperature=0.3,
                 reasoning_effort="minimal"
             )
             
@@ -237,7 +236,6 @@ class AIAnalyzer:
                     {"role": "user", "content": prompt}
                 ],
                 max_completion_tokens=500,
-                temperature=0.2,
                 reasoning_effort="minimal"
             )
             
@@ -274,7 +272,6 @@ class AIAnalyzer:
                     {"role": "user", "content": prompt}
                 ],
                 max_completion_tokens=400,
-                temperature=0.4,
                 reasoning_effort="minimal"
             )
             

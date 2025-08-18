@@ -6,12 +6,12 @@ from datetime import datetime, timedelta
 import pytz
 import streamlit as st
 
-# the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-# do not change this unless explicitly requested by the user
+# the newest OpenAI model is "gpt-5" which was released August 7, 2024.
+# Updated per user request to use GPT-5
 from openai import OpenAI
 
 class AIAnalyzer:
-    """Handles AI-powered analysis using OpenAI GPT-4o"""
+    """Handles AI-powered analysis using OpenAI GPT-5"""
     
     def __init__(self):
         self.api_key = os.getenv("OPENAI_API_KEY", "")
@@ -192,13 +192,14 @@ class AIAnalyzer:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": "You are a professional Bitcoin technical analyst with expertise in chart analysis and technical indicators."},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=400,
-                temperature=0.3
+                temperature=0.3,
+                reasoning_effort="minimal"
             )
             
             return response.choices[0].message.content
@@ -230,13 +231,14 @@ class AIAnalyzer:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": "You are a quantitative Bitcoin analyst specializing in probability-based price predictions using technical analysis."},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=500,
-                temperature=0.2
+                temperature=0.2,
+                reasoning_effort="minimal"
             )
             
             return response.choices[0].message.content
@@ -266,13 +268,14 @@ class AIAnalyzer:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": "You are a cryptocurrency market analyst with expertise in macroeconomic factors and market sentiment analysis."},
                     {"role": "user", "content": prompt}
                 ],
                 max_tokens=400,
-                temperature=0.4
+                temperature=0.4,
+                reasoning_effort="minimal"
             )
             
             return response.choices[0].message.content

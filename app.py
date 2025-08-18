@@ -40,11 +40,11 @@ def main():
     with st.sidebar:
         st.header("📊 Analysis Controls")
         
-        # Manual refresh button
-        if st.button("🔄 Refresh Analysis", type="primary"):
-            st.session_state.data_cache = {}
-            st.session_state.analysis_cache = {}
-            st.rerun()
+        # Show last analysis time
+        if st.session_state.last_update:
+            st.success(f"🕒 Last Analysis: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')} ET")
+        else:
+            st.info("🕒 Last Analysis: Not performed yet")
         
         # Show next update time
         eastern_tz = pytz.timezone('US/Eastern')
@@ -60,7 +60,6 @@ def main():
         st.subheader("⚙️ Settings")
         show_indicators = st.checkbox("Show Technical Indicators", value=True)
         show_volume = st.checkbox("Show Volume", value=True)
-        confidence_threshold = st.slider("AI Confidence Threshold", 0.5, 0.95, 0.75)
 
     # Initialize components
     data_fetcher = BitcoinDataFetcher()
@@ -221,10 +220,10 @@ def main():
                     st.metric("AI Confidence", f"{confidence:.1%}")
                     
                     # Confidence indicator
-                    if confidence >= confidence_threshold:
-                        st.success(f"✅ High confidence analysis (≥{confidence_threshold:.0%})")
+                    if confidence >= 0.75:
+                        st.success(f"✅ High confidence analysis (≥75%)")
                     else:
-                        st.warning(f"⚠️ Lower confidence analysis (<{confidence_threshold:.0%})")
+                        st.warning(f"⚠️ Lower confidence analysis (<75%)")
         
         # Technical Indicators Summary Table
         st.divider()
@@ -256,7 +255,7 @@ def main():
         
         # Footer with last update info
         st.divider()
-        st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: OpenAI GPT-4o")
+        st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: OpenAI GPT-5")
         
     except Exception as e:
         st.error(f"❌ An error occurred: {str(e)}")

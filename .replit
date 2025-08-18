@@ -18,10 +18,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Bitcoin Analysis App"
+args = "BitcoinAnalysisDashboard"
 
 [[workflows.workflow]]
-name = "Bitcoin Analysis App"
+name = "BitcoinAnalysisDashboard"
 author = "agent"
 
 [[workflows.workflow.tasks]]

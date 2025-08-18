@@ -197,11 +197,12 @@ class AIAnalyzer:
                     {"role": "system", "content": "You are a professional Bitcoin technical analyst with expertise in chart analysis and technical indicators."},
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=400,
-                reasoning_effort="minimal"
+                max_completion_tokens=400
             )
             
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            st.write(f"DEBUG - Technical analysis response length: {len(content) if content else 0}")
+            return content
             
         except Exception as e:
             return f"Error generating technical analysis: {str(e)}"
@@ -235,11 +236,12 @@ class AIAnalyzer:
                     {"role": "system", "content": "You are a quantitative Bitcoin analyst specializing in probability-based price predictions using technical analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=500,
-                reasoning_effort="minimal"
+                max_completion_tokens=500
             )
             
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            st.write(f"DEBUG - Price prediction response length: {len(content) if content else 0}")
+            return content
             
         except Exception as e:
             return f"Error generating price prediction: {str(e)}"
@@ -271,11 +273,12 @@ class AIAnalyzer:
                     {"role": "system", "content": "You are a cryptocurrency market analyst with expertise in macroeconomic factors and market sentiment analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=400,
-                reasoning_effort="minimal"
+                max_completion_tokens=400
             )
             
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            st.write(f"DEBUG - Market sentiment response length: {len(content) if content else 0}")
+            return content
             
         except Exception as e:
             return f"Error generating market sentiment: {str(e)}"

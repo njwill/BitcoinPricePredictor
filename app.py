@@ -165,11 +165,31 @@ def main():
             
             # Save to file cache
             current_time = get_eastern_time()
+            
+            # Convert DataFrames to serializable format
+            btc_3m_data = btc_3m.reset_index().to_dict('records')
+            btc_1w_data = btc_1w.reset_index().to_dict('records')
+            
+            # Convert indicators to serializable format
+            indicators_3m_data = {}
+            for key, value in indicators_3m.items():
+                if isinstance(value, pd.Series):
+                    indicators_3m_data[key] = value.tolist()
+                else:
+                    indicators_3m_data[key] = value
+            
+            indicators_1w_data = {}
+            for key, value in indicators_1w.items():
+                if isinstance(value, pd.Series):
+                    indicators_1w_data[key] = value.tolist()
+                else:
+                    indicators_1w_data[key] = value
+            
             cache_data = {
-                'btc_3m': btc_3m.to_dict('records'),
-                'btc_1w': btc_1w.to_dict('records'),
-                'indicators_3m': indicators_3m,
-                'indicators_1w': indicators_1w,
+                'btc_3m': btc_3m_data,
+                'btc_1w': btc_1w_data,
+                'indicators_3m': indicators_3m_data,
+                'indicators_1w': indicators_1w_data,
                 'analysis': analysis
             }
             save_analysis_cache(cache_data)
@@ -213,14 +233,39 @@ def main():
         # Convert DataFrames back to proper format if loaded from cache
         if isinstance(btc_3m, list):
             btc_3m = pd.DataFrame(btc_3m)
+            # Convert date strings back to datetime index
+            if 'Date' in btc_3m.columns:
+                btc_3m['Date'] = pd.to_datetime(btc_3m['Date'])
+                btc_3m.set_index('Date', inplace=True)
+            elif btc_3m.index.dtype == 'object':
+                btc_3m.index = pd.to_datetime(btc_3m.index)
+        
         if isinstance(btc_1w, list):
             btc_1w = pd.DataFrame(btc_1w)
-            
-        # Ensure datetime index
-        if 'Date' in btc_3m.columns:
-            btc_3m.set_index('Date', inplace=True)
-        if 'Date' in btc_1w.columns:
-            btc_1w.set_index('Date', inplace=True)
+            # Convert date strings back to datetime index
+            if 'Date' in btc_1w.columns:
+                btc_1w['Date'] = pd.to_datetime(btc_1w['Date'])
+                btc_1w.set_index('Date', inplace=True)
+            elif btc_1w.index.dtype == 'object':
+                btc_1w.index = pd.to_datetime(btc_1w.index)
+        
+        # Ensure proper numeric data types
+        for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
+            if col in btc_3m.columns:
+                btc_3m[col] = pd.to_numeric(btc_3m[col], errors='coerce')
+            if col in btc_1w.columns:
+                btc_1w[col] = pd.to_numeric(btc_1w[col], errors='coerce')
+        
+        # Convert indicators back to proper format if they're dictionaries
+        if isinstance(indicators_3m, dict):
+            for key, value in indicators_3m.items():
+                if isinstance(value, list):
+                    indicators_3m[key] = pd.Series(value, index=btc_3m.index)
+        
+        if isinstance(indicators_1w, dict):
+            for key, value in indicators_1w.items():
+                if isinstance(value, list):
+                    indicators_1w[key] = pd.Series(value, index=btc_1w.index)
         
         # Chart Generation
         col1, col2 = st.columns(2, gap="medium")

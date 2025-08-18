@@ -20,7 +20,7 @@ st.set_page_config(
     page_title="Bitcoin Analysis Dashboard",
     page_icon="₿",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Initialize session state
@@ -65,26 +65,6 @@ def main():
     with st.sidebar:
         st.header("📊 Analysis Controls")
         
-        # Password protected refresh button
-        st.subheader("🔄 Manual Refresh")
-        refresh_password = st.text_input("Enter password to refresh:", type="password", key="refresh_pwd")
-        if st.button("🔄 Refresh Analysis", type="primary"):
-            if refresh_password == "bitcoin2025":
-                # Clear all caches including file cache
-                st.session_state.data_cache = {}
-                st.session_state.analysis_cache = {}
-                try:
-                    import os
-                    cache_file = "bitcoin_analysis_cache.json"
-                    if os.path.exists(cache_file):
-                        os.remove(cache_file)
-                except:
-                    pass
-                st.success("Analysis refreshed successfully!")
-                st.rerun()
-            else:
-                st.error("Incorrect password. Access denied.")
-        
         # Show next update time
         eastern_tz = pytz.timezone('US/Eastern')
         current_time = datetime.now(eastern_tz)
@@ -106,6 +86,28 @@ def main():
         st.subheader("⚙️ Settings")
         show_indicators = st.checkbox("Show Technical Indicators", value=True)
         show_volume = st.checkbox("Show Volume", value=True)
+        
+        st.divider()
+        
+        # Password protected refresh button (moved to bottom)
+        st.subheader("🔄 Manual Refresh")
+        refresh_password = st.text_input("Enter password to refresh:", type="password", key="refresh_pwd")
+        if st.button("🔄 Refresh Analysis", type="primary"):
+            if refresh_password == "bitcoin2025":
+                # Clear all caches including file cache
+                st.session_state.data_cache = {}
+                st.session_state.analysis_cache = {}
+                try:
+                    import os
+                    cache_file = "bitcoin_analysis_cache.json"
+                    if os.path.exists(cache_file):
+                        os.remove(cache_file)
+                except:
+                    pass
+                st.success("Analysis refreshed successfully!")
+                st.rerun()
+            else:
+                st.error("Incorrect password. Access denied.")
 
     # Initialize components
     data_fetcher = BitcoinDataFetcher()
@@ -130,7 +132,8 @@ def main():
             # Update session state with cached timestamp
             st.session_state.last_update = cache_timestamp
             
-            st.success("📊 Using cached analysis data")
+            cache_time_str = cache_timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            st.success(f"📊 Using cached analysis data from {cache_time_str} ET")
         else:
             # Fetch new data
             with st.spinner("📈 Fetching Bitcoin data..."):

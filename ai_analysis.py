@@ -192,12 +192,12 @@ class AIAnalyzer:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "You are a professional Bitcoin technical analyst with expertise in chart analysis and technical indicators."},
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=400
+                max_tokens=400
             )
             
             content = response.choices[0].message.content
@@ -231,12 +231,12 @@ class AIAnalyzer:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "You are a quantitative Bitcoin analyst specializing in probability-based price predictions using technical analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=500
+                max_tokens=500
             )
             
             content = response.choices[0].message.content
@@ -268,12 +268,12 @@ class AIAnalyzer:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "You are a cryptocurrency market analyst with expertise in macroeconomic factors and market sentiment analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=400
+                max_tokens=400
             )
             
             content = response.choices[0].message.content

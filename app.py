@@ -40,11 +40,17 @@ def main():
     with st.sidebar:
         st.header("📊 Analysis Controls")
         
-        # Manual refresh button
+        # Password protected refresh button
+        st.subheader("🔄 Manual Refresh")
+        refresh_password = st.text_input("Enter password to refresh:", type="password", key="refresh_pwd")
         if st.button("🔄 Refresh Analysis", type="primary"):
-            st.session_state.data_cache = {}
-            st.session_state.analysis_cache = {}
-            st.rerun()
+            if refresh_password == "bitcoin2025":
+                st.session_state.data_cache = {}
+                st.session_state.analysis_cache = {}
+                st.success("Analysis refreshed successfully!")
+                st.rerun()
+            else:
+                st.error("Incorrect password. Access denied.")
         
         # Show next update time
         eastern_tz = pytz.timezone('US/Eastern')
@@ -241,21 +247,53 @@ def main():
         st.divider()
         st.subheader("📋 Technical Indicators Summary")
         
-        # Create indicators comparison table
+        # Create indicators comparison table with sentiment analysis
         indicators_summary = []
         
         for timeframe, indicators, data in [("1 Week", indicators_1w, btc_1w), ("3 Month", indicators_3m, btc_3m)]:
             if indicators:
                 rsi_current = indicators.get('RSI', pd.Series()).iloc[-1] if 'RSI' in indicators else None
                 macd_current = indicators.get('MACD', pd.Series()).iloc[-1] if 'MACD' in indicators else None
-                bb_position = "Above Upper" if data['Close'].iloc[-1] > indicators.get('BB_Upper', pd.Series()).iloc[-1] else "Below Lower" if data['Close'].iloc[-1] < indicators.get('BB_Lower', pd.Series()).iloc[-1] else "Between Bands"
+                macd_signal = indicators.get('MACD_Signal', pd.Series()).iloc[-1] if 'MACD_Signal' in indicators else None
+                
+                # RSI sentiment
+                rsi_sentiment = "N/A"
+                if rsi_current is not None:
+                    if rsi_current < 30:
+                        rsi_sentiment = f"{rsi_current:.1f} (Oversold/Bullish)"
+                    elif rsi_current > 70:
+                        rsi_sentiment = f"{rsi_current:.1f} (Overbought/Bearish)"
+                    else:
+                        rsi_sentiment = f"{rsi_current:.1f} (Neutral)"
+                
+                # MACD sentiment
+                macd_sentiment = "N/A"
+                if macd_current is not None and macd_signal is not None:
+                    if macd_current > macd_signal:
+                        macd_sentiment = f"{macd_current:.2f} (Bullish)"
+                    else:
+                        macd_sentiment = f"{macd_current:.2f} (Bearish)"
+                
+                # Bollinger Bands sentiment
+                bb_upper = indicators.get('BB_Upper', pd.Series()).iloc[-1] if 'BB_Upper' in indicators else None
+                bb_lower = indicators.get('BB_Lower', pd.Series()).iloc[-1] if 'BB_Lower' in indicators else None
+                current_price = data['Close'].iloc[-1]
+                
+                bb_sentiment = "N/A"
+                if bb_upper is not None and bb_lower is not None:
+                    if current_price > bb_upper:
+                        bb_sentiment = "Above Upper (Overbought/Bearish)"
+                    elif current_price < bb_lower:
+                        bb_sentiment = "Below Lower (Oversold/Bullish)"
+                    else:
+                        bb_sentiment = "Between Bands (Neutral)"
                 
                 indicators_summary.append({
                     'Timeframe': timeframe,
-                    'RSI': f"{rsi_current:.1f}" if rsi_current else "N/A",
-                    'MACD': f"{macd_current:.2f}" if macd_current else "N/A",
-                    'Bollinger Position': bb_position,
-                    'EMA Trend': "Bullish" if data['Close'].iloc[-1] > indicators.get('EMA_20', pd.Series()).iloc[-1] else "Bearish"
+                    'RSI': rsi_sentiment,
+                    'MACD': macd_sentiment,
+                    'Bollinger Position': bb_sentiment,
+                    'EMA Trend': "Bullish" if current_price > indicators.get('EMA_20', pd.Series()).iloc[-1] else "Bearish"
                 })
         
         if indicators_summary:

@@ -259,21 +259,30 @@ def main():
         # Convert indicators back to proper format if they're dictionaries
         if isinstance(indicators_3m, dict):
             for key, value in indicators_3m.items():
-                if isinstance(value, list):
+                if isinstance(value, (list, str)):
+                    if isinstance(value, str):
+                        # Skip string representations, recalculate indicators instead
+                        continue
                     indicators_3m[key] = pd.Series(value, index=btc_3m.index)
         
         if isinstance(indicators_1w, dict):
             for key, value in indicators_1w.items():
-                if isinstance(value, list):
+                if isinstance(value, (list, str)):
+                    if isinstance(value, str):
+                        # Skip string representations, recalculate indicators instead  
+                        continue
                     indicators_1w[key] = pd.Series(value, index=btc_1w.index)
         
-        # Debug data structure (temporary)
-        st.write(f"**Data Debug Info:**")
-        st.write(f"btc_3m type: {type(btc_3m)}, shape: {btc_3m.shape if hasattr(btc_3m, 'shape') else 'N/A'}")
-        st.write(f"indicators_3m type: {type(indicators_3m)}")
-        if indicators_3m and isinstance(indicators_3m, dict):
-            for key, value in list(indicators_3m.items())[:3]:  # Show first 3 indicators
-                st.write(f"  {key}: {type(value)}")
+        # If indicators are corrupted, recalculate them
+        if (indicators_3m and any(isinstance(v, str) for v in indicators_3m.values())) or not indicators_3m:
+            with st.spinner("🔍 Recalculating 3-month technical indicators..."):
+                indicators_3m = technical_analyzer.calculate_all_indicators(btc_3m)
+        
+        if (indicators_1w and any(isinstance(v, str) for v in indicators_1w.values())) or not indicators_1w:
+            with st.spinner("🔍 Recalculating 1-week technical indicators..."):
+                indicators_1w = technical_analyzer.calculate_all_indicators(btc_1w)
+        
+
         
         # Chart Generation
         col1, col2 = st.columns(2, gap="medium")

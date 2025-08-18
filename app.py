@@ -55,187 +55,114 @@ def main():
         display: none !important;
     }
     
-    /* Fix any broken icon rendering */
-    [data-testid="stSidebarNav"] button {
-        font-family: "Source Sans Pro", sans-serif !important;
-    }
-    
-    /* Hide any broken material icons */
-    .material-icons-outlined {
+    /* Hide broken sidebar toggle completely */
+    [data-testid="collapsedControl"] {
         display: none !important;
     }
     
-    /* Fix sidebar expand button with broken icon */
-    [data-testid="collapsedControl"] {
-        font-family: "Source Sans Pro", sans-serif !important;
-    }
-    
-    /* Fix sidebar toggle button with more specific targeting */
-    [data-testid="collapsedControl"] {
-        position: relative !important;
-    }
-    
-    [data-testid="collapsedControl"] button {
-        width: 32px !important;
-        height: 32px !important;
-        border: none !important;
-        background: transparent !important;
-        padding: 0 !important;
+    /* Custom sidebar toggle button */
+    .custom-sidebar-toggle {
+        position: fixed !important;
+        top: 60px !important;
+        left: 10px !important;
+        z-index: 9999 !important;
+        background: #ffffff !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 4px !important;
+        width: 40px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
         cursor: pointer !important;
-        position: relative !important;
-        outline: none !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        transition: all 0.2s ease !important;
     }
     
-    /* Hide all text content inside the button */
-    [data-testid="collapsedControl"] button,
-    [data-testid="collapsedControl"] button *,
-    [data-testid="collapsedControl"] button span {
-        color: transparent !important;
-        font-size: 0 !important;
-        text-indent: -9999px !important;
-        overflow: hidden !important;
+    .custom-sidebar-toggle:hover {
+        background: #f8f9fa !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
     }
     
-    [data-testid="collapsedControl"] button::after {
-        content: "▶" !important;
-        position: absolute !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        font-size: 18px !important;
+    .sidebar-arrow {
+        font-size: 16px !important;
         color: #262730 !important;
         font-family: Arial, sans-serif !important;
-        text-indent: 0 !important;
-        display: block !important;
-        line-height: 1 !important;
-        z-index: 1000 !important;
+        transition: color 0.2s ease !important;
     }
     
-    [data-testid="collapsedControl"] button:hover::after {
+    .custom-sidebar-toggle:hover .sidebar-arrow {
         color: #FF4B4B !important;
-    }
-    
-    /* Brute force approach - hide any text containing keyboard */
-    *:contains("keyboard_double_arrow_right") {
-        font-size: 0 !important;
-        color: transparent !important;
-    }
-    
-    /* Replace with CSS content for any button */
-    button {
-        position: relative;
-    }
-    
-    button:empty::after {
-        content: "▶" !important;
-        position: absolute !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        font-size: 18px !important;
-        color: #262730 !important;
-        font-family: Arial, sans-serif !important;
     }
     </style>
     
     <script>
-    // More aggressive approach to fix sidebar button
-    function fixSidebarButton() {
-        // Method 1: Find by text content
-        const allButtons = document.querySelectorAll('button');
-        let found = false;
+    // Create custom sidebar toggle button
+    function createCustomSidebarToggle() {
+        // Remove existing custom toggle if it exists
+        const existingToggle = document.querySelector('.custom-sidebar-toggle');
+        if (existingToggle) {
+            existingToggle.remove();
+        }
         
-        allButtons.forEach(button => {
-            if (button.textContent && 
-                (button.textContent.includes('keyboard_double_arrow_right') || 
-                 button.textContent.includes('keyboard+double_arrow_right') ||
-                 button.innerHTML.includes('keyboard_double_arrow_right'))) {
+        // Create new toggle button
+        const toggleButton = document.createElement('div');
+        toggleButton.className = 'custom-sidebar-toggle';
+        toggleButton.innerHTML = '<span class="sidebar-arrow">▶</span>';
+        
+        // Add click functionality
+        toggleButton.addEventListener('click', function() {
+            const sidebar = document.querySelector('[data-testid="stSidebar"]');
+            const arrow = toggleButton.querySelector('.sidebar-arrow');
+            
+            if (sidebar) {
+                const isCollapsed = sidebar.style.marginLeft === '-21rem' || sidebar.style.marginLeft === '';
                 
-                console.log('Found broken button:', button);
-                button.innerHTML = '▶';
-                button.style.fontSize = '18px';
-                button.style.color = '#262730';
-                button.style.fontFamily = 'Arial, sans-serif';
-                button.style.display = 'flex';
-                button.style.alignItems = 'center';
-                button.style.justifyContent = 'center';
-                button.style.width = '32px';
-                button.style.height = '32px';
-                button.style.border = 'none';
-                button.style.background = 'transparent';
-                button.style.cursor = 'pointer';
-                found = true;
-            }
-        });
-        
-        // Method 2: Target by common sidebar button attributes
-        const sidebarButtons = document.querySelectorAll('[data-testid="collapsedControl"] button, button[aria-label*="sidebar"], button[title*="sidebar"]');
-        sidebarButtons.forEach(button => {
-            if (button.textContent.trim() === 'keyboard_double_arrow_right' || 
-                button.textContent.includes('keyboard')) {
-                button.innerHTML = '▶';
-                button.style.fontSize = '18px';
-                button.style.color = '#262730';
-                button.style.fontFamily = 'Arial, sans-serif';
-                found = true;
-            }
-        });
-        
-        // Method 3: Find any element containing the broken text and replace it
-        const walker = document.createTreeWalker(
-            document.body,
-            NodeFilter.SHOW_TEXT,
-            null,
-            false
-        );
-        
-        let node;
-        while (node = walker.nextNode()) {
-            if (node.textContent && node.textContent.includes('keyboard_double_arrow_right')) {
-                const parent = node.parentElement;
-                if (parent && parent.tagName === 'BUTTON') {
-                    parent.innerHTML = '▶';
-                    parent.style.fontSize = '18px';
-                    parent.style.color = '#262730';
-                    parent.style.fontFamily = 'Arial, sans-serif';
-                    found = true;
+                if (isCollapsed) {
+                    // Show sidebar
+                    sidebar.style.marginLeft = '0rem';
+                    sidebar.style.transition = 'margin-left 0.3s ease';
+                    arrow.innerHTML = '◀';
+                } else {
+                    // Hide sidebar
+                    sidebar.style.marginLeft = '-21rem';
+                    sidebar.style.transition = 'margin-left 0.3s ease';
+                    arrow.innerHTML = '▶';
                 }
             }
-        }
+        });
         
-        if (found) {
-            console.log('Fixed sidebar button with arrow');
+        // Add to page
+        document.body.appendChild(toggleButton);
+    }
+    
+    // Initialize custom sidebar
+    function initCustomSidebar() {
+        createCustomSidebarToggle();
+        
+        // Initially hide the sidebar
+        const sidebar = document.querySelector('[data-testid="stSidebar"]');
+        if (sidebar) {
+            sidebar.style.marginLeft = '-21rem';
+            sidebar.style.transition = 'margin-left 0.3s ease';
         }
     }
     
-    // Run fix multiple times with different delays
-    function runFixes() {
-        fixSidebarButton();
-        setTimeout(fixSidebarButton, 100);
-        setTimeout(fixSidebarButton, 300);
-        setTimeout(fixSidebarButton, 500);
-        setTimeout(fixSidebarButton, 1000);
-        setTimeout(fixSidebarButton, 2000);
-    }
+    // Run initialization
+    setTimeout(initCustomSidebar, 100);
+    setTimeout(initCustomSidebar, 500);
+    setTimeout(initCustomSidebar, 1000);
     
-    // Initial run
-    runFixes();
-    
-    // Run when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', runFixes);
-    }
-    
-    // Run on any changes to the page
+    // Re-create toggle on page changes
     const observer = new MutationObserver(function(mutations) {
-        let shouldFix = false;
+        let shouldInit = false;
         mutations.forEach(function(mutation) {
             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                shouldFix = true;
+                shouldInit = true;
             }
         });
-        if (shouldFix) {
-            setTimeout(fixSidebarButton, 50);
+        if (shouldInit) {
+            setTimeout(createCustomSidebarToggle, 100);
         }
     });
     
@@ -243,9 +170,6 @@ def main():
         childList: true,
         subtree: true
     });
-    
-    // Also run periodically as a backup
-    setInterval(fixSidebarButton, 3000);
     </script>
     """, unsafe_allow_html=True)
     

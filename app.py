@@ -54,6 +54,41 @@ def main():
     .katex {
         display: none !important;
     }
+    
+    /* Fix any broken icon rendering */
+    [data-testid="stSidebarNav"] button {
+        font-family: "Source Sans Pro", sans-serif !important;
+    }
+    
+    /* Hide any broken material icons */
+    .material-icons-outlined {
+        display: none !important;
+    }
+    
+    /* Fix broken icon text */
+    *:contains("keyboard+double_arrow_right") {
+        display: none !important;
+    }
+    
+    /* Fix sidebar collapse/expand button */
+    [data-testid="collapsedControl"] {
+        font-family: "Source Sans Pro", sans-serif !important;
+    }
+    
+    [data-testid="stSidebar"] button[kind="icon"] {
+        font-family: "Source Sans Pro", sans-serif !important;
+    }
+    
+    /* Replace broken arrow icons with simple text */
+    button[aria-label*="Open sidebar"] {
+        font-size: 0 !important;
+    }
+    
+    button[aria-label*="Open sidebar"]:after {
+        content: "☰" !important;
+        font-size: 20px !important;
+        font-family: "Source Sans Pro", sans-serif !important;
+    }
     </style>
     """, unsafe_allow_html=True)
     

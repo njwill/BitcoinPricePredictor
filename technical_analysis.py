@@ -27,11 +27,11 @@ class TechnicalAnalyzer:
             
             indicators = {}
             
-            # Convert to numpy arrays for talib
-            high = data['High'].values
-            low = data['Low'].values
-            close = data['Close'].values
-            volume = data['Volume'].values
+            # Convert to numpy arrays for talib with proper data types
+            high = data['High'].values.astype(np.float64)
+            low = data['Low'].values.astype(np.float64)
+            close = data['Close'].values.astype(np.float64)
+            volume = data['Volume'].values.astype(np.float64)
             
             # Moving Averages
             indicators.update(self._calculate_moving_averages(close))
@@ -79,19 +79,22 @@ class TechnicalAnalyzer:
         indicators = {}
         
         try:
+            # Ensure proper data type
+            close_float = close.astype(np.float64)
+            
             # Simple Moving Averages
             for period in [10, 20, 50, 200]:
-                if len(close) >= period:
-                    indicators[f'SMA_{period}'] = talib.SMA(close, timeperiod=period)
+                if len(close_float) >= period:
+                    indicators[f'SMA_{period}'] = talib.SMA(close_float, timeperiod=period)
             
             # Exponential Moving Averages
             for period in [12, 20, 26, 50]:
-                if len(close) >= period:
-                    indicators[f'EMA_{period}'] = talib.EMA(close, timeperiod=period)
+                if len(close_float) >= period:
+                    indicators[f'EMA_{period}'] = talib.EMA(close_float, timeperiod=period)
             
             # Weighted Moving Average
-            if len(close) >= 14:
-                indicators['WMA_14'] = talib.WMA(close, timeperiod=14)
+            if len(close_float) >= 14:
+                indicators['WMA_14'] = talib.WMA(close_float, timeperiod=14)
             
         except Exception as e:
             st.warning(f"Error calculating moving averages: {str(e)}")
@@ -103,9 +106,12 @@ class TechnicalAnalyzer:
         indicators = {}
         
         try:
-            if len(close) >= 20:
+            # Ensure proper data type
+            close_float = close.astype(np.float64)
+            
+            if len(close_float) >= 20:
                 bb_upper, bb_middle, bb_lower = talib.BBANDS(
-                    close, timeperiod=20, nbdevup=2, nbdevdn=2, matype=0
+                    close_float, timeperiod=20, nbdevup=2, nbdevdn=2, matype=0
                 )
                 indicators['BB_Upper'] = bb_upper
                 indicators['BB_Middle'] = bb_middle
@@ -115,7 +121,7 @@ class TechnicalAnalyzer:
                 indicators['BB_Width'] = (bb_upper - bb_lower) / bb_middle
                 
                 # Bollinger Band %B
-                indicators['BB_PercentB'] = (close - bb_lower) / (bb_upper - bb_lower)
+                indicators['BB_PercentB'] = (close_float - bb_lower) / (bb_upper - bb_lower)
                 
         except Exception as e:
             st.warning(f"Error calculating Bollinger Bands: {str(e)}")
@@ -127,12 +133,15 @@ class TechnicalAnalyzer:
         indicators = {}
         
         try:
-            if len(close) >= 14:
-                indicators['RSI'] = talib.RSI(close, timeperiod=14)
+            # Ensure proper data type
+            close_float = close.astype(np.float64)
+            
+            if len(close_float) >= 14:
+                indicators['RSI'] = talib.RSI(close_float, timeperiod=14)
                 
                 # RSI with different periods
-                if len(close) >= 21:
-                    indicators['RSI_21'] = talib.RSI(close, timeperiod=21)
+                if len(close_float) >= 21:
+                    indicators['RSI_21'] = talib.RSI(close_float, timeperiod=21)
                 
         except Exception as e:
             st.warning(f"Error calculating RSI: {str(e)}")
@@ -144,9 +153,12 @@ class TechnicalAnalyzer:
         indicators = {}
         
         try:
-            if len(close) >= 34:  # Need at least 34 periods for MACD
+            # Ensure proper data type
+            close_float = close.astype(np.float64)
+            
+            if len(close_float) >= 34:  # Need at least 34 periods for MACD
                 macd, macd_signal, macd_histogram = talib.MACD(
-                    close, fastperiod=12, slowperiod=26, signalperiod=9
+                    close_float, fastperiod=12, slowperiod=26, signalperiod=9
                 )
                 indicators['MACD'] = macd
                 indicators['MACD_Signal'] = macd_signal
@@ -162,9 +174,14 @@ class TechnicalAnalyzer:
         indicators = {}
         
         try:
-            if len(close) >= 14:
+            # Ensure proper data types
+            high_float = high.astype(np.float64)
+            low_float = low.astype(np.float64)
+            close_float = close.astype(np.float64)
+            
+            if len(close_float) >= 14:
                 slowk, slowd = talib.STOCH(
-                    high, low, close,
+                    high_float, low_float, close_float,
                     fastk_period=14, slowk_period=3, slowk_matype=0,
                     slowd_period=3, slowd_matype=0
                 )
@@ -181,8 +198,13 @@ class TechnicalAnalyzer:
         indicators = {}
         
         try:
-            if len(close) >= 14:
-                indicators['ATR'] = talib.ATR(high, low, close, timeperiod=14)
+            # Ensure proper data types
+            high_float = high.astype(np.float64)
+            low_float = low.astype(np.float64)
+            close_float = close.astype(np.float64)
+            
+            if len(close_float) >= 14:
+                indicators['ATR'] = talib.ATR(high_float, low_float, close_float, timeperiod=14)
                 
         except Exception as e:
             st.warning(f"Error calculating ATR: {str(e)}")
@@ -194,8 +216,13 @@ class TechnicalAnalyzer:
         indicators = {}
         
         try:
-            if len(close) >= 14:
-                indicators['WILLR'] = talib.WILLR(high, low, close, timeperiod=14)
+            # Ensure proper data types
+            high_float = high.astype(np.float64)
+            low_float = low.astype(np.float64)
+            close_float = close.astype(np.float64)
+            
+            if len(close_float) >= 14:
+                indicators['WILLR'] = talib.WILLR(high_float, low_float, close_float, timeperiod=14)
                 
         except Exception as e:
             st.warning(f"Error calculating Williams %R: {str(e)}")
@@ -207,8 +234,13 @@ class TechnicalAnalyzer:
         indicators = {}
         
         try:
-            if len(close) >= 14:
-                indicators['CCI'] = talib.CCI(high, low, close, timeperiod=14)
+            # Ensure proper data types
+            high_float = high.astype(np.float64)
+            low_float = low.astype(np.float64)
+            close_float = close.astype(np.float64)
+            
+            if len(close_float) >= 14:
+                indicators['CCI'] = talib.CCI(high_float, low_float, close_float, timeperiod=14)
                 
         except Exception as e:
             st.warning(f"Error calculating CCI: {str(e)}")
@@ -222,17 +254,21 @@ class TechnicalAnalyzer:
         
         try:
             if len(close) >= 20:
+                # Ensure data types are correct for TA-Lib
+                close_float = close.astype(np.float64)
+                volume_float = volume.astype(np.float64)
+                
                 # On Balance Volume
-                indicators['OBV'] = talib.OBV(close, volume)
+                indicators['OBV'] = talib.OBV(close_float, volume_float)
                 
                 # Volume SMA
-                indicators['Volume_SMA'] = talib.SMA(volume, timeperiod=20)
+                indicators['Volume_SMA'] = talib.SMA(volume_float, timeperiod=20)
                 
                 # Price Volume Trend
                 if len(close) >= 1:
-                    pct_change = np.zeros(len(close))
-                    pct_change[1:] = (close[1:] - close[:-1]) / close[:-1]
-                    indicators['PVT'] = np.cumsum(volume * pct_change)
+                    pct_change = np.zeros(len(close), dtype=np.float64)
+                    pct_change[1:] = (close_float[1:] - close_float[:-1]) / close_float[:-1]
+                    indicators['PVT'] = np.cumsum(volume_float * pct_change)
                 
         except Exception as e:
             st.warning(f"Error calculating volume indicators: {str(e)}")

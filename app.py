@@ -70,31 +70,54 @@ def main():
         font-family: "Source Sans Pro", sans-serif !important;
     }
     
-    /* Hide the broken keyboard+double_arrow_right text and replace with proper arrow */
-    button:contains("keyboard+double_arrow_right") {
+    /* Fix sidebar toggle button - hide broken text and replace with arrow */
+    [data-testid="collapsedControl"] button {
         font-size: 0 !important;
-        text-indent: -9999px !important;
+        color: transparent !important;
+        background: transparent !important;
+        border: none !important;
+        position: relative !important;
+        width: 32px !important;
+        height: 32px !important;
     }
     
-    button:contains("keyboard+double_arrow_right"):before {
+    [data-testid="collapsedControl"] button::before {
         content: "▶" !important;
-        font-size: 16px !important;
+        font-size: 18px !important;
+        color: #262730 !important;
+        position: absolute !important;
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
         font-family: "Source Sans Pro", sans-serif !important;
-        text-indent: 0 !important;
-        display: inline-block !important;
-        width: auto !important;
-        height: auto !important;
     }
     
-    /* Alternative approach - target by aria-label if available */
-    button[aria-label*="Open sidebar"] {
+    /* Also target any span or text inside the button */
+    [data-testid="collapsedControl"] button span,
+    [data-testid="collapsedControl"] button * {
         font-size: 0 !important;
+        color: transparent !important;
+        display: none !important;
     }
     
-    button[aria-label*="Open sidebar"]:before {
-        content: "▶" !important;
-        font-size: 16px !important;
-        font-family: "Source Sans Pro", sans-serif !important;
+    /* Hover effect for the sidebar toggle */
+    [data-testid="collapsedControl"] button:hover::before {
+        color: #FF4B4B !important;
+        transform: translate(-50%, -50%) scale(1.1) !important;
+    }
+    
+    /* When sidebar is open, show left arrow */
+    [data-testid="stSidebar"] [data-testid="stSidebarNav"] button::before {
+        content: "◀" !important;
+        font-size: 18px !important;
+        color: #262730 !important;
+    }
+    
+    [data-testid="stSidebar"] [data-testid="stSidebarNav"] button:hover::before {
+        color: #FF4B4B !important;
     }
     </style>
     """, unsafe_allow_html=True)

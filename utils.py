@@ -315,6 +315,98 @@ def safe_division(numerator: float, denominator: float, default: float = 0.0) ->
     except (ValueError, TypeError, ZeroDivisionError):
         return default
 
+def should_update_analysis(last_update_time: Optional[datetime] = None) -> bool:
+    """
+    Check if analysis should be updated based on weekly schedule
+    Updates only on Mondays at 9:30 AM ET or later
+    
+    Args:
+        last_update_time: Last update timestamp
+        
+    Returns:
+        bool: True if analysis should be updated
+    """
+    try:
+        current_time = get_eastern_time()
+        
+        # If no previous update, allow update
+        if last_update_time is None:
+            return True
+        
+        # Calculate next scheduled update time (next Monday 9:30 AM after last update)
+        days_since_monday = last_update_time.weekday()
+        next_monday = last_update_time + timedelta(days=(7 - days_since_monday))
+        next_update_time = next_monday.replace(hour=9, minute=30, second=0, microsecond=0)
+        
+        # Allow update if current time is past the next scheduled update
+        return current_time >= next_update_time
+        
+    except Exception as e:
+        st.warning(f"Error checking update schedule: {str(e)}")
+        return False
+
+def get_cache_file_path() -> str:
+    """Get path for cache file"""
+    return "bitcoin_analysis_cache.json"
+
+def save_analysis_cache(data: dict) -> None:
+    """
+    Save analysis data to cache file with timestamp
+    
+    Args:
+        data: Dictionary containing analysis data
+    """
+    try:
+        import json
+        
+        cache_data = {
+            'timestamp': get_eastern_time().isoformat(),
+            'data': data
+        }
+        
+        with open(get_cache_file_path(), 'w') as f:
+            json.dump(cache_data, f, indent=2, default=str)
+            
+    except Exception as e:
+        st.warning(f"Error saving cache: {str(e)}")
+
+def load_analysis_cache() -> tuple[Optional[dict], Optional[datetime]]:
+    """
+    Load analysis data from cache file
+    
+    Returns:
+        tuple: (cached_data, timestamp) or (None, None) if no valid cache
+    """
+    try:
+        import json
+        import os
+        
+        cache_file = get_cache_file_path()
+        
+        if not os.path.exists(cache_file):
+            return None, None
+            
+        with open(cache_file, 'r') as f:
+            cache_data = json.load(f)
+            
+        # Parse timestamp
+        from datetime import datetime
+        timestamp_str = cache_data.get('timestamp')
+        if timestamp_str:
+            timestamp = datetime.fromisoformat(timestamp_str)
+        else:
+            return None, None
+            
+        # Check if cache is still valid (within a week)
+        if should_update_analysis(timestamp):
+            return None, None
+            
+        return cache_data.get('data'), timestamp
+        
+    except Exception as e:
+        st.warning(f"Error loading cache: {str(e)}")
+        return None, None
+
 def create_error_message(error: Exception, context: str = "operation") -> str:
     """
     Create user-friendly error messages

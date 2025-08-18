@@ -13,7 +13,7 @@ from chart_generator import ChartGenerator
 from technical_analysis import TechnicalAnalyzer
 from ai_analysis import AIAnalyzer
 from scheduler import ScheduleManager
-from utils import format_currency, get_eastern_time, calculate_time_until_update
+from utils import format_currency, get_eastern_time, calculate_time_until_update, should_update_analysis, save_analysis_cache, load_analysis_cache
 
 # Configure page
 st.set_page_config(
@@ -70,8 +70,16 @@ def main():
         refresh_password = st.text_input("Enter password to refresh:", type="password", key="refresh_pwd")
         if st.button("🔄 Refresh Analysis", type="primary"):
             if refresh_password == "bitcoin2025":
+                # Clear all caches including file cache
                 st.session_state.data_cache = {}
                 st.session_state.analysis_cache = {}
+                try:
+                    import os
+                    cache_file = "bitcoin_analysis_cache.json"
+                    if os.path.exists(cache_file):
+                        os.remove(cache_file)
+                except:
+                    pass
                 st.success("Analysis refreshed successfully!")
                 st.rerun()
             else:
@@ -107,16 +115,65 @@ def main():
     
     # Main content area
     try:
-        # Data fetching with caching
-        with st.spinner("📈 Fetching Bitcoin data..."):
-            if 'btc_3m' not in st.session_state.data_cache:
+        # Check if we need to load from file cache or update data
+        cached_analysis, cache_timestamp = load_analysis_cache()
+        
+        # Determine if we should use cached data or fetch new data
+        if cached_analysis and cache_timestamp and not should_update_analysis(cache_timestamp):
+            # Use cached data
+            btc_3m = pd.DataFrame(cached_analysis['btc_3m'])
+            btc_1w = pd.DataFrame(cached_analysis['btc_1w'])
+            indicators_3m = cached_analysis['indicators_3m']
+            indicators_1w = cached_analysis['indicators_1w']
+            analysis = cached_analysis['analysis']
+            
+            # Update session state with cached timestamp
+            st.session_state.last_update = cache_timestamp
+            
+            st.success("📊 Using cached analysis data")
+        else:
+            # Fetch new data
+            with st.spinner("📈 Fetching Bitcoin data..."):
                 btc_3m = data_fetcher.get_bitcoin_data(period='3mo')
                 btc_1w = data_fetcher.get_bitcoin_data(period='1wk')
-                st.session_state.data_cache['btc_3m'] = btc_3m
-                st.session_state.data_cache['btc_1w'] = btc_1w
-            else:
-                btc_3m = st.session_state.data_cache['btc_3m']
-                btc_1w = st.session_state.data_cache['btc_1w']
+            
+            if btc_3m.empty or btc_1w.empty:
+                st.error("❌ Failed to fetch Bitcoin data. Please try again later.")
+                return
+            
+            # Calculate technical indicators
+            with st.spinner("🔍 Calculating technical indicators..."):
+                indicators_3m = technical_analyzer.calculate_all_indicators(btc_3m)
+                indicators_1w = technical_analyzer.calculate_all_indicators(btc_1w)
+            
+            # Generate AI analysis
+            with st.spinner("🤖 Generating AI analysis..."):
+                analysis_key = f"analysis_{datetime.now().strftime('%Y%m%d')}"
+                
+                if analysis_key not in st.session_state.analysis_cache:
+                    analysis = ai_analyzer.generate_comprehensive_analysis(
+                        btc_data_3m=btc_3m,
+                        btc_data_1w=btc_1w,
+                        indicators_3m=indicators_3m,
+                        indicators_1w=indicators_1w
+                    )
+                    st.session_state.analysis_cache[analysis_key] = analysis
+                else:
+                    analysis = st.session_state.analysis_cache[analysis_key]
+            
+            # Save to file cache
+            current_time = get_eastern_time()
+            cache_data = {
+                'btc_3m': btc_3m.to_dict('records'),
+                'btc_1w': btc_1w.to_dict('records'),
+                'indicators_3m': indicators_3m,
+                'indicators_1w': indicators_1w,
+                'analysis': analysis
+            }
+            save_analysis_cache(cache_data)
+            
+            # Update session state timestamp
+            st.session_state.last_update = current_time
         
         if btc_3m.empty or btc_1w.empty:
             st.error("❌ Failed to fetch Bitcoin data. Please try again later.")
@@ -151,10 +208,17 @@ def main():
         
         st.divider()
         
-        # Technical Analysis
-        with st.spinner("🔍 Calculating technical indicators..."):
-            indicators_3m = technical_analyzer.calculate_all_indicators(btc_3m)
-            indicators_1w = technical_analyzer.calculate_all_indicators(btc_1w)
+        # Convert DataFrames back to proper format if loaded from cache
+        if isinstance(btc_3m, list):
+            btc_3m = pd.DataFrame(btc_3m)
+        if isinstance(btc_1w, list):
+            btc_1w = pd.DataFrame(btc_1w)
+            
+        # Ensure datetime index
+        if 'Date' in btc_3m.columns:
+            btc_3m.set_index('Date', inplace=True)
+        if 'Date' in btc_1w.columns:
+            btc_1w.set_index('Date', inplace=True)
         
         # Chart Generation
         col1, col2 = st.columns(2, gap="medium")
@@ -188,22 +252,6 @@ def main():
         # AI Analysis Section
         st.header("🤖 AI-Powered Analysis")
         st.markdown("<br>", unsafe_allow_html=True)
-        
-        # Generate AI analysis with caching
-        analysis_key = f"analysis_{current_time.strftime('%Y-%m-%d')}"
-        
-        if analysis_key not in st.session_state.analysis_cache:
-            with st.spinner("🧠 Generating AI analysis..."):
-                try:
-                    analysis = ai_analyzer.generate_comprehensive_analysis(
-                        btc_3m, btc_1w, indicators_3m, indicators_1w, current_price
-                    )
-                    st.session_state.analysis_cache[analysis_key] = analysis
-                except Exception as e:
-                    st.error(f"❌ AI Analysis failed: {str(e)}")
-                    return
-        else:
-            analysis = st.session_state.analysis_cache[analysis_key]
         
         # Display AI Analysis Results
         if analysis:

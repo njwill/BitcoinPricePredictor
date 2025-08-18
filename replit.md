@@ -17,6 +17,10 @@ Preferred communication style: Simple, everyday language.
 - Enhanced chart height and margins for better visibility
 - Added consistent font formatting for AI analysis text with proper line spacing
 - Fixed data type conversion issues in technical analysis calculations
+- Implemented proper weekly caching system with file-based persistence
+- Added password protection ("bitcoin2025") for manual refresh button
+- Enhanced technical indicators with clear bullish/bearish/neutral signals
+- Fixed font consistency issues and prevented KaTeX rendering conflicts
 
 ## System Architecture
 

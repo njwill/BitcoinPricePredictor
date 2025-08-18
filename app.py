@@ -54,9 +54,11 @@ def main():
         st.info(f"⏰ Next Update: {next_update}")
         
         # Show last analysis time
-        if st.session_state.last_update:
+        if 'last_update' in st.session_state and st.session_state.last_update:
             last_update_str = st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')
             st.info(f"📊 Last Analysis: {last_update_str} ET")
+        else:
+            st.info("📊 Last Analysis: Not yet performed")
         
         # Show current time
         st.write(f"**Current ET:** {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -178,21 +180,15 @@ def main():
             
             with col1:
                 st.subheader("📝 Technical Analysis Summary")
-                st.markdown("<div style='font-family: inherit; font-size: inherit; line-height: 1.6;'>{}</div>".format(
-                    analysis.get('technical_summary', 'Analysis not available').replace('\n', '<br>')
-                ), unsafe_allow_html=True)
+                st.markdown(analysis.get('technical_summary', 'Analysis not available'))
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.subheader("🎯 Friday 4PM ET Price Prediction")
-                st.markdown("<div style='font-family: inherit; font-size: inherit; line-height: 1.6;'>{}</div>".format(
-                    analysis.get('price_prediction', 'Prediction not available').replace('\n', '<br>')
-                ), unsafe_allow_html=True)
+                st.markdown(analysis.get('price_prediction', 'Prediction not available'))
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.subheader("📰 Market Sentiment & Key Events")
-                st.markdown("<div style='font-family: inherit; font-size: inherit; line-height: 1.6;'>{}</div>".format(
-                    analysis.get('market_sentiment', 'Sentiment analysis not available').replace('\n', '<br>')
-                ), unsafe_allow_html=True)
+                st.markdown(analysis.get('market_sentiment', 'Sentiment analysis not available'))
             
             with col2:
                 st.subheader("📊 Probability Assessment")

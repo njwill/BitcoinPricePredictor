@@ -32,6 +32,31 @@ if 'analysis_cache' not in st.session_state:
     st.session_state.analysis_cache = {}
 
 def main():
+    # Add custom CSS for consistent fonts
+    st.markdown("""
+    <style>
+    /* Force consistent font family throughout */
+    .stApp, .stApp * {
+        font-family: "Source Sans Pro", sans-serif !important;
+    }
+    
+    /* Specifically target markdown and text elements */
+    .stMarkdown, .stMarkdown p, .stMarkdown div, .stMarkdown span {
+        font-family: "Source Sans Pro", sans-serif !important;
+    }
+    
+    /* Technical indicators table styling */
+    .stDataFrame, .stDataFrame * {
+        font-family: "Source Sans Pro", sans-serif !important;
+    }
+    
+    /* Disable KaTeX rendering for certain symbols */
+    .katex {
+        display: none !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Header
     st.title("₿ Bitcoin Analysis Dashboard")
     st.markdown("### Automated Weekly Bitcoin Chart Analysis & Probability Assessments")
@@ -260,19 +285,19 @@ def main():
                 rsi_sentiment = "N/A"
                 if rsi_current is not None:
                     if rsi_current < 30:
-                        rsi_sentiment = f"{rsi_current:.1f} (Oversold/Bullish)"
+                        rsi_sentiment = f"{rsi_current:.1f} - Oversold/Bullish"
                     elif rsi_current > 70:
-                        rsi_sentiment = f"{rsi_current:.1f} (Overbought/Bearish)"
+                        rsi_sentiment = f"{rsi_current:.1f} - Overbought/Bearish"
                     else:
-                        rsi_sentiment = f"{rsi_current:.1f} (Neutral)"
+                        rsi_sentiment = f"{rsi_current:.1f} - Neutral"
                 
                 # MACD sentiment
                 macd_sentiment = "N/A"
                 if macd_current is not None and macd_signal is not None:
                     if macd_current > macd_signal:
-                        macd_sentiment = f"{macd_current:.2f} (Bullish)"
+                        macd_sentiment = f"{macd_current:.2f} - Bullish"
                     else:
-                        macd_sentiment = f"{macd_current:.2f} (Bearish)"
+                        macd_sentiment = f"{macd_current:.2f} - Bearish"
                 
                 # Bollinger Bands sentiment
                 bb_upper = indicators.get('BB_Upper', pd.Series()).iloc[-1] if 'BB_Upper' in indicators else None
@@ -282,11 +307,11 @@ def main():
                 bb_sentiment = "N/A"
                 if bb_upper is not None and bb_lower is not None:
                     if current_price > bb_upper:
-                        bb_sentiment = "Above Upper (Overbought/Bearish)"
+                        bb_sentiment = "Above Upper - Overbought/Bearish"
                     elif current_price < bb_lower:
-                        bb_sentiment = "Below Lower (Oversold/Bullish)"
+                        bb_sentiment = "Below Lower - Oversold/Bullish"
                     else:
-                        bb_sentiment = "Between Bands (Neutral)"
+                        bb_sentiment = "Between Bands - Neutral"
                 
                 indicators_summary.append({
                     'Timeframe': timeframe,

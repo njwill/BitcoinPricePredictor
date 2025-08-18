@@ -37,6 +37,25 @@ class ChartGenerator:
             plotly.graph_objects.Figure
         """
         try:
+            # Ensure data is a proper DataFrame
+            if not isinstance(data, pd.DataFrame):
+                st.error("Invalid data format for chart generation")
+                return self._create_empty_chart(title)
+            
+            # Ensure indicators are properly formatted
+            if indicators:
+                for key, value in indicators.items():
+                    if isinstance(value, str):
+                        # Convert string representation back to array
+                        try:
+                            # This is a fallback - ideally shouldn't happen
+                            indicators[key] = pd.Series(data['Close'].values * 0)  # Create empty series same length
+                        except:
+                            indicators[key] = []
+                    elif isinstance(value, list):
+                        indicators[key] = pd.Series(value, index=data.index)
+                    elif not isinstance(value, pd.Series):
+                        indicators[key] = pd.Series(value, index=data.index)
             # Calculate number of subplots
             subplot_count = 1  # Main price chart
             subplot_titles = [title]
@@ -211,7 +230,25 @@ class ChartGenerator:
             
         except Exception as e:
             st.error(f"Error creating chart: {str(e)}")
-            return go.Figure()
+            return self._create_empty_chart(title)
+    
+    def _create_empty_chart(self, title):
+        """Create an empty chart as fallback"""
+        fig = go.Figure()
+        fig.update_layout(
+            title=f"{title} - Error",
+            xaxis_title="Date",
+            yaxis_title="Price (USD)",
+            height=600,
+            showlegend=False
+        )
+        fig.add_annotation(
+            text="Chart data unavailable",
+            xref="paper", yref="paper",
+            x=0.5, y=0.5, xanchor='center', yanchor='middle',
+            font=dict(size=16, color="gray")
+        )
+        return fig
     
     def create_price_prediction_chart(self, historical_data, prediction_data, confidence_intervals=None):
         """

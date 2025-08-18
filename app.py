@@ -267,32 +267,46 @@ def main():
                 if isinstance(value, list):
                     indicators_1w[key] = pd.Series(value, index=btc_1w.index)
         
+        # Debug data structure (temporary)
+        st.write(f"**Data Debug Info:**")
+        st.write(f"btc_3m type: {type(btc_3m)}, shape: {btc_3m.shape if hasattr(btc_3m, 'shape') else 'N/A'}")
+        st.write(f"indicators_3m type: {type(indicators_3m)}")
+        if indicators_3m and isinstance(indicators_3m, dict):
+            for key, value in list(indicators_3m.items())[:3]:  # Show first 3 indicators
+                st.write(f"  {key}: {type(value)}")
+        
         # Chart Generation
         col1, col2 = st.columns(2, gap="medium")
         
         with col1:
             st.subheader("📈 3-Month Bitcoin Chart")
             st.markdown("<br>", unsafe_allow_html=True)
-            fig_3m = chart_generator.create_comprehensive_chart(
-                btc_3m, 
-                indicators_3m, 
-                title="Bitcoin - 3 Month Analysis",
-                show_indicators=show_indicators,
-                show_volume=show_volume
-            )
-            st.plotly_chart(fig_3m, use_container_width=True)
+            try:
+                fig_3m = chart_generator.create_comprehensive_chart(
+                    btc_3m, 
+                    indicators_3m, 
+                    title="Bitcoin - 3 Month Analysis",
+                    show_indicators=show_indicators,
+                    show_volume=show_volume
+                )
+                st.plotly_chart(fig_3m, use_container_width=True)
+            except Exception as e:
+                st.error(f"Chart error: {str(e)}")
         
         with col2:
             st.subheader("📊 1-Week Bitcoin Chart")
             st.markdown("<br>", unsafe_allow_html=True)
-            fig_1w = chart_generator.create_comprehensive_chart(
-                btc_1w, 
-                indicators_1w, 
-                title="Bitcoin - 1 Week Analysis",
-                show_indicators=show_indicators,
-                show_volume=show_volume
-            )
-            st.plotly_chart(fig_1w, use_container_width=True)
+            try:
+                fig_1w = chart_generator.create_comprehensive_chart(
+                    btc_1w, 
+                    indicators_1w, 
+                    title="Bitcoin - 1 Week Analysis",
+                    show_indicators=show_indicators,
+                    show_volume=show_volume
+                )
+                st.plotly_chart(fig_1w, use_container_width=True)
+            except Exception as e:
+                st.error(f"Chart error: {str(e)}")
         
         st.divider()
         

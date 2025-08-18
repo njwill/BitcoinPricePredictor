@@ -70,56 +70,127 @@ def main():
         font-family: "Source Sans Pro", sans-serif !important;
     }
     
-    /* Fix sidebar toggle button - hide broken text and replace with arrow */
-    [data-testid="collapsedControl"] button {
-        font-size: 0 !important;
-        color: transparent !important;
-        background: transparent !important;
-        border: none !important;
+    /* Fix sidebar toggle button with more specific targeting */
+    [data-testid="collapsedControl"] {
         position: relative !important;
+    }
+    
+    [data-testid="collapsedControl"] button {
         width: 32px !important;
         height: 32px !important;
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        cursor: pointer !important;
+        position: relative !important;
+        outline: none !important;
     }
     
-    [data-testid="collapsedControl"] button::before {
-        content: "▶" !important;
-        font-size: 18px !important;
-        color: #262730 !important;
-        position: absolute !important;
-        left: 50% !important;
-        top: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-family: "Source Sans Pro", sans-serif !important;
-    }
-    
-    /* Also target any span or text inside the button */
-    [data-testid="collapsedControl"] button span,
-    [data-testid="collapsedControl"] button * {
-        font-size: 0 !important;
+    /* Hide all text content inside the button */
+    [data-testid="collapsedControl"] button,
+    [data-testid="collapsedControl"] button *,
+    [data-testid="collapsedControl"] button span {
         color: transparent !important;
-        display: none !important;
+        font-size: 0 !important;
+        text-indent: -9999px !important;
+        overflow: hidden !important;
     }
     
-    /* Hover effect for the sidebar toggle */
-    [data-testid="collapsedControl"] button:hover::before {
-        color: #FF4B4B !important;
-        transform: translate(-50%, -50%) scale(1.1) !important;
-    }
-    
-    /* When sidebar is open, show left arrow */
-    [data-testid="stSidebar"] [data-testid="stSidebarNav"] button::before {
-        content: "◀" !important;
+    [data-testid="collapsedControl"] button::after {
+        content: "▶" !important;
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
         font-size: 18px !important;
         color: #262730 !important;
+        font-family: Arial, sans-serif !important;
+        text-indent: 0 !important;
+        display: block !important;
+        line-height: 1 !important;
+        z-index: 1000 !important;
     }
     
-    [data-testid="stSidebar"] [data-testid="stSidebarNav"] button:hover::before {
+    [data-testid="collapsedControl"] button:hover::after {
         color: #FF4B4B !important;
     }
     </style>
+    
+    <script>
+    // JavaScript to replace broken sidebar toggle button text
+    function fixSidebarButton() {
+        // Target the collapsed control button
+        const collapsedControl = document.querySelector('[data-testid="collapsedControl"]');
+        if (collapsedControl) {
+            const button = collapsedControl.querySelector('button');
+            if (button) {
+                // Clear all text content and replace with arrow
+                button.innerHTML = '';
+                button.textContent = '';
+                button.style.position = 'relative';
+                button.style.width = '32px';
+                button.style.height = '32px';
+                
+                // Create arrow element
+                const arrow = document.createElement('span');
+                arrow.innerHTML = '▶';
+                arrow.style.position = 'absolute';
+                arrow.style.top = '50%';
+                arrow.style.left = '50%';
+                arrow.style.transform = 'translate(-50%, -50%)';
+                arrow.style.fontSize = '18px';
+                arrow.style.color = '#262730';
+                arrow.style.fontFamily = 'Arial, sans-serif';
+                arrow.style.zIndex = '1000';
+                
+                button.appendChild(arrow);
+            }
+        }
+        
+        // Also check for any buttons containing the broken text
+        const buttons = document.querySelectorAll('button');
+        buttons.forEach(button => {
+            if (button.textContent.includes('keyboard_double_arrow_right')) {
+                button.innerHTML = '';
+                button.textContent = '';
+                button.style.position = 'relative';
+                
+                const arrow = document.createElement('span');
+                arrow.innerHTML = '▶';
+                arrow.style.position = 'absolute';
+                arrow.style.top = '50%';
+                arrow.style.left = '50%';
+                arrow.style.transform = 'translate(-50%, -50%)';
+                arrow.style.fontSize = '18px';
+                arrow.style.color = '#262730';
+                arrow.style.fontFamily = 'Arial, sans-serif';
+                
+                button.appendChild(arrow);
+            }
+        });
+    }
+    
+    // Run the fix when page loads and on mutations
+    document.addEventListener('DOMContentLoaded', fixSidebarButton);
+    setTimeout(fixSidebarButton, 100);
+    setTimeout(fixSidebarButton, 500);
+    setTimeout(fixSidebarButton, 1000);
+    
+    // Create mutation observer to catch dynamic changes
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'childList') {
+                fixSidebarButton();
+            }
+        });
+    });
+    
+    // Start observing
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    </script>
     """, unsafe_allow_html=True)
     
     # Header

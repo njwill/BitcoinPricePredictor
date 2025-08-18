@@ -114,82 +114,138 @@ def main():
     [data-testid="collapsedControl"] button:hover::after {
         color: #FF4B4B !important;
     }
+    
+    /* Brute force approach - hide any text containing keyboard */
+    *:contains("keyboard_double_arrow_right") {
+        font-size: 0 !important;
+        color: transparent !important;
+    }
+    
+    /* Replace with CSS content for any button */
+    button {
+        position: relative;
+    }
+    
+    button:empty::after {
+        content: "▶" !important;
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        font-size: 18px !important;
+        color: #262730 !important;
+        font-family: Arial, sans-serif !important;
+    }
     </style>
     
     <script>
-    // JavaScript to replace broken sidebar toggle button text
+    // More aggressive approach to fix sidebar button
     function fixSidebarButton() {
-        // Target the collapsed control button
-        const collapsedControl = document.querySelector('[data-testid="collapsedControl"]');
-        if (collapsedControl) {
-            const button = collapsedControl.querySelector('button');
-            if (button) {
-                // Clear all text content and replace with arrow
-                button.innerHTML = '';
-                button.textContent = '';
-                button.style.position = 'relative';
+        // Method 1: Find by text content
+        const allButtons = document.querySelectorAll('button');
+        let found = false;
+        
+        allButtons.forEach(button => {
+            if (button.textContent && 
+                (button.textContent.includes('keyboard_double_arrow_right') || 
+                 button.textContent.includes('keyboard+double_arrow_right') ||
+                 button.innerHTML.includes('keyboard_double_arrow_right'))) {
+                
+                console.log('Found broken button:', button);
+                button.innerHTML = '▶';
+                button.style.fontSize = '18px';
+                button.style.color = '#262730';
+                button.style.fontFamily = 'Arial, sans-serif';
+                button.style.display = 'flex';
+                button.style.alignItems = 'center';
+                button.style.justifyContent = 'center';
                 button.style.width = '32px';
                 button.style.height = '32px';
-                
-                // Create arrow element
-                const arrow = document.createElement('span');
-                arrow.innerHTML = '▶';
-                arrow.style.position = 'absolute';
-                arrow.style.top = '50%';
-                arrow.style.left = '50%';
-                arrow.style.transform = 'translate(-50%, -50%)';
-                arrow.style.fontSize = '18px';
-                arrow.style.color = '#262730';
-                arrow.style.fontFamily = 'Arial, sans-serif';
-                arrow.style.zIndex = '1000';
-                
-                button.appendChild(arrow);
+                button.style.border = 'none';
+                button.style.background = 'transparent';
+                button.style.cursor = 'pointer';
+                found = true;
+            }
+        });
+        
+        // Method 2: Target by common sidebar button attributes
+        const sidebarButtons = document.querySelectorAll('[data-testid="collapsedControl"] button, button[aria-label*="sidebar"], button[title*="sidebar"]');
+        sidebarButtons.forEach(button => {
+            if (button.textContent.trim() === 'keyboard_double_arrow_right' || 
+                button.textContent.includes('keyboard')) {
+                button.innerHTML = '▶';
+                button.style.fontSize = '18px';
+                button.style.color = '#262730';
+                button.style.fontFamily = 'Arial, sans-serif';
+                found = true;
+            }
+        });
+        
+        // Method 3: Find any element containing the broken text and replace it
+        const walker = document.createTreeWalker(
+            document.body,
+            NodeFilter.SHOW_TEXT,
+            null,
+            false
+        );
+        
+        let node;
+        while (node = walker.nextNode()) {
+            if (node.textContent && node.textContent.includes('keyboard_double_arrow_right')) {
+                const parent = node.parentElement;
+                if (parent && parent.tagName === 'BUTTON') {
+                    parent.innerHTML = '▶';
+                    parent.style.fontSize = '18px';
+                    parent.style.color = '#262730';
+                    parent.style.fontFamily = 'Arial, sans-serif';
+                    found = true;
+                }
             }
         }
         
-        // Also check for any buttons containing the broken text
-        const buttons = document.querySelectorAll('button');
-        buttons.forEach(button => {
-            if (button.textContent.includes('keyboard_double_arrow_right')) {
-                button.innerHTML = '';
-                button.textContent = '';
-                button.style.position = 'relative';
-                
-                const arrow = document.createElement('span');
-                arrow.innerHTML = '▶';
-                arrow.style.position = 'absolute';
-                arrow.style.top = '50%';
-                arrow.style.left = '50%';
-                arrow.style.transform = 'translate(-50%, -50%)';
-                arrow.style.fontSize = '18px';
-                arrow.style.color = '#262730';
-                arrow.style.fontFamily = 'Arial, sans-serif';
-                
-                button.appendChild(arrow);
-            }
-        });
+        if (found) {
+            console.log('Fixed sidebar button with arrow');
+        }
     }
     
-    // Run the fix when page loads and on mutations
-    document.addEventListener('DOMContentLoaded', fixSidebarButton);
-    setTimeout(fixSidebarButton, 100);
-    setTimeout(fixSidebarButton, 500);
-    setTimeout(fixSidebarButton, 1000);
+    // Run fix multiple times with different delays
+    function runFixes() {
+        fixSidebarButton();
+        setTimeout(fixSidebarButton, 100);
+        setTimeout(fixSidebarButton, 300);
+        setTimeout(fixSidebarButton, 500);
+        setTimeout(fixSidebarButton, 1000);
+        setTimeout(fixSidebarButton, 2000);
+    }
     
-    // Create mutation observer to catch dynamic changes
+    // Initial run
+    runFixes();
+    
+    // Run when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', runFixes);
+    }
+    
+    // Run on any changes to the page
     const observer = new MutationObserver(function(mutations) {
+        let shouldFix = false;
         mutations.forEach(function(mutation) {
-            if (mutation.type === 'childList') {
-                fixSidebarButton();
+            if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                shouldFix = true;
             }
         });
+        if (shouldFix) {
+            setTimeout(fixSidebarButton, 50);
+        }
     });
     
-    // Start observing
     observer.observe(document.body, {
         childList: true,
         subtree: true
     });
+    
+    // Also run periodically as a backup
+    setInterval(fixSidebarButton, 3000);
     </script>
     """, unsafe_allow_html=True)
     

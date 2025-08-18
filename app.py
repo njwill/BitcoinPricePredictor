@@ -151,11 +151,13 @@ def main():
                 analysis_key = f"analysis_{datetime.now().strftime('%Y%m%d')}"
                 
                 if analysis_key not in st.session_state.analysis_cache:
+                    current_price = btc_1w['Close'].iloc[-1]
                     analysis = ai_analyzer.generate_comprehensive_analysis(
-                        btc_data_3m=btc_3m,
-                        btc_data_1w=btc_1w,
+                        data_3m=btc_3m,
+                        data_1w=btc_1w,
                         indicators_3m=indicators_3m,
-                        indicators_1w=indicators_1w
+                        indicators_1w=indicators_1w,
+                        current_price=current_price
                     )
                     st.session_state.analysis_cache[analysis_key] = analysis
                 else:

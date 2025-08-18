@@ -53,6 +53,11 @@ def main():
         
         st.info(f"⏰ Next Update: {next_update}")
         
+        # Show last analysis time
+        if st.session_state.last_update:
+            last_update_str = st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')
+            st.info(f"📊 Last Analysis: {last_update_str} ET")
+        
         # Show current time
         st.write(f"**Current ET:** {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
         
@@ -60,7 +65,6 @@ def main():
         st.subheader("⚙️ Settings")
         show_indicators = st.checkbox("Show Technical Indicators", value=True)
         show_volume = st.checkbox("Show Volume", value=True)
-        confidence_threshold = st.slider("AI Confidence Threshold", 0.5, 0.95, 0.75)
 
     # Initialize components
     data_fetcher = BitcoinDataFetcher()
@@ -120,10 +124,11 @@ def main():
             indicators_1w = technical_analyzer.calculate_all_indicators(btc_1w)
         
         # Chart Generation
-        col1, col2 = st.columns(2)
+        col1, col2 = st.columns(2, gap="medium")
         
         with col1:
             st.subheader("📈 3-Month Bitcoin Chart")
+            st.markdown("<br>", unsafe_allow_html=True)
             fig_3m = chart_generator.create_comprehensive_chart(
                 btc_3m, 
                 indicators_3m, 
@@ -135,6 +140,7 @@ def main():
         
         with col2:
             st.subheader("📊 1-Week Bitcoin Chart")
+            st.markdown("<br>", unsafe_allow_html=True)
             fig_1w = chart_generator.create_comprehensive_chart(
                 btc_1w, 
                 indicators_1w, 
@@ -148,6 +154,7 @@ def main():
         
         # AI Analysis Section
         st.header("🤖 AI-Powered Analysis")
+        st.markdown("<br>", unsafe_allow_html=True)
         
         # Generate AI analysis with caching
         analysis_key = f"analysis_{current_time.strftime('%Y-%m-%d')}"
@@ -167,17 +174,25 @@ def main():
         
         # Display AI Analysis Results
         if analysis:
-            col1, col2 = st.columns([2, 1])
+            col1, col2 = st.columns([2, 1], gap="medium")
             
             with col1:
                 st.subheader("📝 Technical Analysis Summary")
-                st.write(analysis.get('technical_summary', 'Analysis not available'))
+                st.markdown("<div style='font-family: inherit; font-size: inherit; line-height: 1.6;'>{}</div>".format(
+                    analysis.get('technical_summary', 'Analysis not available').replace('\n', '<br>')
+                ), unsafe_allow_html=True)
                 
+                st.markdown("<br>", unsafe_allow_html=True)
                 st.subheader("🎯 Friday 4PM ET Price Prediction")
-                st.write(analysis.get('price_prediction', 'Prediction not available'))
+                st.markdown("<div style='font-family: inherit; font-size: inherit; line-height: 1.6;'>{}</div>".format(
+                    analysis.get('price_prediction', 'Prediction not available').replace('\n', '<br>')
+                ), unsafe_allow_html=True)
                 
+                st.markdown("<br>", unsafe_allow_html=True)
                 st.subheader("📰 Market Sentiment & Key Events")
-                st.write(analysis.get('market_sentiment', 'Sentiment analysis not available'))
+                st.markdown("<div style='font-family: inherit; font-size: inherit; line-height: 1.6;'>{}</div>".format(
+                    analysis.get('market_sentiment', 'Sentiment analysis not available').replace('\n', '<br>')
+                ), unsafe_allow_html=True)
             
             with col2:
                 st.subheader("📊 Probability Assessment")
@@ -221,10 +236,10 @@ def main():
                     st.metric("AI Confidence", f"{confidence:.1%}")
                     
                     # Confidence indicator
-                    if confidence >= confidence_threshold:
-                        st.success(f"✅ High confidence analysis (≥{confidence_threshold:.0%})")
+                    if confidence >= 0.75:
+                        st.success(f"✅ High confidence analysis (≥75%)")
                     else:
-                        st.warning(f"⚠️ Lower confidence analysis (<{confidence_threshold:.0%})")
+                        st.warning(f"⚠️ Lower confidence analysis (<75%)")
         
         # Technical Indicators Summary Table
         st.divider()

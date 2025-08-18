@@ -68,7 +68,7 @@ class ChartGenerator:
                 rows=subplot_count,
                 cols=1,
                 subplot_titles=subplot_titles,
-                vertical_spacing=0.05,
+                vertical_spacing=0.08,
                 row_heights=row_heights,
                 specs=[[{"secondary_y": False}]] * subplot_count
             )
@@ -197,8 +197,8 @@ class ChartGenerator:
                 title=title,
                 xaxis_rangeslider_visible=False,
                 showlegend=True,
-                height=600 if subplot_count <= 2 else 800,
-                margin=dict(l=0, r=0, t=30, b=0),
+                height=650 if subplot_count <= 2 else 850,
+                margin=dict(l=0, r=0, t=50, b=20),
                 font=dict(size=12)
             )
             

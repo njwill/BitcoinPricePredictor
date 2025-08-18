@@ -8,6 +8,16 @@ This is a comprehensive Bitcoin analysis dashboard built with Streamlit that pro
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### 2025-08-18 UI/UX Improvements
+- Added "Last Analysis" time display in sidebar alongside "Next Update"
+- Removed AI Confidence Threshold slider (fixed at 75%)
+- Improved chart spacing by increasing vertical spacing from 0.05 to 0.08
+- Enhanced chart height and margins for better visibility
+- Added consistent font formatting for AI analysis text with proper line spacing
+- Fixed data type conversion issues in technical analysis calculations
+
 ## System Architecture
 
 ### Frontend Architecture

@@ -164,8 +164,13 @@ def main():
                     analysis = ai_analyzer.generate_comprehensive_analysis(
                         btc_3m, btc_1w, indicators_3m, indicators_1w, current_price
                     )
-                    # Debug: Show what we got back
-                    st.write(f"Debug - Analysis keys: {list(analysis.keys()) if analysis else 'None'}")
+                    # Debug: Check content lengths
+                    if analysis:
+                        for key, value in analysis.items():
+                            if key != 'timestamp' and isinstance(value, str) and len(value.strip()) == 0:
+                                st.warning(f"Empty content detected for {key}")
+                            elif key != 'timestamp' and isinstance(value, str):
+                                st.success(f"{key}: {len(value)} characters")
                     st.session_state.analysis_cache[analysis_key] = analysis
                 except Exception as e:
                     st.error(f"❌ AI Analysis failed: {str(e)}")

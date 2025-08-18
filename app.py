@@ -148,6 +148,13 @@ def main():
         # AI Analysis Section
         st.header("🤖 AI-Powered Analysis")
         
+        # Add refresh button for AI analysis
+        col1_refresh, col2_refresh = st.columns([3, 1])
+        with col2_refresh:
+            if st.button("🔄 Refresh AI Analysis", key="ai_refresh"):
+                st.session_state.analysis_cache = {}
+                st.rerun()
+        
         # Generate AI analysis with caching
         analysis_key = f"analysis_{current_time.strftime('%Y-%m-%d')}"
         

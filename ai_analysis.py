@@ -6,12 +6,12 @@ from datetime import datetime, timedelta
 import pytz
 import streamlit as st
 
-# the newest OpenAI model is "gpt-5" which was released August 7, 2024.
-# Updated per user request to use GPT-5
+# the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
+# do not change this unless explicitly requested by the user
 from openai import OpenAI
 
 class AIAnalyzer:
-    """Handles AI-powered analysis using OpenAI GPT-5"""
+    """Handles AI-powered analysis using OpenAI GPT-4o"""
     
     def __init__(self):
         self.api_key = os.getenv("OPENAI_API_KEY", "")
@@ -197,12 +197,11 @@ class AIAnalyzer:
                     {"role": "system", "content": "You are a professional Bitcoin technical analyst with expertise in chart analysis and technical indicators."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=400
+                max_tokens=400,
+                temperature=0.3
             )
             
-            content = response.choices[0].message.content
-            st.write(f"DEBUG - Technical analysis response length: {len(content) if content else 0}")
-            return content
+            return response.choices[0].message.content
             
         except Exception as e:
             return f"Error generating technical analysis: {str(e)}"
@@ -236,12 +235,11 @@ class AIAnalyzer:
                     {"role": "system", "content": "You are a quantitative Bitcoin analyst specializing in probability-based price predictions using technical analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=500
+                max_tokens=500,
+                temperature=0.2
             )
             
-            content = response.choices[0].message.content
-            st.write(f"DEBUG - Price prediction response length: {len(content) if content else 0}")
-            return content
+            return response.choices[0].message.content
             
         except Exception as e:
             return f"Error generating price prediction: {str(e)}"
@@ -273,12 +271,11 @@ class AIAnalyzer:
                     {"role": "system", "content": "You are a cryptocurrency market analyst with expertise in macroeconomic factors and market sentiment analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=400
+                max_tokens=400,
+                temperature=0.4
             )
             
-            content = response.choices[0].message.content
-            st.write(f"DEBUG - Market sentiment response length: {len(content) if content else 0}")
-            return content
+            return response.choices[0].message.content
             
         except Exception as e:
             return f"Error generating market sentiment: {str(e)}"

@@ -56,9 +56,8 @@ Preferred communication style: Simple, everyday language.
 - **TA-Lib**: Technical analysis library for financial indicators
 
 ### AI and Machine Learning
-- **OpenAI**: GPT-5 model integration for intelligent analysis (updated August 2024)
+- **OpenAI**: GPT-4o model integration for intelligent analysis
 - **API Requirements**: OpenAI API key required via environment variable
-- **Enhanced Features**: Reasoning effort control for faster responses, improved technical analysis capabilities
 
 ### Time and Scheduling
 - **pytz**: Timezone handling for Eastern Time scheduling

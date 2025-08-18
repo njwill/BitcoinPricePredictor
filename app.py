@@ -40,11 +40,11 @@ def main():
     with st.sidebar:
         st.header("📊 Analysis Controls")
         
-        # Show last analysis time
-        if st.session_state.last_update:
-            st.success(f"🕒 Last Analysis: {st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')} ET")
-        else:
-            st.info("🕒 Last Analysis: Not performed yet")
+        # Manual refresh button
+        if st.button("🔄 Refresh Analysis", type="primary"):
+            st.session_state.data_cache = {}
+            st.session_state.analysis_cache = {}
+            st.rerun()
         
         # Show next update time
         eastern_tz = pytz.timezone('US/Eastern')
@@ -60,6 +60,7 @@ def main():
         st.subheader("⚙️ Settings")
         show_indicators = st.checkbox("Show Technical Indicators", value=True)
         show_volume = st.checkbox("Show Volume", value=True)
+        confidence_threshold = st.slider("AI Confidence Threshold", 0.5, 0.95, 0.75)
 
     # Initialize components
     data_fetcher = BitcoinDataFetcher()
@@ -148,13 +149,6 @@ def main():
         # AI Analysis Section
         st.header("🤖 AI-Powered Analysis")
         
-        # Add refresh button for AI analysis
-        col1_refresh, col2_refresh = st.columns([3, 1])
-        with col2_refresh:
-            if st.button("🔄 Refresh AI Analysis", key="ai_refresh"):
-                st.session_state.analysis_cache = {}
-                st.rerun()
-        
         # Generate AI analysis with caching
         analysis_key = f"analysis_{current_time.strftime('%Y-%m-%d')}"
         
@@ -164,23 +158,15 @@ def main():
                     analysis = ai_analyzer.generate_comprehensive_analysis(
                         btc_3m, btc_1w, indicators_3m, indicators_1w, current_price
                     )
-                    # Debug: Check content lengths
-                    if analysis:
-                        for key, value in analysis.items():
-                            if key != 'timestamp' and isinstance(value, str) and len(value.strip()) == 0:
-                                st.warning(f"Empty content detected for {key}")
-                            elif key != 'timestamp' and isinstance(value, str):
-                                st.success(f"{key}: {len(value)} characters")
                     st.session_state.analysis_cache[analysis_key] = analysis
                 except Exception as e:
                     st.error(f"❌ AI Analysis failed: {str(e)}")
-                    analysis = {"error": str(e)}
-                    st.session_state.analysis_cache[analysis_key] = analysis
+                    return
         else:
             analysis = st.session_state.analysis_cache[analysis_key]
         
         # Display AI Analysis Results
-        if analysis and 'error' not in analysis:
+        if analysis:
             col1, col2 = st.columns([2, 1])
             
             with col1:
@@ -192,10 +178,6 @@ def main():
                 
                 st.subheader("📰 Market Sentiment & Key Events")
                 st.write(analysis.get('market_sentiment', 'Sentiment analysis not available'))
-        elif analysis and 'error' in analysis:
-            st.error(f"AI Analysis Error: {analysis['error']}")
-        else:
-            st.warning("No analysis data available. Please try refreshing.")
             
             with col2:
                 st.subheader("📊 Probability Assessment")
@@ -239,10 +221,10 @@ def main():
                     st.metric("AI Confidence", f"{confidence:.1%}")
                     
                     # Confidence indicator
-                    if confidence >= 0.75:
-                        st.success(f"✅ High confidence analysis (≥75%)")
+                    if confidence >= confidence_threshold:
+                        st.success(f"✅ High confidence analysis (≥{confidence_threshold:.0%})")
                     else:
-                        st.warning(f"⚠️ Lower confidence analysis (<75%)")
+                        st.warning(f"⚠️ Lower confidence analysis (<{confidence_threshold:.0%})")
         
         # Technical Indicators Summary Table
         st.divider()
@@ -274,7 +256,7 @@ def main():
         
         # Footer with last update info
         st.divider()
-        st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: OpenAI GPT-5")
+        st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: OpenAI GPT-4o")
         
     except Exception as e:
         st.error(f"❌ An error occurred: {str(e)}")

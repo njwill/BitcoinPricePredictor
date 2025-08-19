@@ -79,13 +79,17 @@ class AIAnalyzer:
             if display_from_3m is not None and display_from_3m > 0:
                 display_data_3m = data_3m.iloc[display_from_3m:].copy()
             
+            # Get actual current price from the latest data point
+            actual_current_price = float(display_data_3m['Close'].iloc[-1])
+            
             # 3-month data summary (use display range for accurate period analysis)
             data_3m_summary = {
                 'period': '3 months',
-                'current_price': current_price,
+                'current_price': actual_current_price,
+                'start_price_3m': float(display_data_3m['Close'].iloc[0]),
                 'high_3m': float(display_data_3m['High'].max()),
                 'low_3m': float(display_data_3m['Low'].min()),
-                'price_change_3m': float((current_price - display_data_3m['Close'].iloc[0]) / display_data_3m['Close'].iloc[0] * 100),
+                'price_change_3m': float((actual_current_price - display_data_3m['Close'].iloc[0]) / display_data_3m['Close'].iloc[0] * 100),
                 'volatility_3m': float(display_data_3m['Close'].pct_change().std() * np.sqrt(252) * 100),
                 'avg_volume_3m': float(display_data_3m['Volume'].mean()),
                 'start_date': str(display_data_3m.index[0]),
@@ -101,9 +105,10 @@ class AIAnalyzer:
             # 1-week data summary (use display range for accurate period analysis)
             data_1w_summary = {
                 'period': '1 week',
+                'start_price_1w': float(display_data_1w['Close'].iloc[0]),
                 'high_1w': float(display_data_1w['High'].max()),
                 'low_1w': float(display_data_1w['Low'].min()),
-                'price_change_1w': float((current_price - display_data_1w['Close'].iloc[0]) / display_data_1w['Close'].iloc[0] * 100),
+                'price_change_1w': float((actual_current_price - display_data_1w['Close'].iloc[0]) / display_data_1w['Close'].iloc[0] * 100),
                 'volatility_1w': float(display_data_1w['Close'].pct_change().std() * np.sqrt(365) * 100),
                 'avg_volume_1w': float(display_data_1w['Volume'].mean()),
                 'start_date': str(display_data_1w.index[0]),
@@ -120,7 +125,7 @@ class AIAnalyzer:
                 'data_3m': data_3m_summary,
                 'data_1w': data_1w_summary,
                 'indicators': indicators_summary,
-                'current_price': current_price
+                'current_price': actual_current_price
             }
             
         except Exception as e:
@@ -191,20 +196,47 @@ class AIAnalyzer:
     def _generate_technical_analysis(self, analysis_data):
         """Generate technical analysis using AI"""
         try:
+            # Extract key price points for clarity
+            current_price = analysis_data.get('current_price', 0)
+            data_3m = analysis_data.get('data_3m', {})
+            data_1w = analysis_data.get('data_1w', {})
+            
             prompt = f"""
-            You are an expert Bitcoin technical analyst. Analyze the following Bitcoin price data and technical indicators to provide a comprehensive technical analysis.
+            You are an expert Bitcoin technical analyst. Provide a comprehensive technical analysis using this Bitcoin price data:
             
-            Data Summary:
-            {json.dumps(analysis_data, indent=2)}
+            CRITICAL - CURRENT BITCOIN PRICE: ${current_price:,.2f}
             
-            Provide a detailed technical analysis covering:
-            1. Price action analysis for both 3-month and 1-week timeframes
-            2. Technical indicator interpretation (RSI, MACD, Bollinger Bands, EMA)
-            3. Support and resistance levels
-            4. Current market structure and trend analysis
-            5. Key technical patterns or formations
+            3-MONTH TIMEFRAME DATA:
+            - Current Price: ${current_price:,.2f}
+            - Period Start Price: ${data_3m.get('start_price_3m', 0):,.2f}
+            - Period High: ${data_3m.get('high_3m', 0):,.2f}
+            - Period Low: ${data_3m.get('low_3m', 0):,.2f}
+            - Price Change: {data_3m.get('price_change_3m', 0):.2f}%
             
-            Keep the analysis professional, concise (200-300 words), and focused solely on technical aspects of the charts provided.
+            1-WEEK TIMEFRAME DATA:
+            - Current Price: ${current_price:,.2f}
+            - Period Start Price: ${data_1w.get('start_price_1w', 0):,.2f}
+            - Period High: ${data_1w.get('high_1w', 0):,.2f}
+            - Period Low: ${data_1w.get('low_1w', 0):,.2f}
+            - Price Change: {data_1w.get('price_change_1w', 0):.2f}%
+            
+            Technical Indicators:
+            {json.dumps(analysis_data.get('indicators', {}), indent=2)}
+            
+            IMPORTANT RULES:
+            1. Always use ${current_price:,.2f} as the CURRENT PRICE
+            2. Support levels should be BELOW current price (lower values)
+            3. Resistance levels should be ABOVE current price (higher values)
+            4. Never confuse highs/lows with current price
+            
+            Provide analysis covering:
+            1. Price action analysis for both timeframes
+            2. Technical indicator interpretation
+            3. Accurate support and resistance levels
+            4. Market structure and trend analysis
+            5. Key technical patterns
+            
+            Keep analysis professional and concise (200-300 words).
             """
             
             response = self.client.chat.completions.create(
@@ -225,24 +257,39 @@ class AIAnalyzer:
     def _generate_price_prediction(self, analysis_data):
         """Generate price prediction with probabilities"""
         try:
+            # Extract key data for clarity
+            current_price = analysis_data.get('current_price', 0)
+            hours_until_target = analysis_data.get('hours_until_target', 0)
+            data_3m = analysis_data.get('data_3m', {})
+            data_1w = analysis_data.get('data_1w', {})
+            
             prompt = f"""
-            Based solely on the Bitcoin chart analysis and technical indicators provided, calculate the probability of Bitcoin being higher or lower by Friday at 4:00 PM Eastern Time.
+            Calculate probability of Bitcoin price movement by Friday at 4:00 PM Eastern Time.
             
-            Current Analysis Data:
-            {json.dumps(analysis_data, indent=2)}
+            CURRENT BITCOIN PRICE: ${current_price:,.2f}
+            Time until target: {hours_until_target:.1f} hours
             
-            Time until target: {analysis_data.get('hours_until_target', 0):.1f} hours
+            RECENT PRICE DATA:
+            3-Month: ${data_3m.get('start_price_3m', 0):,.2f} → ${current_price:,.2f} ({data_3m.get('price_change_3m', 0):+.2f}%)
+            1-Week: ${data_1w.get('start_price_1w', 0):,.2f} → ${current_price:,.2f} ({data_1w.get('price_change_1w', 0):+.2f}%)
             
-            Provide:
-            1. Probability assessment for price being HIGHER by Friday 4PM ET (0-100%)
-            2. Probability assessment for price being LOWER by Friday 4PM ET (0-100%)
-            3. Your confidence level in this analysis (0-100%)
-            4. Key technical factors supporting your probability assessment
-            5. Potential price targets or ranges
+            PRICE RANGES:
+            3-Month High: ${data_3m.get('high_3m', 0):,.2f}
+            3-Month Low: ${data_3m.get('low_3m', 0):,.2f}
+            1-Week High: ${data_1w.get('high_1w', 0):,.2f}
+            1-Week Low: ${data_1w.get('low_1w', 0):,.2f}
             
-            Base your analysis ONLY on the technical chart data provided. Be specific with probability percentages and explain your reasoning.
+            Technical Indicators Summary:
+            {json.dumps(analysis_data.get('indicators', {}), indent=2)}
             
-            Format your response to include clear probability statements.
+            Provide EXACTLY:
+            1. Probability of Price Being HIGHER by Friday 4PM ET: [X]%
+            2. Probability of Price Being LOWER by Friday 4PM ET: [Y]%
+            3. Confidence Level: [Z]%
+            4. Key technical factors supporting assessment
+            5. Potential price targets
+            
+            CRITICAL: Ensure probabilities X + Y = 100%. Be specific and consistent with percentages.
             """
             
             response = self.client.chat.completions.create(

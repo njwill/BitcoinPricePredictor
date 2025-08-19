@@ -343,11 +343,10 @@ def main():
                     
                     # Probability gauge
                     fig_gauge = go.Figure(go.Indicator(
-                        mode = "gauge+number+delta",
+                        mode = "gauge+number",
                         value = higher_prob * 100,
                         domain = {'x': [0, 1], 'y': [0, 1]},
                         title = {'text': "Higher by Friday (%)"},
-                        delta = {'reference': 50},
                         gauge = {
                             'axis': {'range': [None, 100]},
                             'bar': {'color': "darkgreen"},

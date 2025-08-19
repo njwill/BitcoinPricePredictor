@@ -355,12 +355,7 @@ def main():
                                 {'range': [25, 50], 'color': "gray"},
                                 {'range': [50, 75], 'color': "lightgreen"},
                                 {'range': [75, 100], 'color': "green"}
-                            ],
-                            'threshold': {
-                                'line': {'color': "red", 'width': 4},
-                                'thickness': 0.75,
-                                'value': 90
-                            }
+                            ]
                         }
                     ))
                     fig_gauge.update_layout(height=300)

@@ -413,8 +413,19 @@ def main():
         st.error(f"❌ An error occurred: {str(e)}")
         st.exception(e)
     
-    # Manual refresh section (hidden/minimal)
-    with st.expander("🔧 Admin Controls", expanded=False):
+    # Manual refresh section (custom collapsible)
+    st.markdown('<div style="margin-top: 40px;"></div>', unsafe_allow_html=True)
+    
+    # Create a simple collapsible section without expander
+    if 'admin_expanded' not in st.session_state:
+        st.session_state.admin_expanded = False
+    
+    col_toggle, col_spacer = st.columns([1, 6])
+    with col_toggle:
+        if st.button("🔧 Admin", type="secondary", help="Admin controls"):
+            st.session_state.admin_expanded = not st.session_state.admin_expanded
+    
+    if st.session_state.admin_expanded:
         st.caption("Password protected refresh functionality")
         col1, col2 = st.columns([3, 1])
         with col1:

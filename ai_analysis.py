@@ -73,25 +73,41 @@ class AIAnalyzer:
             current_time = datetime.now(eastern_tz)
             friday_4pm = self._get_next_friday_4pm(current_time)
             
-            # 3-month data summary
+            # Handle extended data - trim to actual display periods for AI analysis
+            display_data_3m = data_3m
+            display_from_3m = getattr(data_3m, 'attrs', {}).get('display_from_index', None)
+            if display_from_3m is not None and display_from_3m > 0:
+                display_data_3m = data_3m.iloc[display_from_3m:].copy()
+            
+            # 3-month data summary (use display range for accurate period analysis)
             data_3m_summary = {
                 'period': '3 months',
                 'current_price': current_price,
-                'high_3m': float(data_3m['High'].max()),
-                'low_3m': float(data_3m['Low'].min()),
-                'price_change_3m': float((current_price - data_3m['Close'].iloc[0]) / data_3m['Close'].iloc[0] * 100),
-                'volatility_3m': float(data_3m['Close'].pct_change().std() * np.sqrt(252) * 100),
-                'avg_volume_3m': float(data_3m['Volume'].mean())
+                'high_3m': float(display_data_3m['High'].max()),
+                'low_3m': float(display_data_3m['Low'].min()),
+                'price_change_3m': float((current_price - display_data_3m['Close'].iloc[0]) / display_data_3m['Close'].iloc[0] * 100),
+                'volatility_3m': float(display_data_3m['Close'].pct_change().std() * np.sqrt(252) * 100),
+                'avg_volume_3m': float(display_data_3m['Volume'].mean()),
+                'start_date': str(display_data_3m.index[0]),
+                'end_date': str(display_data_3m.index[-1])
             }
             
-            # 1-week data summary
+            # Handle extended data for 1-week analysis  
+            display_data_1w = data_1w
+            display_from_1w = getattr(data_1w, 'attrs', {}).get('display_from_index', None)
+            if display_from_1w is not None and display_from_1w > 0:
+                display_data_1w = data_1w.iloc[display_from_1w:].copy()
+            
+            # 1-week data summary (use display range for accurate period analysis)
             data_1w_summary = {
                 'period': '1 week',
-                'high_1w': float(data_1w['High'].max()),
-                'low_1w': float(data_1w['Low'].min()),
-                'price_change_1w': float((current_price - data_1w['Close'].iloc[0]) / data_1w['Close'].iloc[0] * 100),
-                'volatility_1w': float(data_1w['Close'].pct_change().std() * np.sqrt(365) * 100),
-                'avg_volume_1w': float(data_1w['Volume'].mean())
+                'high_1w': float(display_data_1w['High'].max()),
+                'low_1w': float(display_data_1w['Low'].min()),
+                'price_change_1w': float((current_price - display_data_1w['Close'].iloc[0]) / display_data_1w['Close'].iloc[0] * 100),
+                'volatility_1w': float(display_data_1w['Close'].pct_change().std() * np.sqrt(365) * 100),
+                'avg_volume_1w': float(display_data_1w['Volume'].mean()),
+                'start_date': str(display_data_1w.index[0]),
+                'end_date': str(display_data_1w.index[-1])
             }
             
             # Technical indicators summary

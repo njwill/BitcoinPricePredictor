@@ -170,7 +170,33 @@ def main():
             st.session_state.last_update = cache_timestamp
             
             cache_time_str = cache_timestamp.strftime('%Y-%m-%d %H:%M:%S')
-            st.success(f"📊 Analysis ran on {cache_time_str} ET")
+            
+            # Create comprehensive analysis message
+            if analysis and 'probabilities' in analysis:
+                probabilities = analysis['probabilities']
+                higher_prob = probabilities.get('higher', 0)
+                lower_prob = probabilities.get('lower', 0)
+                
+                # Determine direction and probability
+                if higher_prob > lower_prob:
+                    direction = "higher"
+                    probability = higher_prob
+                else:
+                    direction = "lower" 
+                    probability = lower_prob
+                
+                # Determine recommendation based on probability and direction
+                if probability >= 0.7 and direction == "higher":
+                    recommendation = "Buy"
+                elif probability >= 0.7 and direction == "lower":
+                    recommendation = "Sell"
+                else:
+                    recommendation = "Hold"
+                
+                analysis_message = f"Based on analysis ran on {cache_time_str} ET, the price of Bitcoin has a {probability:.0%} chance of being {direction} on Friday at 4PM ET. Recommendation is to {recommendation} during this period."
+                st.info(f"📊 {analysis_message}")
+            else:
+                st.success(f"📊 Analysis ran on {cache_time_str} ET")
         else:
             # Fetch new data
             with st.spinner("📈 Fetching Bitcoin data..."):
@@ -236,6 +262,34 @@ def main():
             
             # Update session state timestamp
             st.session_state.last_update = current_time
+            
+            # Display comprehensive analysis message for new analysis
+            current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
+            if analysis and 'probabilities' in analysis:
+                probabilities = analysis['probabilities']
+                higher_prob = probabilities.get('higher', 0)
+                lower_prob = probabilities.get('lower', 0)
+                
+                # Determine direction and probability
+                if higher_prob > lower_prob:
+                    direction = "higher"
+                    probability = higher_prob
+                else:
+                    direction = "lower" 
+                    probability = lower_prob
+                
+                # Determine recommendation based on probability and direction
+                if probability >= 0.7 and direction == "higher":
+                    recommendation = "Buy"
+                elif probability >= 0.7 and direction == "lower":
+                    recommendation = "Sell"
+                else:
+                    recommendation = "Hold"
+                
+                analysis_message = f"Based on analysis ran on {current_time_str} ET, the price of Bitcoin has a {probability:.0%} chance of being {direction} on Friday at 4PM ET. Recommendation is to {recommendation} during this period."
+                st.info(f"📊 {analysis_message}")
+            else:
+                st.success(f"📊 Analysis completed at {current_time_str} ET")
         
         if btc_3m.empty or btc_1w.empty:
             st.error("❌ Failed to fetch Bitcoin data. Please try again later.")

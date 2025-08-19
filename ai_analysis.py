@@ -271,7 +271,7 @@ class AIAnalyzer:
                     {"role": "system", "content": "You are a cryptocurrency market analyst with expertise in macroeconomic factors and market sentiment analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=600,
+                max_tokens=800,
                 temperature=0.4
             )
             

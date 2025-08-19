@@ -424,15 +424,32 @@ def main():
             
             with col1:
                 st.subheader("📝 Technical Analysis Summary")
-                st.markdown(analysis.get('technical_summary', 'Analysis not available'))
+                technical_summary = analysis.get('technical_summary', 'Analysis not available')
+                # Clean and properly format the text
+                if isinstance(technical_summary, str) and technical_summary.strip():
+                    # Remove any problematic characters and ensure proper formatting
+                    cleaned_summary = technical_summary.replace('\\n', '\n').strip()
+                    st.text_area("", value=cleaned_summary, height=200, disabled=True, label_visibility="collapsed")
+                else:
+                    st.write("Analysis not available")
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.subheader("🎯 Friday 4PM ET Price Prediction")
-                st.markdown(analysis.get('price_prediction', 'Prediction not available'))
+                price_prediction = analysis.get('price_prediction', 'Prediction not available')
+                if isinstance(price_prediction, str) and price_prediction.strip():
+                    cleaned_prediction = price_prediction.replace('\\n', '\n').strip()
+                    st.text_area("", value=cleaned_prediction, height=150, disabled=True, label_visibility="collapsed")
+                else:
+                    st.write("Prediction not available")
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.subheader("📰 Market Sentiment & Key Events")
-                st.markdown(analysis.get('market_sentiment', 'Sentiment analysis not available'))
+                market_sentiment = analysis.get('market_sentiment', 'Sentiment analysis not available')
+                if isinstance(market_sentiment, str) and market_sentiment.strip():
+                    cleaned_sentiment = market_sentiment.replace('\\n', '\n').strip()
+                    st.text_area("", value=cleaned_sentiment, height=150, disabled=True, label_visibility="collapsed")
+                else:
+                    st.write("Sentiment analysis not available")
             
             with col2:
                 st.subheader("📊 Probability Assessment")

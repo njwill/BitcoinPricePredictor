@@ -31,21 +31,14 @@ if 'analysis_cache' not in st.session_state:
     st.session_state.analysis_cache = {}
 
 def main():
-    # Add custom CSS for consistent fonts
+    # Add custom CSS for consistent fonts but preserve icons
     st.markdown("""
     <style>
-    /* Force consistent font family throughout */
-    .stApp, .stApp * {
-        font-family: "Source Sans Pro", sans-serif !important;
-    }
-    
-    /* Specifically target markdown and text elements */
-    .stMarkdown, .stMarkdown p, .stMarkdown div, .stMarkdown span {
-        font-family: "Source Sans Pro", sans-serif !important;
-    }
-    
-    /* Technical indicators table styling */
-    .stDataFrame, .stDataFrame * {
+    /* Target only text elements, leave icons untouched */
+    .stMarkdown, .stMarkdown p, .stMarkdown div, .stMarkdown span,
+    .stMetric, .stMetric *,
+    .stDataFrame, .stDataFrame *,
+    h1, h2, h3, h4, h5, h6, p, span {
         font-family: "Source Sans Pro", sans-serif !important;
     }
     
@@ -421,7 +414,7 @@ def main():
         st.exception(e)
     
     # Manual refresh section (hidden/minimal)
-    with st.expander("Admin Controls", expanded=False):
+    with st.expander("🔧 Admin Controls", expanded=False):
         st.caption("Password protected refresh functionality")
         col1, col2 = st.columns([3, 1])
         with col1:

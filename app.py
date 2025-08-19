@@ -56,6 +56,26 @@ def main():
     [data-testid="collapsedControl"] {
         display: none !important;
     }
+    
+    /* Hide main menu items but keep theme toggle */
+    [data-testid="stHeader"] [data-testid="stToolbar"] > div > button:not([title*="theme"]):not([title*="Theme"]) {
+        display: none !important;
+    }
+    
+    /* Alternative approach - hide main menu dropdown but preserve theme */
+    [data-testid="stMainMenu"] [role="button"]:not([title*="theme"]):not([title*="Theme"]) {
+        display: none !important;
+    }
+    
+    /* Hide the main hamburger menu entirely */
+    [data-testid="stMainMenu"] {
+        display: none !important;
+    }
+    
+    /* Show only the theme toggle */
+    [title*="theme"], [title*="Theme"] {
+        display: block !important;
+    }
     </style>
     
 

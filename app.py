@@ -77,26 +77,7 @@ def main():
     current_time = datetime.now(eastern_tz)
     next_update = calculate_time_until_update(current_time)
     
-    # Show timing info
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.info(f"⏰ Next Update: {next_update}")
-    with col2:
-        if 'last_update' in st.session_state and st.session_state.last_update:
-            last_update_str = st.session_state.last_update.strftime('%Y-%m-%d %H:%M:%S')
-            st.info(f"📊 Last Analysis: {last_update_str} ET")
-        else:
-            st.info("📊 Last Analysis: Not yet performed")
-    with col3:
-        st.info(f"🕐 Current ET: {current_time.strftime('%Y-%m-%d %H:%M:%S')}")
-    
-    # Analysis settings
-    st.subheader("⚙️ Settings")
-    col1, col2 = st.columns(2)
-    with col1:
-        show_indicators = st.checkbox("Show Technical Indicators", value=True)
-    with col2:
-        show_volume = st.checkbox("Show Volume", value=True)
+    # Settings will be defined later in the UI near charts
 
     # Initialize components
     data_fetcher = BitcoinDataFetcher()
@@ -199,26 +180,22 @@ def main():
         price_change_pct = (price_change_24h / btc_1w['Close'].iloc[-2]) * 100
         
         # Display current price metrics
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3 = st.columns(3)
         
         with col1:
             st.metric(
-                "Current Price",
+                "Price at Last Analysis",
                 format_currency(current_price),
                 f"{price_change_pct:+.2f}%"
             )
         
         with col2:
             weekly_high = btc_1w['High'].max()
-            st.metric("Weekly High", format_currency(weekly_high))
+            st.metric("High Last 7 Days", format_currency(weekly_high))
         
         with col3:
             weekly_low = btc_1w['Low'].min()
-            st.metric("Weekly Low", format_currency(weekly_low))
-        
-        with col4:
-            volume_24h = btc_1w['Volume'].iloc[-1]
-            st.metric("24h Volume", f"{volume_24h:,.0f}")
+            st.metric("Low Last 7 Days", format_currency(weekly_low))
         
         st.divider()
         
@@ -275,6 +252,16 @@ def main():
                 indicators_1w = technical_analyzer.calculate_all_indicators(btc_1w)
         
 
+        
+        # Chart Settings
+        st.subheader("⚙️ Chart Settings")
+        col1, col2 = st.columns(2)
+        with col1:
+            show_indicators = st.checkbox("Show Technical Indicators", value=True)
+        with col2:
+            show_volume = st.checkbox("Show Volume", value=True)
+        
+        st.divider()
         
         # Chart Generation
         col1, col2 = st.columns(2, gap="medium")

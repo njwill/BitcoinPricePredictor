@@ -57,26 +57,40 @@ def main():
         display: none !important;
     }
     
-    /* Hide main menu items but keep theme toggle */
-    [data-testid="stHeader"] [data-testid="stToolbar"] > div > button:not([title*="theme"]):not([title*="Theme"]) {
-        display: none !important;
-    }
-    
-    /* Alternative approach - hide main menu dropdown but preserve theme */
-    [data-testid="stMainMenu"] [role="button"]:not([title*="theme"]):not([title*="Theme"]) {
-        display: none !important;
-    }
-    
-    /* Hide the main hamburger menu entirely */
-    [data-testid="stMainMenu"] {
-        display: none !important;
-    }
-    
-    /* Show only the theme toggle */
-    [title*="theme"], [title*="Theme"] {
-        display: block !important;
-    }
     </style>
+    
+    <script>
+    // Hide menu items but keep theme toggle
+    function hideMenuItems() {
+        const mainMenu = document.querySelector('[data-testid="stMainMenu"]');
+        if (mainMenu) {
+            const menuItems = mainMenu.querySelectorAll('[role="menuitem"]');
+            menuItems.forEach((item, index) => {
+                // Keep only the last item (usually theme toggle)
+                if (index < menuItems.length - 1) {
+                    item.style.display = 'none';
+                }
+            });
+        }
+        
+        // Also try targeting by content
+        const buttons = document.querySelectorAll('[data-testid="stToolbar"] button');
+        buttons.forEach(button => {
+            const title = button.getAttribute('title') || button.textContent || '';
+            if (title.includes('Rerun') || title.includes('Settings') || 
+                title.includes('Print') || title.includes('Record') ||
+                title.includes('Developer options')) {
+                button.style.display = 'none';
+            }
+        });
+    }
+    
+    // Run when page loads
+    document.addEventListener('DOMContentLoaded', hideMenuItems);
+    
+    // Also run periodically since Streamlit updates dynamically
+    setInterval(hideMenuItems, 1000);
+    </script>
     
 
     """, unsafe_allow_html=True)

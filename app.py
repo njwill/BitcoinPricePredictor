@@ -31,49 +31,69 @@ if 'analysis_cache' not in st.session_state:
     st.session_state.analysis_cache = {}
 
 def main():
+    # Apply theme-based styling
+    theme_mode = "dark" if st.session_state.get('dark_mode', False) else "light"
+    
     # Add custom CSS for consistent fonts but preserve icons
-    st.markdown("""
+    st.markdown(f"""
     <style>
+    /* Apply theme colors */
+    .stApp {{
+        {'''
+        background-color: #0E1117 !important;
+        color: #FAFAFA !important;
+        ''' if theme_mode == 'dark' else '''
+        background-color: #FFFFFF !important;
+        color: #262730 !important;
+        '''}
+    }}
+    
     /* Target only text elements, leave icons untouched */
     .stMarkdown, .stMarkdown p, .stMarkdown div, .stMarkdown span,
     .stMetric, .stMetric *,
     .stDataFrame, .stDataFrame *,
-    h1, h2, h3, h4, h5, h6, p, span {
+    h1, h2, h3, h4, h5, h6, p, span {{
         font-family: "Source Sans Pro", sans-serif !important;
-    }
+        {f'color: #FAFAFA !important;' if theme_mode == 'dark' else 'color: #262730 !important;'}
+    }}
+    
+    /* Theme-based chart backgrounds */
+    .js-plotly-plot .plotly .modebar {{
+        {f'background-color: #262730 !important;' if theme_mode == 'dark' else 'background-color: #FFFFFF !important;'}
+    }}
     
     /* Disable KaTeX rendering for certain symbols */
-    .katex {
+    .katex {{
         display: none !important;
-    }
+    }}
     
     /* Hide the entire sidebar */
-    [data-testid="stSidebar"] {
+    [data-testid="stSidebar"] {{
         display: none !important;
-    }
+    }}
     
     /* Hide sidebar toggle controls */
-    [data-testid="collapsedControl"] {
+    [data-testid="collapsedControl"] {{
         display: none !important;
-    }
+    }}
     
     /* Hide the entire Streamlit menu completely */
-    [data-testid="stMainMenu"] {
+    [data-testid="stMainMenu"] {{
         display: none !important;
-    }
+    }}
     
-    [data-testid="stToolbar"] {
+    [data-testid="stToolbar"] {{
         display: none !important;
-    }
+    }}
     
     /* Position theme toggle in top right */
-    [data-testid="column"]:last-child button[kind="secondary"] {
+    [data-testid="column"]:last-child button[kind="secondary"] {{
         position: fixed;
         top: 1rem;
         right: 1rem;
         z-index: 999;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+    }}
     
     </style>
     
@@ -90,27 +110,7 @@ def main():
         theme_label = "Dark" if not st.session_state.dark_mode else "Light"
         if st.button(f"Mode: {theme_label}", type="secondary", help="Toggle between light and dark theme"):
             st.session_state.dark_mode = not st.session_state.dark_mode
-            
-            # Add JavaScript to apply theme changes
-            theme = "dark" if st.session_state.dark_mode else "light"
-            st.markdown(f"""
-            <script>
-            // Apply theme change
-            function applyTheme() {{
-                const app = document.querySelector('[data-testid="stApp"]');
-                if (app) {{
-                    if ('{theme}' === 'dark') {{
-                        app.classList.add('stAppDarkTheme');
-                        app.classList.remove('stAppLightTheme');
-                    }} else {{
-                        app.classList.add('stAppLightTheme');
-                        app.classList.remove('stAppDarkTheme');
-                    }}
-                }}
-            }}
-            applyTheme();
-            </script>
-            """, unsafe_allow_html=True)
+            st.rerun()
 
     # Header
     st.title("₿itcoin Analysis Dashboard")
@@ -312,7 +312,8 @@ def main():
                     indicators_3m, 
                     title="Bitcoin - 3 Month Analysis",
                     show_indicators=show_indicators,
-                    show_volume=show_volume
+                    show_volume=show_volume,
+                    theme=theme_mode
                 )
                 st.plotly_chart(fig_3m, use_container_width=True)
             except Exception as e:
@@ -327,7 +328,8 @@ def main():
                     indicators_1w, 
                     title="Bitcoin - 1 Week Analysis",
                     show_indicators=show_indicators,
-                    show_volume=show_volume
+                    show_volume=show_volume,
+                    theme=theme_mode
                 )
                 st.plotly_chart(fig_1w, use_container_width=True)
             except Exception as e:
@@ -365,14 +367,20 @@ def main():
                     lower_prob = probabilities.get('lower', 0)
                     confidence = probabilities.get('confidence', 0)
                     
-                    # Probability gauge
+                    # Probability gauge with theme colors
+                    gauge_colors = {
+                        'bgcolor': '#0E1117' if theme_mode == 'dark' else '#FFFFFF',
+                        'bordercolor': '#FAFAFA' if theme_mode == 'dark' else '#262730',
+                        'font_color': '#FAFAFA' if theme_mode == 'dark' else '#262730'
+                    }
+                    
                     fig_gauge = go.Figure(go.Indicator(
                         mode = "gauge+number",
                         value = higher_prob * 100,
                         domain = {'x': [0, 1], 'y': [0, 1]},
-                        title = {'text': "Higher by Friday (%)"},
+                        title = {'text': "Higher by Friday (%)", 'font': {'color': gauge_colors['font_color']}},
                         gauge = {
-                            'axis': {'range': [None, 100]},
+                            'axis': {'range': [None, 100], 'tickcolor': gauge_colors['font_color']},
                             'bar': {'color': "darkgreen"},
                             'steps': [
                                 {'range': [0, 25], 'color': "lightgray"},
@@ -382,7 +390,12 @@ def main():
                             ]
                         }
                     ))
-                    fig_gauge.update_layout(height=300)
+                    fig_gauge.update_layout(
+                        height=300,
+                        paper_bgcolor=gauge_colors['bgcolor'],
+                        plot_bgcolor=gauge_colors['bgcolor'],
+                        font=dict(color=gauge_colors['font_color'])
+                    )
                     st.plotly_chart(fig_gauge, use_container_width=True)
                     
                     # Confidence metrics

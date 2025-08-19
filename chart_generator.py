@@ -22,7 +22,7 @@ class ChartGenerator:
         }
     
     def create_comprehensive_chart(self, data, indicators, title="Bitcoin Analysis", 
-                                 show_indicators=True, show_volume=True):
+                                 show_indicators=True, show_volume=True, theme="light"):
         """
         Create a comprehensive chart with price, volume, and technical indicators
         
@@ -211,20 +211,29 @@ class ChartGenerator:
                 
                 fig.add_hline(y=0, line_color="gray", row=current_row, col=1)
             
-            # Update layout
+            # Theme-based colors
+            bg_color = '#0E1117' if theme == 'dark' else '#FFFFFF'
+            text_color = '#FAFAFA' if theme == 'dark' else '#262730'
+            grid_color = '#262730' if theme == 'dark' else '#E0E0E0'
+            
+            # Update layout with theme colors
             fig.update_layout(
                 title=title,
                 xaxis_rangeslider_visible=False,
                 showlegend=True,
                 height=650 if subplot_count <= 2 else 850,
                 margin=dict(l=0, r=0, t=50, b=20),
-                font=dict(size=12)
+                font=dict(size=12, color=text_color),
+                paper_bgcolor=bg_color,
+                plot_bgcolor=bg_color
             )
             
-            # Update x-axes
+            # Update x-axes with theme colors
             for i in range(1, subplot_count + 1):
-                fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor='lightgray', row=i, col=1)
-                fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray', row=i, col=1)
+                fig.update_xaxes(showgrid=True, gridwidth=1, gridcolor=grid_color, 
+                               tickcolor=text_color, color=text_color, row=i, col=1)
+                fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor=grid_color,
+                               tickcolor=text_color, color=text_color, row=i, col=1)
             
             return fig
             

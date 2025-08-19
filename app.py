@@ -185,8 +185,7 @@ def main():
         with col1:
             st.metric(
                 "Price at Last Analysis",
-                format_currency(current_price),
-                f"{price_change_pct:+.2f}%"
+                format_currency(current_price)
             )
         
         with col2:
@@ -408,7 +407,7 @@ def main():
         
         if indicators_summary:
             df_indicators = pd.DataFrame(indicators_summary)
-            st.dataframe(df_indicators, use_container_width=True)
+            st.dataframe(df_indicators, use_container_width=True, hide_index=True)
         
         # Update timestamp
         st.session_state.last_update = current_time
@@ -421,32 +420,29 @@ def main():
         st.error(f"❌ An error occurred: {str(e)}")
         st.exception(e)
     
-    # Manual refresh section at the bottom
-    st.divider()
-    st.subheader("🔄 Manual Refresh")
-    st.markdown("Use this section to manually refresh the analysis data when needed.")
-    
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        refresh_password = st.text_input("Enter password to refresh:", type="password", key="refresh_pwd")
-    with col2:
-        st.markdown("<br>", unsafe_allow_html=True)  # Add spacing
-        if st.button("🔄 Refresh Analysis", type="primary"):
-            if refresh_password == "bitcoin2025":
-                # Clear all caches including file cache
-                st.session_state.data_cache = {}
-                st.session_state.analysis_cache = {}
-                try:
-                    import os
-                    cache_file = "bitcoin_analysis_cache.json"
-                    if os.path.exists(cache_file):
-                        os.remove(cache_file)
-                except:
-                    pass
-                st.success("Analysis refreshed successfully!")
-                st.rerun()
-            else:
-                st.error("Incorrect password. Access denied.")
+    # Manual refresh section (hidden/minimal)
+    with st.expander("Admin Controls", expanded=False):
+        st.caption("Password protected refresh functionality")
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            refresh_password = st.text_input("Password:", type="password", key="refresh_pwd", label_visibility="collapsed", placeholder="Enter admin password")
+        with col2:
+            if st.button("Refresh", type="secondary"):
+                if refresh_password == "bitcoin2025":
+                    # Clear all caches including file cache
+                    st.session_state.data_cache = {}
+                    st.session_state.analysis_cache = {}
+                    try:
+                        import os
+                        cache_file = "bitcoin_analysis_cache.json"
+                        if os.path.exists(cache_file):
+                            os.remove(cache_file)
+                    except:
+                        pass
+                    st.success("Analysis refreshed successfully!")
+                    st.rerun()
+                else:
+                    st.error("Incorrect password.")
 
 if __name__ == "__main__":
     main()

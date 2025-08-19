@@ -430,12 +430,8 @@ def main():
                     # Remove any problematic characters and ensure proper formatting
                     cleaned_summary = technical_summary.replace('\\n', '\n').strip()
                     
-                    # Split into smaller chunks to avoid truncation issues
-                    chunks = cleaned_summary.split('\n\n')  # Split by double newlines (paragraphs)
-                    for chunk in chunks:
-                        if chunk.strip():
-                            st.markdown(chunk.strip(), unsafe_allow_html=False)
-                            st.markdown("&nbsp;", unsafe_allow_html=True)  # Add spacing between chunks
+                    # Display the full content using st.write which handles long content better
+                    st.write(cleaned_summary)
                 else:
                     st.write("Analysis not available")
                 
@@ -445,12 +441,8 @@ def main():
                 if isinstance(price_prediction, str) and price_prediction.strip():
                     cleaned_prediction = price_prediction.replace('\\n', '\n').strip()
                     
-                    # Split into smaller chunks to avoid truncation issues
-                    chunks = cleaned_prediction.split('\n\n')  # Split by double newlines (paragraphs)
-                    for chunk in chunks:
-                        if chunk.strip():
-                            st.markdown(chunk.strip(), unsafe_allow_html=False)
-                            st.markdown("&nbsp;", unsafe_allow_html=True)  # Add spacing between chunks
+                    # Display the full content using st.write which handles long content better
+                    st.write(cleaned_prediction)
                 else:
                     st.write("Prediction not available")
                 
@@ -460,12 +452,8 @@ def main():
                 if isinstance(market_sentiment, str) and market_sentiment.strip():
                     cleaned_sentiment = market_sentiment.replace('\\n', '\n').strip()
                     
-                    # Split into smaller chunks to avoid truncation issues
-                    chunks = cleaned_sentiment.split('\n\n')  # Split by double newlines (paragraphs)
-                    for chunk in chunks:
-                        if chunk.strip():
-                            st.markdown(chunk.strip(), unsafe_allow_html=False)
-                            st.markdown("&nbsp;", unsafe_allow_html=True)  # Add spacing between chunks
+                    # Display the full content using st.write which handles long content better
+                    st.write(cleaned_sentiment)
                 else:
                     st.write("Sentiment analysis not available")
             

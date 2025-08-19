@@ -57,44 +57,75 @@ def main():
         display: none !important;
     }
     
-    </style>
-    
-    <script>
-    // Hide menu items but keep theme toggle
-    function hideMenuItems() {
-        const mainMenu = document.querySelector('[data-testid="stMainMenu"]');
-        if (mainMenu) {
-            const menuItems = mainMenu.querySelectorAll('[role="menuitem"]');
-            menuItems.forEach((item, index) => {
-                // Keep only the last item (usually theme toggle)
-                if (index < menuItems.length - 1) {
-                    item.style.display = 'none';
-                }
-            });
-        }
-        
-        // Also try targeting by content
-        const buttons = document.querySelectorAll('[data-testid="stToolbar"] button');
-        buttons.forEach(button => {
-            const title = button.getAttribute('title') || button.textContent || '';
-            if (title.includes('Rerun') || title.includes('Settings') || 
-                title.includes('Print') || title.includes('Record') ||
-                title.includes('Developer options')) {
-                button.style.display = 'none';
-            }
-        });
+    /* Hide the entire Streamlit menu completely */
+    [data-testid="stMainMenu"] {
+        display: none !important;
     }
     
-    // Run when page loads
-    document.addEventListener('DOMContentLoaded', hideMenuItems);
+    [data-testid="stToolbar"] {
+        display: none !important;
+    }
     
-    // Also run periodically since Streamlit updates dynamically
-    setInterval(hideMenuItems, 1000);
-    </script>
+    /* Custom theme toggle positioning */
+    .custom-theme-toggle {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 999999;
+        background: var(--background-color);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--text-color);
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .custom-theme-toggle:hover {
+        background: var(--secondary-background-color);
+    }
+    
+    </style>
     
 
     """, unsafe_allow_html=True)
     
+    # Custom theme toggle
+    st.markdown("""
+    <div class="custom-theme-toggle" onclick="toggleTheme()">
+        Mode: <span id="current-theme">Light</span>
+    </div>
+    
+    <script>
+    function toggleTheme() {
+        const currentTheme = document.querySelector('[data-testid="stApp"]').getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        
+        // Toggle Streamlit theme
+        const themeButton = document.querySelector('[title*="theme" i], [title*="Theme" i]');
+        if (themeButton) {
+            themeButton.click();
+        } else {
+            // Fallback: manually toggle classes
+            document.querySelector('[data-testid="stApp"]').setAttribute('data-theme', newTheme);
+        }
+        
+        // Update button text
+        document.getElementById('current-theme').textContent = newTheme === 'light' ? 'Light' : 'Dark';
+        
+        // Store preference
+        localStorage.setItem('streamlit-theme', newTheme);
+    }
+    
+    // Initialize theme on load
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedTheme = localStorage.getItem('streamlit-theme') || 'light';
+        document.getElementById('current-theme').textContent = savedTheme === 'light' ? 'Light' : 'Dark';
+    });
+    </script>
+    """, unsafe_allow_html=True)
+
     # Header
     st.title("₿itcoin Analysis Dashboard")
     st.markdown("### Automated Weekly Bitcoin Chart Analysis & Probability Assessments")

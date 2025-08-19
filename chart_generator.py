@@ -22,7 +22,8 @@ class ChartGenerator:
         }
     
     def create_comprehensive_chart(self, data, indicators, title="Bitcoin Analysis", 
-                                 show_indicators=True, show_volume=True, theme="light"):
+                                 show_indicators=True, show_volume=True, theme="dark", 
+                                 display_from_index=None):
         """
         Create a comprehensive chart with price, volume, and technical indicators
         
@@ -41,6 +42,17 @@ class ChartGenerator:
             if not isinstance(data, pd.DataFrame):
                 st.error("Invalid data format for chart generation")
                 return self._create_empty_chart(title)
+            
+            # Handle display range trimming if specified
+            if display_from_index is not None and display_from_index > 0:
+                data = data.iloc[display_from_index:].copy()
+                # Trim indicators to match the display data
+                for key, value in indicators.items():
+                    if isinstance(value, (pd.Series, list)) and len(value) > display_from_index:
+                        if isinstance(value, pd.Series):
+                            indicators[key] = value.iloc[display_from_index:].copy()
+                        else:
+                            indicators[key] = value[display_from_index:]
             
             # Ensure indicators are properly formatted
             if indicators:

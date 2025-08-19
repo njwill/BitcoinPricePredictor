@@ -12,13 +12,14 @@ class BitcoinDataFetcher:
     def __init__(self):
         self.btc_ticker = "BTC-USD"
         
-    def get_bitcoin_data(self, period='3mo', interval='1d'):
+    def get_bitcoin_data(self, period='3mo', interval='1d', extended_for_indicators=True):
         """
         Fetch Bitcoin price data using yfinance
         
         Args:
             period: Time period ('1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'ytd', 'max')
             interval: Data interval ('1m', '2m', '5m', '15m', '30m', '60m', '90m', '1h', '1d', '5d', '1wk', '1mo', '3mo')
+            extended_for_indicators: If True, fetch extra data for technical indicator warm-up periods
         
         Returns:
             pandas.DataFrame: Bitcoin price data with OHLCV columns
@@ -27,10 +28,26 @@ class BitcoinDataFetcher:
             # Create ticker object
             btc = yf.Ticker(self.btc_ticker)
             
-            # Fetch historical data
+            # Fetch historical data with extension for technical indicators
             if period == '1wk':
-                # For 1 week data, use 7 days with 1h interval for better granularity
-                data = btc.history(period='7d', interval='1h')
+                # For 1 week data, extend to get more hourly data for indicators
+                if extended_for_indicators:
+                    # Fetch 14 days of hourly data, then trim to last 7 days for display
+                    data = btc.history(period='14d', interval='1h')
+                    if not data.empty and len(data) > 168:  # 7 days * 24 hours
+                        # Keep the extended data for indicators, but mark the display range
+                        data.attrs['display_from_index'] = len(data) - 168
+                else:
+                    data = btc.history(period='7d', interval='1h')
+            elif period == '3mo':
+                if extended_for_indicators:
+                    # Fetch 6 months of daily data, then trim to last 3 months for display  
+                    data = btc.history(period='6mo', interval='1d')
+                    if not data.empty and len(data) > 90:  # Approximate 3 months
+                        # Keep the extended data for indicators, but mark the display range
+                        data.attrs['display_from_index'] = len(data) - 90
+                else:
+                    data = btc.history(period=period, interval=interval)
             else:
                 data = btc.history(period=period, interval=interval)
             

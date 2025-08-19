@@ -384,13 +384,15 @@ def main():
             st.subheader("📈 3-Month Bitcoin Chart")
             st.markdown("<br>", unsafe_allow_html=True)
             try:
+                display_from_3m = getattr(btc_3m, 'attrs', {}).get('display_from_index', None)
                 fig_3m = chart_generator.create_comprehensive_chart(
                     btc_3m, 
                     indicators_3m, 
                     title="Bitcoin - 3 Month Analysis",
                     show_indicators=show_indicators,
                     show_volume=show_volume,
-                    theme=theme_mode
+                    theme=theme_mode,
+                    display_from_index=display_from_3m
                 )
                 st.plotly_chart(fig_3m, use_container_width=True)
             except Exception as e:
@@ -400,13 +402,15 @@ def main():
             st.subheader("📊 1-Week Bitcoin Chart")
             st.markdown("<br>", unsafe_allow_html=True)
             try:
+                display_from_1w = getattr(btc_1w, 'attrs', {}).get('display_from_index', None)
                 fig_1w = chart_generator.create_comprehensive_chart(
                     btc_1w, 
                     indicators_1w, 
                     title="Bitcoin - 1 Week Analysis",
                     show_indicators=show_indicators,
                     show_volume=show_volume,
-                    theme=theme_mode
+                    theme=theme_mode,
+                    display_from_index=display_from_1w
                 )
                 st.plotly_chart(fig_1w, use_container_width=True)
             except Exception as e:

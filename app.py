@@ -69,7 +69,7 @@ def main():
     """, unsafe_allow_html=True)
     
     # Header
-    st.title("₿ Bitcoin Analysis Dashboard")
+    st.title("₿itcoin Analysis Dashboard")
     st.markdown("### Automated Weekly Bitcoin Chart Analysis & Probability Assessments")
     
     # Settings moved to main content area
@@ -103,7 +103,7 @@ def main():
             st.session_state.last_update = cache_timestamp
             
             cache_time_str = cache_timestamp.strftime('%Y-%m-%d %H:%M:%S')
-            st.success(f"📊 Using cached analysis data from {cache_time_str} ET")
+            st.success(f"📊 Analysis ran on {cache_time_str} ET")
         else:
             # Fetch new data
             with st.spinner("📈 Fetching Bitcoin data..."):

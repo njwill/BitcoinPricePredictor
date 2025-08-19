@@ -95,6 +95,29 @@ def main():
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }}
     
+    /* Theme-aware button styling */
+    button[kind="secondary"] {{
+        {f'''
+        background-color: #262730 !important;
+        color: #FAFAFA !important;
+        border: 1px solid #4A4A4A !important;
+        ''' if theme_mode == 'dark' else '''
+        background-color: #FFFFFF !important;
+        color: #262730 !important;
+        border: 1px solid #D0D0D0 !important;
+        '''}
+    }}
+    
+    button[kind="secondary"]:hover {{
+        {f'''
+        background-color: #3A3A3A !important;
+        border: 1px solid #6A6A6A !important;
+        ''' if theme_mode == 'dark' else '''
+        background-color: #F8F8F8 !important;
+        border: 1px solid #B0B0B0 !important;
+        '''}
+    }}
+    
     </style>
     
 

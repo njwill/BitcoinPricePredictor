@@ -82,6 +82,11 @@ class AIAnalyzer:
             # Get actual current price from the latest data point
             actual_current_price = float(display_data_3m['Close'].iloc[-1])
             
+            # Validate that current_price parameter matches data
+            if abs(current_price - actual_current_price) > 1:  # Allow small differences
+                st.warning(f"Price mismatch detected: parameter={current_price}, data={actual_current_price}")
+                actual_current_price = current_price  # Use the parameter value
+            
             # 3-month data summary (use display range for accurate period analysis)
             data_3m_summary = {
                 'period': '3 months',
@@ -202,41 +207,45 @@ class AIAnalyzer:
             data_1w = analysis_data.get('data_1w', {})
             
             prompt = f"""
-            You are an expert Bitcoin technical analyst. Provide a comprehensive technical analysis using this Bitcoin price data:
+            You are an expert Bitcoin technical analyst. Analyze the provided Bitcoin price data with EXTREME ACCURACY.
             
-            CRITICAL - CURRENT BITCOIN PRICE: ${current_price:,.2f}
+            === CRITICAL PRICE INFORMATION ===
+            CURRENT BITCOIN PRICE: ${current_price:,.2f}
             
-            3-MONTH TIMEFRAME DATA:
+            3-MONTH TIMEFRAME (Period: {data_3m.get('start_date', 'N/A')} to {data_3m.get('end_date', 'N/A')}):
             - Current Price: ${current_price:,.2f}
-            - Period Start Price: ${data_3m.get('start_price_3m', 0):,.2f}
+            - Start Price: ${data_3m.get('start_price_3m', 0):,.2f} 
             - Period High: ${data_3m.get('high_3m', 0):,.2f}
             - Period Low: ${data_3m.get('low_3m', 0):,.2f}
-            - Price Change: {data_3m.get('price_change_3m', 0):.2f}%
+            - Price Change: {data_3m.get('price_change_3m', 0):+.2f}%
             
-            1-WEEK TIMEFRAME DATA:
+            1-WEEK TIMEFRAME (Period: {data_1w.get('start_date', 'N/A')} to {data_1w.get('end_date', 'N/A')}):
             - Current Price: ${current_price:,.2f}
-            - Period Start Price: ${data_1w.get('start_price_1w', 0):,.2f}
+            - Start Price: ${data_1w.get('start_price_1w', 0):,.2f}
             - Period High: ${data_1w.get('high_1w', 0):,.2f}
             - Period Low: ${data_1w.get('low_1w', 0):,.2f}
-            - Price Change: {data_1w.get('price_change_1w', 0):.2f}%
+            - Price Change: {data_1w.get('price_change_1w', 0):+.2f}%
             
             Technical Indicators:
             {json.dumps(analysis_data.get('indicators', {}), indent=2)}
             
-            IMPORTANT RULES:
-            1. Always use ${current_price:,.2f} as the CURRENT PRICE
-            2. Support levels should be BELOW current price (lower values)
-            3. Resistance levels should be ABOVE current price (higher values)
-            4. Never confuse highs/lows with current price
+            CRITICAL FORMATTING REQUIREMENTS:
+            1. ALL PRICES must include $ sign (e.g., $115,287.50, not 115287.50)
+            2. Price logic must be correct: 
+               - If current > start = "increased/rose FROM start TO current"
+               - If current < start = "decreased/fell FROM start TO current"
+            3. Support = price levels BELOW ${current_price:,.2f}
+            4. Resistance = price levels ABOVE ${current_price:,.2f}
+            5. Make Buy/Sell/Hold recommendations **BOLD** like **Buy** or **Sell** or **Hold**
             
             Provide analysis covering:
-            1. Price action analysis for both timeframes
-            2. Technical indicator interpretation
-            3. Accurate support and resistance levels
+            1. Price action analysis (use correct FROM/TO direction)
+            2. Technical indicator interpretation  
+            3. Accurate support/resistance levels
             4. Market structure and trend analysis
             5. Key technical patterns
             
-            Keep analysis professional and concise (200-300 words).
+            Double-check all price values and logic before responding. Keep analysis 200-300 words.
             """
             
             response = self.client.chat.completions.create(
@@ -266,30 +275,38 @@ class AIAnalyzer:
             prompt = f"""
             Calculate probability of Bitcoin price movement by Friday at 4:00 PM Eastern Time.
             
-            CURRENT BITCOIN PRICE: ${current_price:,.2f}
-            Time until target: {hours_until_target:.1f} hours
+            === CURRENT BITCOIN PRICE ===
+            ${current_price:,.2f}
             
-            RECENT PRICE DATA:
+            Time until Friday 4PM ET: {hours_until_target:.1f} hours
+            
+            === PRICE MOVEMENTS ===
             3-Month: ${data_3m.get('start_price_3m', 0):,.2f} → ${current_price:,.2f} ({data_3m.get('price_change_3m', 0):+.2f}%)
             1-Week: ${data_1w.get('start_price_1w', 0):,.2f} → ${current_price:,.2f} ({data_1w.get('price_change_1w', 0):+.2f}%)
             
-            PRICE RANGES:
+            === PRICE RANGES ===
             3-Month High: ${data_3m.get('high_3m', 0):,.2f}
             3-Month Low: ${data_3m.get('low_3m', 0):,.2f}
             1-Week High: ${data_1w.get('high_1w', 0):,.2f}
             1-Week Low: ${data_1w.get('low_1w', 0):,.2f}
             
-            Technical Indicators Summary:
+            Technical Indicators:
             {json.dumps(analysis_data.get('indicators', {}), indent=2)}
             
-            Provide EXACTLY:
+            FORMATTING REQUIREMENTS:
+            - ALL prices must include $ sign
+            - Make trading recommendations **BOLD** like **Buy**, **Sell**, **Hold**
+            - Be consistent with probability percentages across sections
+            
+            Provide EXACTLY these sections:
             1. Probability of Price Being HIGHER by Friday 4PM ET: [X]%
             2. Probability of Price Being LOWER by Friday 4PM ET: [Y]%
             3. Confidence Level: [Z]%
             4. Key technical factors supporting assessment
-            5. Potential price targets
+            5. Potential price targets (with $ signs)
+            6. Trading recommendation: **Buy**//**Sell**//**Hold**
             
-            CRITICAL: Ensure probabilities X + Y = 100%. Be specific and consistent with percentages.
+            CRITICAL: X + Y must equal 100%. Use the SAME percentages in all analysis sections.
             """
             
             response = self.client.chat.completions.create(

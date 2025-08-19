@@ -280,11 +280,11 @@ def main():
                 
                 # Determine recommendation based on probability and direction
                 if probability >= 0.7 and direction == "higher":
-                    recommendation = "Buy"
+                    recommendation = "**Buy**"
                 elif probability >= 0.7 and direction == "lower":
-                    recommendation = "Sell"
+                    recommendation = "**Sell**"
                 else:
-                    recommendation = "Hold"
+                    recommendation = "**Hold**"
                 
                 analysis_message = f"Based on analysis ran on {current_time_str} ET, the price of Bitcoin has a {probability:.0%} chance of being {direction} on Friday at 4PM ET. Recommendation is to {recommendation} during this period."
                 st.info(f"📊 {analysis_message}")

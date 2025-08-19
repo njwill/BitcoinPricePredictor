@@ -253,15 +253,9 @@ def main():
         
 
         
-        # Chart Settings
-        st.subheader("⚙️ Chart Settings")
-        col1, col2 = st.columns(2)
-        with col1:
-            show_indicators = st.checkbox("Show Technical Indicators", value=True)
-        with col2:
-            show_volume = st.checkbox("Show Volume", value=True)
-        
-        st.divider()
+        # Default chart settings
+        show_indicators = True
+        show_volume = True
         
         # Chart Generation
         col1, col2 = st.columns(2, gap="medium")

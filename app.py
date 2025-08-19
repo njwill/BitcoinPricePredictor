@@ -429,7 +429,7 @@ def main():
                 if isinstance(technical_summary, str) and technical_summary.strip():
                     # Remove any problematic characters and ensure proper formatting
                     cleaned_summary = technical_summary.replace('\\n', '\n').strip()
-                    st.text_area("", value=cleaned_summary, height=200, disabled=True, label_visibility="collapsed")
+                    st.markdown(cleaned_summary, unsafe_allow_html=False)
                 else:
                     st.write("Analysis not available")
                 
@@ -438,7 +438,7 @@ def main():
                 price_prediction = analysis.get('price_prediction', 'Prediction not available')
                 if isinstance(price_prediction, str) and price_prediction.strip():
                     cleaned_prediction = price_prediction.replace('\\n', '\n').strip()
-                    st.text_area("", value=cleaned_prediction, height=150, disabled=True, label_visibility="collapsed")
+                    st.markdown(cleaned_prediction, unsafe_allow_html=False)
                 else:
                     st.write("Prediction not available")
                 
@@ -447,7 +447,7 @@ def main():
                 market_sentiment = analysis.get('market_sentiment', 'Sentiment analysis not available')
                 if isinstance(market_sentiment, str) and market_sentiment.strip():
                     cleaned_sentiment = market_sentiment.replace('\\n', '\n').strip()
-                    st.text_area("", value=cleaned_sentiment, height=150, disabled=True, label_visibility="collapsed")
+                    st.markdown(cleaned_sentiment, unsafe_allow_html=False)
                 else:
                     st.write("Sentiment analysis not available")
             

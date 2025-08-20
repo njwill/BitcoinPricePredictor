@@ -154,167 +154,62 @@ def main():
     
     # Main content area
     try:
-        # Check if we need to load from file cache or update data
-        cached_analysis, cache_timestamp = load_analysis_cache()
-        
-        # Determine if we should use cached data or fetch new data
-        use_cached_data = False
-        if cached_analysis and cache_timestamp and not should_update_analysis(cache_timestamp):
-            # Check if current price in cache is still accurate by fetching latest price
-            try:
-                # Quick fetch of current price to validate cache
-                temp_fetcher = BitcoinDataFetcher()
-                current_btc_data = temp_fetcher.get_bitcoin_data(period='1d')  # Just get today's data
-                fresh_current_price = float(current_btc_data['Close'].iloc[-1])
-                
-                # Extract cached price data and check for significant difference
-                cached_btc_1w = pd.DataFrame(cached_analysis['btc_1w'])
-                cached_current_price = float(cached_btc_1w['Close'].iloc[-1])
-                
-                price_difference_pct = abs((fresh_current_price - cached_current_price) / cached_current_price * 100)
-                
-                # If price difference is less than 2%, use cached data
-                if price_difference_pct < 2.0:
-                    btc_3m = pd.DataFrame(cached_analysis['btc_3m'])
-                    btc_1w = cached_btc_1w
-                    indicators_3m = cached_analysis['indicators_3m']
-                    indicators_1w = cached_analysis['indicators_1w']
-                    analysis = cached_analysis['analysis']
-                    use_cached_data = True
-                    st.info(f"📋 Using cached analysis (price difference: {price_difference_pct:.2f}%)")
-                else:
-                    st.warning(f"🔄 Price changed significantly ({price_difference_pct:.1f}%), refreshing analysis...")
-            except Exception as e:
-                st.warning(f"Error validating cache: {str(e)}, fetching fresh data...")
-        
-        if not use_cached_data:
-            # Fetch fresh data
-            
-            cache_time_str = cache_timestamp.strftime('%Y-%m-%d %H:%M:%S')
-            
-            # Create comprehensive analysis message
-            if analysis and 'probabilities' in analysis:
-                probabilities = analysis['probabilities']
-                higher_prob = probabilities.get('higher', 0)
-                lower_prob = probabilities.get('lower', 0)
-                
-                # Determine direction and probability
-                if higher_prob > lower_prob:
-                    direction = "higher"
-                    probability = higher_prob
-                else:
-                    direction = "lower" 
-                    probability = lower_prob
-                
-                # Determine recommendation based on probability and direction
-                if probability >= 0.7 and direction == "higher":
-                    recommendation = "Buy"
-                elif probability >= 0.7 and direction == "lower":
-                    recommendation = "Sell"
-                else:
-                    recommendation = "Hold"
-                
-                analysis_message = f"Based on analysis ran on {cache_time_str} ET, the price of Bitcoin has a {probability:.0%} chance of being {direction} on Friday at 4PM ET. Recommendation is to {recommendation} during this period."
-                st.info(f"📊 {analysis_message}")
-            else:
-                st.success(f"📊 Analysis ran on {cache_time_str} ET")
-        else:
-            # Fetch new data
-            with st.spinner("📈 Fetching Bitcoin data..."):
-                btc_3m = data_fetcher.get_bitcoin_data(period='3mo')
-                btc_1w = data_fetcher.get_bitcoin_data(period='1wk')
-            
-            if btc_3m.empty or btc_1w.empty:
-                st.error("❌ Failed to fetch Bitcoin data. Please try again later.")
-                return
-            
-            # Calculate technical indicators
-            with st.spinner("🔍 Calculating technical indicators..."):
-                indicators_3m = technical_analyzer.calculate_all_indicators(btc_3m)
-                indicators_1w = technical_analyzer.calculate_all_indicators(btc_1w)
-            
-            # Generate AI analysis
-            with st.spinner("🤖 Generating AI analysis..."):
-                analysis_key = f"analysis_{datetime.now().strftime('%Y%m%d')}"
-                
-                if analysis_key not in st.session_state.analysis_cache:
-                    current_price = btc_1w['Close'].iloc[-1]
-                    analysis = ai_analyzer.generate_comprehensive_analysis(
-                        data_3m=btc_3m,
-                        data_1w=btc_1w,
-                        indicators_3m=indicators_3m,
-                        indicators_1w=indicators_1w,
-                        current_price=current_price
-                    )
-                    st.session_state.analysis_cache[analysis_key] = analysis
-                else:
-                    analysis = st.session_state.analysis_cache[analysis_key]
-            
-            # Save to file cache
-            current_time = get_eastern_time()
-            
-            # Convert DataFrames to serializable format
-            btc_3m_data = btc_3m.reset_index().to_dict('records')
-            btc_1w_data = btc_1w.reset_index().to_dict('records')
-            
-            # Convert indicators to serializable format
-            indicators_3m_data = {}
-            for key, value in indicators_3m.items():
-                if isinstance(value, pd.Series):
-                    indicators_3m_data[key] = value.tolist()
-                else:
-                    indicators_3m_data[key] = value
-            
-            indicators_1w_data = {}
-            for key, value in indicators_1w.items():
-                if isinstance(value, pd.Series):
-                    indicators_1w_data[key] = value.tolist()
-                else:
-                    indicators_1w_data[key] = value
-            
-            cache_data = {
-                'btc_3m': btc_3m_data,
-                'btc_1w': btc_1w_data,
-                'indicators_3m': indicators_3m_data,
-                'indicators_1w': indicators_1w_data,
-                'analysis': analysis
-            }
-            save_analysis_cache(cache_data)
-            
-            # Update session state timestamp
-            st.session_state.last_update = current_time
-            
-            # Display comprehensive analysis message for new analysis
-            current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
-            if analysis and 'probabilities' in analysis:
-                probabilities = analysis['probabilities']
-                higher_prob = probabilities.get('higher', 0)
-                lower_prob = probabilities.get('lower', 0)
-                
-                # Determine direction and probability
-                if higher_prob > lower_prob:
-                    direction = "higher"
-                    probability = higher_prob
-                else:
-                    direction = "lower" 
-                    probability = lower_prob
-                
-                # Determine recommendation based on probability and direction
-                if probability >= 0.7 and direction == "higher":
-                    recommendation = "**Buy**"
-                elif probability >= 0.7 and direction == "lower":
-                    recommendation = "**Sell**"
-                else:
-                    recommendation = "**Hold**"
-                
-                analysis_message = f"Based on analysis ran on {current_time_str} ET, the price of Bitcoin has a {probability:.0%} chance of being {direction} on Friday at 4PM ET. Recommendation is to {recommendation} during this period."
-                st.info(f"📊 {analysis_message}")
-            else:
-                st.success(f"📊 Analysis completed at {current_time_str} ET")
+        # Always fetch fresh data - no caching
+        with st.spinner("📈 Fetching fresh Bitcoin data..."):
+            btc_3m = data_fetcher.get_bitcoin_data(period='3mo')
+            btc_1w = data_fetcher.get_bitcoin_data(period='1wk')
         
         if btc_3m.empty or btc_1w.empty:
             st.error("❌ Failed to fetch Bitcoin data. Please try again later.")
             return
+        
+        # Calculate technical indicators
+        with st.spinner("🔍 Calculating technical indicators..."):
+            indicators_3m = technical_analyzer.calculate_all_indicators(btc_3m)
+            indicators_1w = technical_analyzer.calculate_all_indicators(btc_1w)
+        
+        # Generate fresh AI analysis every time
+        with st.spinner("🤖 Generating fresh AI analysis..."):
+            current_price = btc_1w['Close'].iloc[-1]
+            analysis = ai_analyzer.generate_comprehensive_analysis(
+                data_3m=btc_3m,
+                data_1w=btc_1w,
+                indicators_3m=indicators_3m,
+                indicators_1w=indicators_1w,
+                current_price=current_price
+            )
+        
+        # Update session state timestamp
+        current_time = get_eastern_time()
+        st.session_state.last_update = current_time
+        
+        # Display fresh analysis message
+        current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
+        if analysis and 'probabilities' in analysis:
+            probabilities = analysis['probabilities']
+            higher_prob = probabilities.get('higher', 0)
+            lower_prob = probabilities.get('lower', 0)
+            
+            # Determine direction and probability
+            if higher_prob > lower_prob:
+                direction = "higher"
+                probability = higher_prob
+            else:
+                direction = "lower" 
+                probability = lower_prob
+            
+            # Determine recommendation based on probability and direction
+            if probability >= 0.7 and direction == "higher":
+                recommendation = "**Buy**"
+            elif probability >= 0.7 and direction == "lower":
+                recommendation = "**Sell**"
+            else:
+                recommendation = "**Hold**"
+            
+            analysis_message = f"Based on fresh analysis at {current_time_str} ET, Bitcoin has a {probability:.0%} chance of being {direction} by Friday 4PM ET. Recommendation: {recommendation}"
+            st.info(f"📊 {analysis_message}")
+        else:
+            st.success(f"📊 Fresh analysis completed at {current_time_str} ET")
         
         # Current price and basic stats
         current_price = btc_1w['Close'].iloc[-1]

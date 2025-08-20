@@ -95,12 +95,16 @@ class AIAnalyzer:
             
             # 3-month data summary - use display_from_index for accurate start price
             display_from_3m = getattr(data_3m, 'attrs', {}).get('display_from_index', 0)
+            st.info(f"🔍 Debug: 3M display_from_index: {display_from_3m}, total rows: {len(data_3m)}")
+            
             if display_from_3m > 0:
                 # Use the price from 3 months ago (not 6 months ago)
                 start_price_3m = float(data_3m['Close'].iloc[display_from_3m])
+                st.info(f"🔍 Debug: Using 3M start from index {display_from_3m}: ${start_price_3m:,.2f}")
             else:
                 # Fallback if no display index is set
                 start_price_3m = float(data_3m['Close'].iloc[0])
+                st.info(f"🔍 Debug: Using 3M start from index 0: ${start_price_3m:,.2f}")
             
             data_3m_summary = {
                 'period': '3 months',
@@ -117,12 +121,16 @@ class AIAnalyzer:
             
             # 1-week data summary - use display_from_index for accurate start price
             display_from_1w = getattr(data_1w, 'attrs', {}).get('display_from_index', 0)
+            st.info(f"🔍 Debug: 1W display_from_index: {display_from_1w}, total rows: {len(data_1w)}")
+            
             if display_from_1w > 0:
                 # Use the price from 1 week ago (not 2 weeks ago)
                 start_price_1w = float(data_1w['Close'].iloc[display_from_1w])
+                st.info(f"🔍 Debug: Using 1W start from index {display_from_1w}: ${start_price_1w:,.2f}")
             else:
                 # Fallback if no display index is set
                 start_price_1w = float(data_1w['Close'].iloc[0])
+                st.info(f"🔍 Debug: Using 1W start from index 0: ${start_price_1w:,.2f}")
             
             data_1w_summary = {
                 'period': '1 week',

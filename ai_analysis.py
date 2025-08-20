@@ -21,7 +21,7 @@ class AIAnalyzer:
         else:
             self.client = OpenAI(api_key=self.api_key)
     
-    def generate_comprehensive_analysis(self, data_3m, data_1w, indicators_3m, indicators_1w, current_price):
+    def generate_comprehensive_analysis(self, data_3m, data_1w, indicators_3m, indicators_1w, current_price, target_datetime=None):
         """
         Generate comprehensive AI analysis including technical analysis, predictions, and market sentiment
         
@@ -31,6 +31,7 @@ class AIAnalyzer:
             indicators_3m: Technical indicators for 3-month data
             indicators_1w: Technical indicators for 1-week data
             current_price: Current Bitcoin price
+            target_datetime: Custom target datetime for prediction (defaults to next Friday 4PM ET)
             
         Returns:
             Dictionary with analysis results
@@ -40,7 +41,7 @@ class AIAnalyzer:
         
         try:
             # Prepare data summary for AI analysis
-            analysis_data = self._prepare_analysis_data(data_3m, data_1w, indicators_3m, indicators_1w, current_price)
+            analysis_data = self._prepare_analysis_data(data_3m, data_1w, indicators_3m, indicators_1w, current_price, target_datetime)
             
             # Generate comprehensive analysis in single query for consistency
             comprehensive_response = self._generate_unified_analysis(analysis_data)
@@ -63,12 +64,22 @@ class AIAnalyzer:
             st.error(f"Error generating AI analysis: {str(e)}")
             return {"error": str(e)}
     
-    def _prepare_analysis_data(self, data_3m, data_1w, indicators_3m, indicators_1w, current_price):
+    def _prepare_analysis_data(self, data_3m, data_1w, indicators_3m, indicators_1w, current_price, target_datetime=None):
         """Prepare and summarize data for AI analysis"""
         try:
             eastern_tz = pytz.timezone('US/Eastern')
             current_time = datetime.now(eastern_tz)
-            friday_4pm = self._get_next_friday_4pm(current_time)
+            
+            # Use custom target datetime if provided, otherwise default to next Friday 4PM
+            if target_datetime:
+                # Ensure target datetime is in Eastern timezone
+                if target_datetime.tzinfo is None:
+                    target_datetime = eastern_tz.localize(target_datetime)
+                elif target_datetime.tzinfo != eastern_tz:
+                    target_datetime = target_datetime.astimezone(eastern_tz)
+                prediction_target = target_datetime
+            else:
+                prediction_target = self._get_next_friday_4pm(current_time)
             
             # Use FULL datasets for accurate period calculations, not trimmed display data
             # The display trimming is only for charts, not for AI analysis
@@ -116,12 +127,13 @@ class AIAnalyzer:
             
             return {
                 'current_time': current_time.isoformat(),
-                'target_time': friday_4pm.isoformat(),
-                'hours_until_target': (friday_4pm - current_time).total_seconds() / 3600,
+                'target_time': prediction_target.isoformat(),
+                'hours_until_target': (prediction_target - current_time).total_seconds() / 3600,
                 'data_3m': data_3m_summary,
                 'data_1w': data_1w_summary,
                 'indicators': indicators_summary,
-                'current_price': actual_current_price
+                'current_price': actual_current_price,
+                'target_datetime_formatted': prediction_target.strftime('%A %B %d, %Y at %I:%M %p ET')
             }
             
         except Exception as e:
@@ -443,13 +455,14 @@ class AIAnalyzer:
             hours_until_target = analysis_data.get('hours_until_target', 0)
             data_3m = analysis_data.get('data_3m', {})
             data_1w = analysis_data.get('data_1w', {})
+            target_datetime_formatted = analysis_data.get('target_datetime_formatted', 'Friday 4PM ET')
             
             comprehensive_prompt = f"""
             You are a comprehensive Bitcoin analyst providing consistent analysis across technical, predictive, and market sentiment perspectives.
             
             === CRITICAL BITCOIN DATA ===
             CURRENT BITCOIN PRICE: ${current_price:,.2f}
-            Time until Friday 4PM ET: {hours_until_target:.1f} hours
+            Time until {target_datetime_formatted}: {hours_until_target:.1f} hours
             
             3-MONTH TIMEFRAME (Period: {data_3m.get('start_date', 'N/A')} to {data_3m.get('end_date', 'N/A')}):
             - Current Price: ${current_price:,.2f}
@@ -485,10 +498,10 @@ class AIAnalyzer:
             [TECHNICAL_ANALYSIS_END]
             
             [PRICE_PREDICTION_START]
-            Friday 4PM ET Price Prediction:
+            {target_datetime_formatted} Price Prediction:
             Based on the SAME technical analysis above, provide:
-            1. Probability of Price Being HIGHER by Friday 4PM ET: [X]%
-            2. Probability of Price Being LOWER by Friday 4PM ET: [Y]%
+            1. Probability of Price Being HIGHER by {target_datetime_formatted}: [X]%
+            2. Probability of Price Being LOWER by {target_datetime_formatted}: [Y]%
             3. Confidence Level: [Z]%
             4. Key technical factors supporting assessment (must align with technical analysis)
             5. Potential price targets (with $ signs)

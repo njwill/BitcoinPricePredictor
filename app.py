@@ -144,7 +144,43 @@ def main():
     current_time = datetime.now(eastern_tz)
     next_update = calculate_time_until_update(current_time)
     
-    # Settings will be defined later in the UI near charts
+    # Prediction Target Selection
+    st.divider()
+    st.subheader("🎯 Prediction Target Selection")
+    st.markdown("Choose when you want the Bitcoin price prediction for:")
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        # Date selection (default to next Friday)
+        days_until_friday = (4 - current_time.weekday()) % 7
+        if days_until_friday == 0 and current_time.hour >= 16:  # If it's Friday after 4PM
+            days_until_friday = 7
+        default_date = (current_time + timedelta(days=days_until_friday)).date()
+        
+        selected_date = st.date_input(
+            "Target Date",
+            value=default_date,
+            min_value=current_time.date(),
+            max_value=(current_time + timedelta(days=14)).date(),
+            help="Select the date for your price prediction (up to 2 weeks out)"
+        )
+    
+    with col2:
+        # Time selection (default to 4:00 PM)
+        selected_time = st.time_input(
+            "Target Time (ET)",
+            value=datetime.strptime("16:00", "%H:%M").time(),
+            help="Select the time for your price prediction in Eastern Time"
+        )
+    
+    # Combine date and time
+    target_datetime = datetime.combine(selected_date, selected_time)
+    target_datetime = eastern_tz.localize(target_datetime)
+    
+    # Display the selected target
+    target_formatted = target_datetime.strftime('%A, %B %d, %Y at %I:%M %p ET')
+    st.info(f"📊 Prediction target: **{target_formatted}**")
 
     # Initialize components
     data_fetcher = BitcoinDataFetcher()
@@ -176,7 +212,8 @@ def main():
                 data_1w=btc_1w,
                 indicators_3m=indicators_3m,
                 indicators_1w=indicators_1w,
-                current_price=current_price
+                current_price=current_price,
+                target_datetime=target_datetime
             )
         
         # Update session state timestamp
@@ -185,10 +222,13 @@ def main():
         
         # Display fresh analysis message
         current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
-        if analysis and 'probabilities' in analysis:
+        if analysis and isinstance(analysis, dict) and 'probabilities' in analysis:
             probabilities = analysis['probabilities']
-            higher_prob = probabilities.get('higher', 0)
-            lower_prob = probabilities.get('lower', 0)
+            if isinstance(probabilities, dict):
+                higher_prob = probabilities.get('higher', 0)
+                lower_prob = probabilities.get('lower', 0)
+            else:
+                higher_prob = lower_prob = 0
             
             # Determine direction and probability
             if higher_prob > lower_prob:
@@ -206,7 +246,7 @@ def main():
             else:
                 recommendation = "**Hold**"
             
-            analysis_message = f"Based on fresh analysis at {current_time_str} ET, Bitcoin has a {probability:.0%} chance of being {direction} by Friday 4PM ET. Recommendation: {recommendation}"
+            analysis_message = f"Based on fresh analysis at {current_time_str} ET, Bitcoin has a {probability:.0%} chance of being {direction} by {target_formatted}. Recommendation: {recommendation}"
             st.info(f"📊 {analysis_message}")
         else:
             st.success(f"📊 Fresh analysis completed at {current_time_str} ET")
@@ -356,7 +396,7 @@ def main():
                     st.write("Analysis not available")
                 
                 st.markdown("<br>", unsafe_allow_html=True)
-                st.subheader("🎯 Friday 4PM ET Price Prediction")
+                st.subheader(f"🎯 {target_formatted} Price Prediction")
                 price_prediction = analysis.get('price_prediction', 'Prediction not available')
                 if isinstance(price_prediction, str) and price_prediction.strip():
                     cleaned_prediction = price_prediction.replace('\\n', '\n').strip()
@@ -381,8 +421,8 @@ def main():
                 st.subheader("📊 Probability Assessment")
                 
                 # Display probabilities if available
-                probabilities = analysis.get('probabilities', {})
-                if probabilities:
+                probabilities = analysis.get('probabilities', {}) if isinstance(analysis, dict) else {}
+                if probabilities and isinstance(probabilities, dict):
                     higher_prob = probabilities.get('higher', 0)
                     lower_prob = probabilities.get('lower', 0)
                     confidence = probabilities.get('confidence', 0)
@@ -398,7 +438,7 @@ def main():
                         mode = "gauge+number",
                         value = higher_prob * 100,
                         domain = {'x': [0, 1], 'y': [0, 1]},
-                        title = {'text': "Higher by Friday (%)", 'font': {'color': gauge_colors['font_color']}},
+                        title = {'text': f"Higher by {target_datetime.strftime('%A %I:%M %p')} (%)", 'font': {'color': gauge_colors['font_color']}},
                         gauge = {
                             'axis': {'range': [None, 100], 'tickcolor': gauge_colors['font_color']},
                             'bar': {'color': "darkgreen"},

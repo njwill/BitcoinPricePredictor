@@ -40,27 +40,37 @@ class AIAnalyzer:
         
         try:
             # Prepare data summary for AI analysis
+            st.info("🔄 Preparing analysis data...")
             analysis_data = self._prepare_analysis_data(data_3m, data_1w, indicators_3m, indicators_1w, current_price)
             
             # Generate technical analysis
+            st.info("🔄 Generating technical analysis...")
             technical_analysis = self._generate_technical_analysis(analysis_data)
+            st.success(f"✅ Technical analysis generated: {len(str(technical_analysis))} characters")
             
             # Generate price prediction
+            st.info("🔄 Generating price prediction...")
             price_prediction = self._generate_price_prediction(analysis_data)
+            st.success(f"✅ Price prediction generated: {len(str(price_prediction))} characters")
             
             # Generate market sentiment analysis
+            st.info("🔄 Generating market sentiment...")
             market_sentiment = self._generate_market_sentiment(analysis_data)
+            st.success(f"✅ Market sentiment generated: {len(str(market_sentiment))} characters")
             
             # Extract probabilities from prediction
             probabilities = self._extract_probabilities(price_prediction)
             
-            return {
+            result = {
                 'technical_summary': technical_analysis,
                 'price_prediction': price_prediction,
                 'market_sentiment': market_sentiment,
                 'probabilities': probabilities,
                 'timestamp': datetime.now().isoformat()
             }
+            
+            st.success(f"✅ Complete analysis generated with {len(result)} fields")
+            return result
             
         except Exception as e:
             st.error(f"Error generating AI analysis: {str(e)}")

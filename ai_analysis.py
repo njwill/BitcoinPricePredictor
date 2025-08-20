@@ -260,8 +260,9 @@ class AIAnalyzer:
             Double-check all price values and logic before responding. Keep analysis 200-300 words.
             """
             
+            st.info(f"🔄 Making API call to gpt-5 for technical analysis...")
             response = self.client.chat.completions.create(
-                model="gpt-5-mini",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": "You are a professional Bitcoin technical analyst with expertise in chart analysis and technical indicators."},
                     {"role": "user", "content": prompt}
@@ -269,7 +270,10 @@ class AIAnalyzer:
                 max_completion_tokens=800
             )
             
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            st.info(f"📡 API Response received: {len(str(content))} chars, type: {type(content)}")
+            st.info(f"📝 Response preview: {str(content)[:100]}...")
+            return content
             
         except Exception as e:
             st.error(f"Technical analysis error: {str(e)}")
@@ -323,8 +327,9 @@ class AIAnalyzer:
             CRITICAL: X + Y must equal 100%. Use the SAME percentages in all analysis sections.
             """
             
+            st.info(f"🔄 Making API call to gpt-5 for price prediction...")
             response = self.client.chat.completions.create(
-                model="gpt-5-mini",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": "You are a quantitative Bitcoin analyst specializing in probability-based price predictions using technical analysis."},
                     {"role": "user", "content": prompt}
@@ -332,7 +337,10 @@ class AIAnalyzer:
                 max_completion_tokens=800
             )
             
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            st.info(f"📡 API Response received: {len(str(content))} chars, type: {type(content)}")
+            st.info(f"📝 Response preview: {str(content)[:100]}...")
+            return content
             
         except Exception as e:
             st.error(f"Price prediction error: {str(e)}")
@@ -361,8 +369,9 @@ class AIAnalyzer:
             Focus on factual, recurring events and general market dynamics rather than speculation. Keep analysis concise (200-250 words).
             """
             
+            st.info(f"🔄 Making API call to gpt-5 for market sentiment...")
             response = self.client.chat.completions.create(
-                model="gpt-5-mini",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": "You are a cryptocurrency market analyst with expertise in macroeconomic factors and market sentiment analysis."},
                     {"role": "user", "content": prompt}
@@ -370,7 +379,10 @@ class AIAnalyzer:
                 max_completion_tokens=800
             )
             
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            st.info(f"📡 API Response received: {len(str(content))} chars, type: {type(content)}")
+            st.info(f"📝 Response preview: {str(content)[:100]}...")
+            return content
             
         except Exception as e:
             st.error(f"Market sentiment error: {str(e)}")

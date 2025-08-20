@@ -6,12 +6,12 @@ from datetime import datetime, timedelta
 import pytz
 import streamlit as st
 
-# Using GPT-4o temporarily due to GPT-5 API compatibility issues
-# Will switch back to GPT-5 once API issues are resolved
+# Using GPT-4.1 for enhanced data analysis and coding capabilities
+# GPT-4.1 released April 2025 with 21.4% improvement over GPT-4o
 from openai import OpenAI
 
 class AIAnalyzer:
-    """Handles AI-powered analysis using OpenAI GPT-4o (GPT-5 ready)"""
+    """Handles AI-powered analysis using OpenAI GPT-4.1"""
     
     def __init__(self):
         self.api_key = os.getenv("OPENAI_API_KEY", "")
@@ -251,7 +251,7 @@ class AIAnalyzer:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "You are a professional Bitcoin technical analyst with expertise in chart analysis and technical indicators."},
                     {"role": "user", "content": prompt}
@@ -314,7 +314,7 @@ class AIAnalyzer:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "You are a quantitative Bitcoin analyst specializing in probability-based price predictions using technical analysis."},
                     {"role": "user", "content": prompt}
@@ -352,7 +352,7 @@ class AIAnalyzer:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4.1",
                 messages=[
                     {"role": "system", "content": "You are a cryptocurrency market analyst with expertise in macroeconomic factors and market sentiment analysis."},
                     {"role": "user", "content": prompt}

@@ -95,6 +95,12 @@ class AIAnalyzer:
             
             # 3-month data summary (use FULL dataset for accurate 3-month period)
             start_price_3m = float(data_3m['Close'].iloc[0])
+            
+            # Debug information to help identify the data issue
+            if abs(start_price_3m - actual_current_price) < 100:  # If they're too close, something's wrong
+                st.warning(f"Debug: Possible data ordering issue - Start: ${start_price_3m:,.2f}, Current: ${actual_current_price:,.2f}")
+                st.warning(f"Debug: Data range {data_3m.index[0]} to {data_3m.index[-1]}")
+            
             data_3m_summary = {
                 'period': '3 months',
                 'current_price': actual_current_price,
@@ -110,6 +116,12 @@ class AIAnalyzer:
             
             # 1-week data summary (use FULL dataset for accurate 1-week period)
             start_price_1w = float(data_1w['Close'].iloc[0])
+            
+            # Debug information for 1-week data too
+            if abs(start_price_1w - actual_current_price) < 100:
+                st.warning(f"Debug 1W: Possible data ordering issue - Start: ${start_price_1w:,.2f}, Current: ${actual_current_price:,.2f}")
+                st.warning(f"Debug 1W: Data range {data_1w.index[0]} to {data_1w.index[-1]}")
+            
             data_1w_summary = {
                 'period': '1 week',
                 'start_price_1w': start_price_1w,

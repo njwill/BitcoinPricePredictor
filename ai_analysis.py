@@ -8,18 +8,19 @@ import streamlit as st
 
 # Using GPT-4.1 for enhanced data analysis and coding capabilities
 # GPT-4.1 released April 2025 with 21.4% improvement over GPT-4o
-from openai import OpenAI
+import anthropic
+from anthropic import Anthropic
 
 class AIAnalyzer:
-    """Handles AI-powered analysis using OpenAI GPT-4.1"""
+    """Handles AI-powered analysis using Anthropic Claude"""
     
     def __init__(self):
-        self.api_key = os.getenv("OPENAI_API_KEY", "")
+        self.api_key = os.getenv("ANTHROPIC_API_KEY", "")
         if not self.api_key:
-            st.error("OpenAI API key not found. Please set OPENAI_API_KEY environment variable.")
+            st.error("Anthropic API key not found. Please set ANTHROPIC_API_KEY environment variable.")
             self.client = None
         else:
-            self.client = OpenAI(api_key=self.api_key)
+            self.client = Anthropic(api_key=self.api_key)
     
     def generate_comprehensive_analysis(self, data_3m, data_1w, indicators_3m, indicators_1w, current_price, target_datetime=None):
         """
@@ -37,7 +38,7 @@ class AIAnalyzer:
             Dictionary with analysis results
         """
         if not self.client:
-            return {"error": "OpenAI client not initialized"}
+            return {"error": "Anthropic client not initialized"}
         
         try:
             # Prepare data summary for AI analysis
@@ -533,20 +534,21 @@ class AIAnalyzer:
             - Use the SAME fundamental assessment throughout all sections
             """
             
-            response = self.client.chat.completions.create(
-                model="gpt-4o",  # Fixed invalid model name
-                messages=[
-                    {"role": "system", "content": "You are a professional Bitcoin analyst providing comprehensive, consistent analysis across technical, predictive, and market perspectives."},
-                    {"role": "user", "content": comprehensive_prompt}
-                ],
+            # The newest Anthropic model is "claude-sonnet-4-20250514", not "claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022" nor "claude-3-sonnet-20240229".
+            response = self.client.messages.create(
+                model="claude-sonnet-4-20250514",
                 max_tokens=2500,
-                temperature=0.3
+                temperature=0.3,
+                system="You are a professional Bitcoin analyst providing comprehensive, consistent analysis across technical, predictive, and market perspectives.",
+                messages=[
+                    {"role": "user", "content": comprehensive_prompt}
+                ]
             )
             
-            ai_response = response.choices[0].message.content
+            ai_response = response.content[0].text
             
-            # Debug: Show what AI returned (first 300 characters)
-            st.error(f"🔍 AI RESPONSE PREVIEW: {ai_response[:300]}...")
+            # Debug: Show what Claude returned (first 300 characters)
+            st.success(f"🔍 CLAUDE RESPONSE PREVIEW: {ai_response[:300]}...")
             
             return ai_response
             

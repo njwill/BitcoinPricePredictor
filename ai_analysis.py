@@ -6,12 +6,12 @@ from datetime import datetime, timedelta
 import pytz
 import streamlit as st
 
-# the newest OpenAI model is "gpt-5" which was released August 7, 2025.
-# Updated to GPT-5 as requested by the user
+# Using GPT-4o temporarily due to GPT-5 API compatibility issues
+# Will switch back to GPT-5 once API issues are resolved
 from openai import OpenAI
 
 class AIAnalyzer:
-    """Handles AI-powered analysis using OpenAI GPT-5"""
+    """Handles AI-powered analysis using OpenAI GPT-4o (GPT-5 ready)"""
     
     def __init__(self):
         self.api_key = os.getenv("OPENAI_API_KEY", "")
@@ -40,37 +40,27 @@ class AIAnalyzer:
         
         try:
             # Prepare data summary for AI analysis
-            st.info("🔄 Preparing analysis data...")
             analysis_data = self._prepare_analysis_data(data_3m, data_1w, indicators_3m, indicators_1w, current_price)
             
             # Generate technical analysis
-            st.info("🔄 Generating technical analysis...")
             technical_analysis = self._generate_technical_analysis(analysis_data)
-            st.success(f"✅ Technical analysis generated: {len(str(technical_analysis))} characters")
             
             # Generate price prediction
-            st.info("🔄 Generating price prediction...")
             price_prediction = self._generate_price_prediction(analysis_data)
-            st.success(f"✅ Price prediction generated: {len(str(price_prediction))} characters")
             
             # Generate market sentiment analysis
-            st.info("🔄 Generating market sentiment...")
             market_sentiment = self._generate_market_sentiment(analysis_data)
-            st.success(f"✅ Market sentiment generated: {len(str(market_sentiment))} characters")
             
             # Extract probabilities from prediction
             probabilities = self._extract_probabilities(price_prediction)
             
-            result = {
+            return {
                 'technical_summary': technical_analysis,
                 'price_prediction': price_prediction,
                 'market_sentiment': market_sentiment,
                 'probabilities': probabilities,
                 'timestamp': datetime.now().isoformat()
             }
-            
-            st.success(f"✅ Complete analysis generated with {len(result)} fields")
-            return result
             
         except Exception as e:
             st.error(f"Error generating AI analysis: {str(e)}")
@@ -260,34 +250,19 @@ class AIAnalyzer:
             Double-check all price values and logic before responding. Keep analysis 200-300 words.
             """
             
-            st.info(f"🔄 Making API call to gpt-5 for technical analysis...")
-            
-            # Try a simple test first
-            test_response = self.client.chat.completions.create(
-                model="gpt-5",
-                messages=[
-                    {"role": "user", "content": "Say hello and confirm you are GPT-5"}
-                ],
-                max_completion_tokens=50
-            )
-            st.info(f"🧪 GPT-5 test response: '{test_response.choices[0].message.content}'")
-            
             response = self.client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "You are a professional Bitcoin technical analyst with expertise in chart analysis and technical indicators."},
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=800
+                max_tokens=800,
+                temperature=0.3
             )
             
-            content = response.choices[0].message.content
-            st.info(f"📡 API Response received: {len(str(content))} chars, type: {type(content)}")
-            st.info(f"📝 Response preview: {str(content)[:100]}...")
-            return content
+            return response.choices[0].message.content
             
         except Exception as e:
-            st.error(f"Technical analysis error: {str(e)}")
             return f"Error generating technical analysis: {str(e)}"
     
     def _generate_price_prediction(self, analysis_data):
@@ -338,23 +313,19 @@ class AIAnalyzer:
             CRITICAL: X + Y must equal 100%. Use the SAME percentages in all analysis sections.
             """
             
-            st.info(f"🔄 Making API call to gpt-5 for price prediction...")
             response = self.client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "You are a quantitative Bitcoin analyst specializing in probability-based price predictions using technical analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=800
+                max_tokens=800,
+                temperature=0.2
             )
             
-            content = response.choices[0].message.content
-            st.info(f"📡 API Response received: {len(str(content))} chars, type: {type(content)}")
-            st.info(f"📝 Response preview: {str(content)[:100]}...")
-            return content
+            return response.choices[0].message.content
             
         except Exception as e:
-            st.error(f"Price prediction error: {str(e)}")
             return f"Error generating price prediction: {str(e)}"
     
     def _generate_market_sentiment(self, analysis_data):
@@ -380,23 +351,19 @@ class AIAnalyzer:
             Focus on factual, recurring events and general market dynamics rather than speculation. Keep analysis concise (200-250 words).
             """
             
-            st.info(f"🔄 Making API call to gpt-5 for market sentiment...")
             response = self.client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "You are a cryptocurrency market analyst with expertise in macroeconomic factors and market sentiment analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=800
+                max_tokens=800,
+                temperature=0.4
             )
             
-            content = response.choices[0].message.content
-            st.info(f"📡 API Response received: {len(str(content))} chars, type: {type(content)}")
-            st.info(f"📝 Response preview: {str(content)[:100]}...")
-            return content
+            return response.choices[0].message.content
             
         except Exception as e:
-            st.error(f"Market sentiment error: {str(e)}")
             return f"Error generating market sentiment: {str(e)}"
     
     def _extract_probabilities(self, prediction_text):

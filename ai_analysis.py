@@ -81,10 +81,6 @@ class AIAnalyzer:
                 st.warning(f"Price mismatch detected: parameter={current_price}, data={actual_current_price}")
                 actual_current_price = current_price  # Use the parameter value
             
-            # Debug: Show price data being used
-            st.info(f"🔍 AI Data Debug - Current: ${actual_current_price:,.2f}, "
-                   f"3M Start: ${float(data_3m['Close'].iloc[0]):,.2f}, "
-                   f"1W Start: ${float(data_1w['Close'].iloc[0]):,.2f}")
             
             # 3-month data summary (use FULL dataset for accurate 3-month period)
             start_price_3m = float(data_3m['Close'].iloc[0])

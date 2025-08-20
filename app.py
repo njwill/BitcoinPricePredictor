@@ -158,16 +158,37 @@ def main():
         cached_analysis, cache_timestamp = load_analysis_cache()
         
         # Determine if we should use cached data or fetch new data
+        use_cached_data = False
         if cached_analysis and cache_timestamp and not should_update_analysis(cache_timestamp):
-            # Use cached data
-            btc_3m = pd.DataFrame(cached_analysis['btc_3m'])
-            btc_1w = pd.DataFrame(cached_analysis['btc_1w'])
-            indicators_3m = cached_analysis['indicators_3m']
-            indicators_1w = cached_analysis['indicators_1w']
-            analysis = cached_analysis['analysis']
-            
-            # Update session state with cached timestamp
-            st.session_state.last_update = cache_timestamp
+            # Check if current price in cache is still accurate by fetching latest price
+            try:
+                # Quick fetch of current price to validate cache
+                temp_fetcher = BitcoinDataFetcher()
+                current_btc_data = temp_fetcher.get_bitcoin_data(period='1d')  # Just get today's data
+                fresh_current_price = float(current_btc_data['Close'].iloc[-1])
+                
+                # Extract cached price data and check for significant difference
+                cached_btc_1w = pd.DataFrame(cached_analysis['btc_1w'])
+                cached_current_price = float(cached_btc_1w['Close'].iloc[-1])
+                
+                price_difference_pct = abs((fresh_current_price - cached_current_price) / cached_current_price * 100)
+                
+                # If price difference is less than 2%, use cached data
+                if price_difference_pct < 2.0:
+                    btc_3m = pd.DataFrame(cached_analysis['btc_3m'])
+                    btc_1w = cached_btc_1w
+                    indicators_3m = cached_analysis['indicators_3m']
+                    indicators_1w = cached_analysis['indicators_1w']
+                    analysis = cached_analysis['analysis']
+                    use_cached_data = True
+                    st.info(f"📋 Using cached analysis (price difference: {price_difference_pct:.2f}%)")
+                else:
+                    st.warning(f"🔄 Price changed significantly ({price_difference_pct:.1f}%), refreshing analysis...")
+            except Exception as e:
+                st.warning(f"Error validating cache: {str(e)}, fetching fresh data...")
+        
+        if not use_cached_data:
+            # Fetch fresh data
             
             cache_time_str = cache_timestamp.strftime('%Y-%m-%d %H:%M:%S')
             

@@ -473,21 +473,19 @@ class AIAnalyzer:
             st.error(f"🔍 SENDING TO AI: Current Price = ${current_price:,.2f}")
             
             comprehensive_prompt = f"""
-            You are a comprehensive Bitcoin analyst. 
+            BITCOIN ANALYSIS REQUEST
             
-            CRITICAL: Bitcoin's current price is ${current_price:,.2f}. Use ONLY this price as the current price.
+            CURRENT PRICE: ${current_price:,.2f}
+            NEVER use any other price value. ALWAYS refer to ${current_price:,.2f} as Bitcoin's current price.
             
-            HISTORICAL PERFORMANCE:
-            • 3-month change: {data_3m.get('price_change_3m', 0):+.2f}% (from ${data_3m.get('start_price_3m', 0):,.2f} to ${current_price:,.2f})
-            • 1-week change: {data_1w.get('price_change_1w', 0):+.2f}% (from ${data_1w.get('start_price_1w', 0):,.2f} to ${current_price:,.2f})
-            • 3-month high/low: ${data_3m.get('high_3m', 0):,.2f} / ${data_3m.get('low_3m', 0):,.2f}
-            • 1-week high/low: ${data_1w.get('high_1w', 0):,.2f} / ${data_1w.get('low_1w', 0):,.2f}
-            • Volatility: 3M = {data_3m.get('volatility_3m', 0):.1f}%, 1W = {data_1w.get('volatility_1w', 0):.1f}%
+            Performance Summary:
+            • 3-month: {data_3m.get('price_change_3m', 0):+.2f}% gain
+            • 1-week: {data_1w.get('price_change_1w', 0):+.2f}% change  
+            • Volatility: 3M={data_3m.get('volatility_3m', 0):.1f}%, 1W={data_1w.get('volatility_1w', 0):.1f}%
             
-            REMINDER: Current price = ${current_price:,.2f}
+            Technical indicators show various signals for analysis.
             
-            Technical Indicators:
-            {json.dumps(analysis_data.get('indicators', {}), indent=2)}
+            IMPORTANT: In your response, Bitcoin's current price must be ${current_price:,.2f}
             
             === RESPONSE FORMAT REQUIREMENTS ===
             Provide a comprehensive, CONSISTENT analysis divided into exactly these three sections with clear headers:

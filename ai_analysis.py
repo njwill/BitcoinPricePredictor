@@ -254,7 +254,7 @@ class AIAnalyzer:
                     {"role": "system", "content": "You are a professional Bitcoin technical analyst with expertise in chart analysis and technical indicators."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=800,
+                max_completion_tokens=800,
                 temperature=0.3
             )
             
@@ -315,7 +315,7 @@ class AIAnalyzer:
                     {"role": "system", "content": "You are a quantitative Bitcoin analyst specializing in probability-based price predictions using technical analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=800,
+                max_completion_tokens=800,
                 temperature=0.2
             )
             
@@ -351,7 +351,7 @@ class AIAnalyzer:
                     {"role": "system", "content": "You are a cryptocurrency market analyst with expertise in macroeconomic factors and market sentiment analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=800,
+                max_completion_tokens=800,
                 temperature=0.4
             )
             

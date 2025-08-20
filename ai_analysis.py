@@ -261,6 +261,17 @@ class AIAnalyzer:
             """
             
             st.info(f"🔄 Making API call to gpt-5 for technical analysis...")
+            
+            # Try a simple test first
+            test_response = self.client.chat.completions.create(
+                model="gpt-5",
+                messages=[
+                    {"role": "user", "content": "Say hello and confirm you are GPT-5"}
+                ],
+                max_completion_tokens=50
+            )
+            st.info(f"🧪 GPT-5 test response: '{test_response.choices[0].message.content}'")
+            
             response = self.client.chat.completions.create(
                 model="gpt-5",
                 messages=[

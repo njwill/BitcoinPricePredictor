@@ -470,68 +470,35 @@ class AIAnalyzer:
             data_1w = analysis_data.get('data_1w', {})
             target_datetime_formatted = analysis_data.get('target_datetime_formatted', 'Friday 4PM ET')
             
-            # Debug: Show what price we're sending to AI
-            st.error(f"🔍 SENDING TO AI: Current Price = ${current_price:,.2f}")
+            # Debug: Show what price we're sending to Claude
+            st.success(f"🔍 SENDING TO CLAUDE: Current Price = ${current_price:,.2f}")
+            
+            # Show the FULL prompt being sent
+            st.code(f"FULL PROMPT:\n{comprehensive_prompt}", language="text")
             
             comprehensive_prompt = f"""
-            BITCOIN ANALYSIS REQUEST
+            Bitcoin's current price is ${current_price:,.2f}.
             
-            CURRENT PRICE: ${current_price:,.2f}
-            NEVER use any other price value. ALWAYS refer to ${current_price:,.2f} as Bitcoin's current price.
+            Always use ${current_price:,.2f} when referring to Bitcoin's current price.
             
-            Performance Summary:
-            • 3-month: {data_3m.get('price_change_3m', 0):+.2f}% gain
-            • 1-week: {data_1w.get('price_change_1w', 0):+.2f}% change  
-            • Volatility: 3M={data_3m.get('volatility_3m', 0):.1f}%, 1W={data_1w.get('volatility_1w', 0):.1f}%
-            
-            Technical indicators show various signals for analysis.
-            
-            IMPORTANT: In your response, Bitcoin's current price must be ${current_price:,.2f}
-            
-            === RESPONSE FORMAT REQUIREMENTS ===
-            Provide a comprehensive, CONSISTENT analysis divided into exactly these three sections with clear headers:
+            Provide analysis in three sections:
             
             [TECHNICAL_ANALYSIS_START]
             Technical Analysis Summary:
-            - ALL PRICES must include $ sign (e.g., $115,287.50)
-            - Price logic must be correct: if current > start = "increased/rose FROM start TO current"
-            - Support = price levels BELOW ${current_price:,.2f}
-            - Resistance = price levels ABOVE ${current_price:,.2f}
-            - Make Buy/Sell/Hold recommendations **BOLD**
-            - Include price action analysis, technical indicator interpretation, support/resistance levels
-            - Keep analysis 200-300 words
+            Analyze Bitcoin at its current price of ${current_price:,.2f}. Include technical indicators, trends, and trading recommendation.
             [TECHNICAL_ANALYSIS_END]
             
             [PRICE_PREDICTION_START]
-            {target_datetime_formatted} Price Prediction:
-            Based on the SAME technical analysis above, provide:
-            1. Probability of Price Being HIGHER by {target_datetime_formatted}: [X]%
-            2. Probability of Price Being LOWER by {target_datetime_formatted}: [Y]%
+            Price prediction for {target_datetime_formatted}:
+            1. Probability HIGHER than ${current_price:,.2f}: [X]%
+            2. Probability LOWER than ${current_price:,.2f}: [Y]%
             3. Confidence Level: [Z]%
-            4. Key technical factors supporting assessment (must align with technical analysis)
-            5. Potential price targets (with $ signs)
-            6. Trading recommendation: **Buy**/**Sell**/**Hold** (must be consistent with technical analysis)
-            
-            CRITICAL: X + Y must equal 100%. Use consistent reasoning with technical analysis section.
+            Note: X + Y must equal 100%
             [PRICE_PREDICTION_END]
             
             [MARKET_SENTIMENT_START]
-            Market Sentiment & Key Events:
-            Analyze general market sentiment and key events that may impact Bitcoin, considering the technical picture:
-            1. General market sentiment for the upcoming week
-            2. Key scheduled events (Fed meetings, economic data, options/futures expiry)
-            3. Seasonal or cyclical patterns relevant to this time period
-            4. External factors that could influence price movement
-            5. Risk factors to monitor
-            
-            Keep analysis concise (200-250 words) and ensure it complements the technical analysis.
+            Market sentiment and key events affecting Bitcoin.
             [MARKET_SENTIMENT_END]
-            
-            === CONSISTENCY REQUIREMENTS ===
-            - All three sections must tell the same story about Bitcoin's outlook
-            - Recommendations across sections must align (**Buy**/**Sell**/**Hold**)
-            - Price targets and probabilities must be consistent with technical analysis
-            - Use the SAME fundamental assessment throughout all sections
             """
             
             # The newest Anthropic model is "claude-sonnet-4-20250514", not "claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022" nor "claude-3-sonnet-20240229".

@@ -469,6 +469,9 @@ class AIAnalyzer:
             data_1w = analysis_data.get('data_1w', {})
             target_datetime_formatted = analysis_data.get('target_datetime_formatted', 'Friday 4PM ET')
             
+            # Debug: Show what price we're sending to AI
+            st.error(f"🔍 SENDING TO AI: Current Price = ${current_price:,.2f}")
+            
             comprehensive_prompt = f"""
             You are a comprehensive Bitcoin analyst providing consistent analysis across technical, predictive, and market sentiment perspectives.
             
@@ -544,7 +547,7 @@ class AIAnalyzer:
             """
             
             response = self.client.chat.completions.create(
-                model="gpt-4.1",
+                model="gpt-4o",  # Fixed invalid model name
                 messages=[
                     {"role": "system", "content": "You are a professional Bitcoin analyst providing comprehensive, consistent analysis across technical, predictive, and market perspectives."},
                     {"role": "user", "content": comprehensive_prompt}
@@ -553,7 +556,12 @@ class AIAnalyzer:
                 temperature=0.3
             )
             
-            return response.choices[0].message.content
+            ai_response = response.choices[0].message.content
+            
+            # Debug: Show what AI returned (first 300 characters)
+            st.error(f"🔍 AI RESPONSE PREVIEW: {ai_response[:300]}...")
+            
+            return ai_response
             
         except Exception as e:
             return f"Error generating unified analysis: {str(e)}"

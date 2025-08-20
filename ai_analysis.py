@@ -473,29 +473,18 @@ class AIAnalyzer:
             st.error(f"🔍 SENDING TO AI: Current Price = ${current_price:,.2f}")
             
             comprehensive_prompt = f"""
-            You are a comprehensive Bitcoin analyst providing consistent analysis across technical, predictive, and market sentiment perspectives.
+            You are a comprehensive Bitcoin analyst. 
             
-            === CRITICAL BITCOIN DATA ===
-            **BITCOIN'S CURRENT PRICE RIGHT NOW: ${current_price:,.2f}**
-            Time until {target_datetime_formatted}: {hours_until_target:.1f} hours
+            CRITICAL: Bitcoin's current price is ${current_price:,.2f}. Use ONLY this price as the current price.
             
-            IMPORTANT: Always use ${current_price:,.2f} as the current price in your analysis.
+            HISTORICAL PERFORMANCE:
+            • 3-month change: {data_3m.get('price_change_3m', 0):+.2f}% (from ${data_3m.get('start_price_3m', 0):,.2f} to ${current_price:,.2f})
+            • 1-week change: {data_1w.get('price_change_1w', 0):+.2f}% (from ${data_1w.get('start_price_1w', 0):,.2f} to ${current_price:,.2f})
+            • 3-month high/low: ${data_3m.get('high_3m', 0):,.2f} / ${data_3m.get('low_3m', 0):,.2f}
+            • 1-week high/low: ${data_1w.get('high_1w', 0):,.2f} / ${data_1w.get('low_1w', 0):,.2f}
+            • Volatility: 3M = {data_3m.get('volatility_3m', 0):.1f}%, 1W = {data_1w.get('volatility_1w', 0):.1f}%
             
-            3-MONTH HISTORICAL DATA (Period: {data_3m.get('start_date', 'N/A')} to {data_3m.get('end_date', 'N/A')}):
-            - Today's Price: ${current_price:,.2f}
-            - Price 3 Months Ago: ${data_3m.get('start_price_3m', 0):,.2f}
-            - 3-Month High: ${data_3m.get('high_3m', 0):,.2f}
-            - 3-Month Low: ${data_3m.get('low_3m', 0):,.2f}
-            - 3-Month Change: {data_3m.get('price_change_3m', 0):+.2f}%
-            - 3-Month Volatility: {data_3m.get('volatility_3m', 0):.1f}%
-            
-            1-WEEK HISTORICAL DATA (Period: {data_1w.get('start_date', 'N/A')} to {data_1w.get('end_date', 'N/A')}):
-            - Today's Price: ${current_price:,.2f}
-            - Price 1 Week Ago: ${data_1w.get('start_price_1w', 0):,.2f}
-            - 1-Week High: ${data_1w.get('high_1w', 0):,.2f}
-            - 1-Week Low: ${data_1w.get('low_1w', 0):,.2f}
-            - 1-Week Change: {data_1w.get('price_change_1w', 0):+.2f}%
-            - 1-Week Volatility: {data_1w.get('volatility_1w', 0):.1f}%
+            REMINDER: Current price = ${current_price:,.2f}
             
             Technical Indicators:
             {json.dumps(analysis_data.get('indicators', {}), indent=2)}

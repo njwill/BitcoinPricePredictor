@@ -201,6 +201,8 @@ class AIAnalyzer:
     def _generate_technical_analysis(self, analysis_data):
         """Generate technical analysis using AI"""
         try:
+            if not self.client:
+                return "Error: OpenAI client not initialized"
             # Extract key price points for clarity
             current_price = analysis_data.get('current_price', 0)
             data_3m = analysis_data.get('data_3m', {})
@@ -254,17 +256,21 @@ class AIAnalyzer:
                     {"role": "system", "content": "You are a professional Bitcoin technical analyst with expertise in chart analysis and technical indicators."},
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=800
+                max_completion_tokens=800,
+                reasoning_effort="medium"
             )
             
             return response.choices[0].message.content
             
         except Exception as e:
+            st.error(f"Technical analysis error: {str(e)}")
             return f"Error generating technical analysis: {str(e)}"
     
     def _generate_price_prediction(self, analysis_data):
         """Generate price prediction with probabilities"""
         try:
+            if not self.client:
+                return "Error: OpenAI client not initialized"
             # Extract key data for clarity
             current_price = analysis_data.get('current_price', 0)
             hours_until_target = analysis_data.get('hours_until_target', 0)
@@ -314,17 +320,21 @@ class AIAnalyzer:
                     {"role": "system", "content": "You are a quantitative Bitcoin analyst specializing in probability-based price predictions using technical analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=800
+                max_completion_tokens=800,
+                reasoning_effort="medium"
             )
             
             return response.choices[0].message.content
             
         except Exception as e:
+            st.error(f"Price prediction error: {str(e)}")
             return f"Error generating price prediction: {str(e)}"
     
     def _generate_market_sentiment(self, analysis_data):
         """Generate market sentiment and key events analysis"""
         try:
+            if not self.client:
+                return "Error: OpenAI client not initialized"
             current_date = datetime.now().strftime("%Y-%m-%d")
             
             prompt = f"""
@@ -349,12 +359,14 @@ class AIAnalyzer:
                     {"role": "system", "content": "You are a cryptocurrency market analyst with expertise in macroeconomic factors and market sentiment analysis."},
                     {"role": "user", "content": prompt}
                 ],
-                max_completion_tokens=800
+                max_completion_tokens=800,
+                reasoning_effort="medium"
             )
             
             return response.choices[0].message.content
             
         except Exception as e:
+            st.error(f"Market sentiment error: {str(e)}")
             return f"Error generating market sentiment: {str(e)}"
     
     def _extract_probabilities(self, prediction_text):

@@ -42,22 +42,19 @@ class AIAnalyzer:
             # Prepare data summary for AI analysis
             analysis_data = self._prepare_analysis_data(data_3m, data_1w, indicators_3m, indicators_1w, current_price)
             
-            # Generate technical analysis
-            technical_analysis = self._generate_technical_analysis(analysis_data)
+            # Generate comprehensive analysis in single query for consistency
+            comprehensive_response = self._generate_unified_analysis(analysis_data)
             
-            # Generate price prediction
-            price_prediction = self._generate_price_prediction(analysis_data)
+            # Parse the comprehensive response
+            parsed_analysis = self._parse_comprehensive_response(comprehensive_response)
             
-            # Generate market sentiment analysis
-            market_sentiment = self._generate_market_sentiment(analysis_data)
-            
-            # Extract probabilities from prediction
-            probabilities = self._extract_probabilities(price_prediction)
+            # Extract probabilities from prediction section
+            probabilities = self._extract_probabilities(parsed_analysis.get('price_prediction', ''))
             
             return {
-                'technical_summary': technical_analysis,
-                'price_prediction': price_prediction,
-                'market_sentiment': market_sentiment,
+                'technical_summary': parsed_analysis.get('technical_summary', 'Technical analysis not available'),
+                'price_prediction': parsed_analysis.get('price_prediction', 'Price prediction not available'),
+                'market_sentiment': parsed_analysis.get('market_sentiment', 'Market sentiment not available'),
                 'probabilities': probabilities,
                 'timestamp': datetime.now().isoformat()
             }
@@ -440,3 +437,169 @@ class AIAnalyzer:
         friday_4pm = next_friday.replace(hour=16, minute=0, second=0, microsecond=0)
         
         return friday_4pm
+    
+    def _generate_unified_analysis(self, analysis_data):
+        """Generate comprehensive analysis in a single API call for consistency"""
+        try:
+            if not self.client:
+                return "Error: OpenAI client not initialized"
+            
+            # Extract key data for clarity
+            current_price = analysis_data.get('current_price', 0)
+            hours_until_target = analysis_data.get('hours_until_target', 0)
+            data_3m = analysis_data.get('data_3m', {})
+            data_1w = analysis_data.get('data_1w', {})
+            
+            comprehensive_prompt = f"""
+            You are a comprehensive Bitcoin analyst providing consistent analysis across technical, predictive, and market sentiment perspectives.
+            
+            === CRITICAL BITCOIN DATA ===
+            CURRENT BITCOIN PRICE: ${current_price:,.2f}
+            Time until Friday 4PM ET: {hours_until_target:.1f} hours
+            
+            3-MONTH TIMEFRAME (Period: {data_3m.get('start_date', 'N/A')} to {data_3m.get('end_date', 'N/A')}):
+            - Current Price: ${current_price:,.2f}
+            - Start Price: ${data_3m.get('start_price_3m', 0):,.2f} 
+            - Period High: ${data_3m.get('high_3m', 0):,.2f}
+            - Period Low: ${data_3m.get('low_3m', 0):,.2f}
+            - Price Change: {data_3m.get('price_change_3m', 0):+.2f}%
+            - Volatility: {data_3m.get('volatility_3m', 0):.1f}%
+            
+            1-WEEK TIMEFRAME (Period: {data_1w.get('start_date', 'N/A')} to {data_1w.get('end_date', 'N/A')}):
+            - Current Price: ${current_price:,.2f}
+            - Start Price: ${data_1w.get('start_price_1w', 0):,.2f}
+            - Period High: ${data_1w.get('high_1w', 0):,.2f}
+            - Period Low: ${data_1w.get('low_1w', 0):,.2f}
+            - Price Change: {data_1w.get('price_change_1w', 0):+.2f}%
+            - Volatility: {data_1w.get('volatility_1w', 0):.1f}%
+            
+            Technical Indicators:
+            {json.dumps(analysis_data.get('indicators', {}), indent=2)}
+            
+            === RESPONSE FORMAT REQUIREMENTS ===
+            Provide a comprehensive, CONSISTENT analysis divided into exactly these three sections with clear headers:
+            
+            [TECHNICAL_ANALYSIS_START]
+            Technical Analysis Summary:
+            - ALL PRICES must include $ sign (e.g., $115,287.50)
+            - Price logic must be correct: if current > start = "increased/rose FROM start TO current"
+            - Support = price levels BELOW ${current_price:,.2f}
+            - Resistance = price levels ABOVE ${current_price:,.2f}
+            - Make Buy/Sell/Hold recommendations **BOLD**
+            - Include price action analysis, technical indicator interpretation, support/resistance levels
+            - Keep analysis 200-300 words
+            [TECHNICAL_ANALYSIS_END]
+            
+            [PRICE_PREDICTION_START]
+            Friday 4PM ET Price Prediction:
+            Based on the SAME technical analysis above, provide:
+            1. Probability of Price Being HIGHER by Friday 4PM ET: [X]%
+            2. Probability of Price Being LOWER by Friday 4PM ET: [Y]%
+            3. Confidence Level: [Z]%
+            4. Key technical factors supporting assessment (must align with technical analysis)
+            5. Potential price targets (with $ signs)
+            6. Trading recommendation: **Buy**/**Sell**/**Hold** (must be consistent with technical analysis)
+            
+            CRITICAL: X + Y must equal 100%. Use consistent reasoning with technical analysis section.
+            [PRICE_PREDICTION_END]
+            
+            [MARKET_SENTIMENT_START]
+            Market Sentiment & Key Events:
+            Analyze general market sentiment and key events that may impact Bitcoin, considering the technical picture:
+            1. General market sentiment for the upcoming week
+            2. Key scheduled events (Fed meetings, economic data, options/futures expiry)
+            3. Seasonal or cyclical patterns relevant to this time period
+            4. External factors that could influence price movement
+            5. Risk factors to monitor
+            
+            Keep analysis concise (200-250 words) and ensure it complements the technical analysis.
+            [MARKET_SENTIMENT_END]
+            
+            === CONSISTENCY REQUIREMENTS ===
+            - All three sections must tell the same story about Bitcoin's outlook
+            - Recommendations across sections must align (**Buy**/**Sell**/**Hold**)
+            - Price targets and probabilities must be consistent with technical analysis
+            - Use the SAME fundamental assessment throughout all sections
+            """
+            
+            response = self.client.chat.completions.create(
+                model="gpt-4.1",
+                messages=[
+                    {"role": "system", "content": "You are a professional Bitcoin analyst providing comprehensive, consistent analysis across technical, predictive, and market perspectives."},
+                    {"role": "user", "content": comprehensive_prompt}
+                ],
+                max_tokens=2500,
+                temperature=0.3
+            )
+            
+            return response.choices[0].message.content
+            
+        except Exception as e:
+            return f"Error generating unified analysis: {str(e)}"
+    
+    def _parse_comprehensive_response(self, response):
+        """Parse the comprehensive response into separate sections"""
+        try:
+            sections = {}
+            
+            # Extract Technical Analysis
+            tech_start = response.find("[TECHNICAL_ANALYSIS_START]")
+            tech_end = response.find("[TECHNICAL_ANALYSIS_END]")
+            if tech_start != -1 and tech_end != -1:
+                tech_content = response[tech_start + len("[TECHNICAL_ANALYSIS_START]"):tech_end].strip()
+                sections['technical_summary'] = tech_content
+            
+            # Extract Price Prediction
+            pred_start = response.find("[PRICE_PREDICTION_START]")
+            pred_end = response.find("[PRICE_PREDICTION_END]")
+            if pred_start != -1 and pred_end != -1:
+                pred_content = response[pred_start + len("[PRICE_PREDICTION_START]"):pred_end].strip()
+                sections['price_prediction'] = pred_content
+            
+            # Extract Market Sentiment
+            sent_start = response.find("[MARKET_SENTIMENT_START]")
+            sent_end = response.find("[MARKET_SENTIMENT_END]")
+            if sent_start != -1 and sent_end != -1:
+                sent_content = response[sent_start + len("[MARKET_SENTIMENT_START]"):sent_end].strip()
+                sections['market_sentiment'] = sent_content
+            
+            # If structured parsing fails, try to split by common headers
+            if not sections:
+                # Fallback parsing method
+                lines = response.split('\n')
+                current_section = None
+                current_content = []
+                
+                for line in lines:
+                    line_lower = line.lower().strip()
+                    if 'technical analysis' in line_lower:
+                        if current_section and current_content:
+                            sections[current_section] = '\n'.join(current_content).strip()
+                        current_section = 'technical_summary'
+                        current_content = []
+                    elif 'price prediction' in line_lower or 'friday' in line_lower:
+                        if current_section and current_content:
+                            sections[current_section] = '\n'.join(current_content).strip()
+                        current_section = 'price_prediction'
+                        current_content = []
+                    elif 'market sentiment' in line_lower or 'key events' in line_lower:
+                        if current_section and current_content:
+                            sections[current_section] = '\n'.join(current_content).strip()
+                        current_section = 'market_sentiment'
+                        current_content = []
+                    elif current_section:
+                        current_content.append(line)
+                
+                # Add the last section
+                if current_section and current_content:
+                    sections[current_section] = '\n'.join(current_content).strip()
+            
+            return sections
+            
+        except Exception as e:
+            # Return the full response if parsing fails
+            return {
+                'technical_summary': response,
+                'price_prediction': 'Unable to parse prediction section',
+                'market_sentiment': 'Unable to parse sentiment section'
+            }

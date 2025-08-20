@@ -88,6 +88,10 @@ class AIAnalyzer:
             # The 3-month data uses daily intervals, so it might be less current than hourly 1-week data
             actual_current_price = float(current_price)
             
+            # Debug: Show what prices we're working with
+            st.info(f"🔍 Debug: Current price parameter: ${current_price:,.2f}")
+            st.info(f"🔍 Debug: Using actual_current_price: ${actual_current_price:,.2f}")
+            
             
             # 3-month data summary - use display_from_index for accurate start price
             display_from_3m = getattr(data_3m, 'attrs', {}).get('display_from_index', 0)
@@ -466,6 +470,11 @@ class AIAnalyzer:
             data_3m = analysis_data.get('data_3m', {})
             data_1w = analysis_data.get('data_1w', {})
             target_datetime_formatted = analysis_data.get('target_datetime_formatted', 'Friday 4PM ET')
+            
+            # Debug: Show the exact data being sent to AI
+            st.info(f"🔍 Debug: Data being sent to AI - Current Price: ${current_price:,.2f}")
+            st.info(f"🔍 Debug: 3M start price: ${data_3m.get('start_price_3m', 0):,.2f}")
+            st.info(f"🔍 Debug: 1W start price: ${data_1w.get('start_price_1w', 0):,.2f}")
             
             comprehensive_prompt = f"""
             You are a comprehensive Bitcoin analyst providing consistent analysis across technical, predictive, and market sentiment perspectives.

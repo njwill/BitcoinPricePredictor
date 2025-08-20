@@ -84,13 +84,9 @@ class AIAnalyzer:
             # Use FULL datasets for accurate period calculations, not trimmed display data
             # The display trimming is only for charts, not for AI analysis
             
-            # Get actual current price from the latest data point of FULL 3-month data
-            actual_current_price = float(data_3m['Close'].iloc[-1])
-            
-            # Validate that current_price parameter matches data
-            if abs(current_price - actual_current_price) > 1:  # Allow small differences
-                st.warning(f"Price mismatch detected: parameter={current_price}, data={actual_current_price}")
-                actual_current_price = current_price  # Use the parameter value
+            # Use the current_price parameter (from 1-week hourly data) as it's more recent
+            # The 3-month data uses daily intervals, so it might be less current than hourly 1-week data
+            actual_current_price = float(current_price)
             
             
             # 3-month data summary - use display_from_index for accurate start price

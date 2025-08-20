@@ -88,23 +88,16 @@ class AIAnalyzer:
             # The 3-month data uses daily intervals, so it might be less current than hourly 1-week data
             actual_current_price = float(current_price)
             
-            # Debug: Show what prices we're working with
-            st.info(f"🔍 Debug: Current price parameter: ${current_price:,.2f}")
-            st.info(f"🔍 Debug: Using actual_current_price: ${actual_current_price:,.2f}")
-            
             
             # 3-month data summary - use display_from_index for accurate start price
             display_from_3m = getattr(data_3m, 'attrs', {}).get('display_from_index', 0)
-            st.info(f"🔍 Debug: 3M display_from_index: {display_from_3m}, total rows: {len(data_3m)}")
             
             if display_from_3m > 0:
                 # Use the price from 3 months ago (not 6 months ago)
                 start_price_3m = float(data_3m['Close'].iloc[display_from_3m])
-                st.info(f"🔍 Debug: Using 3M start from index {display_from_3m}: ${start_price_3m:,.2f}")
             else:
                 # Fallback if no display index is set
                 start_price_3m = float(data_3m['Close'].iloc[0])
-                st.info(f"🔍 Debug: Using 3M start from index 0: ${start_price_3m:,.2f}")
             
             data_3m_summary = {
                 'period': '3 months',
@@ -121,16 +114,13 @@ class AIAnalyzer:
             
             # 1-week data summary - use display_from_index for accurate start price
             display_from_1w = getattr(data_1w, 'attrs', {}).get('display_from_index', 0)
-            st.info(f"🔍 Debug: 1W display_from_index: {display_from_1w}, total rows: {len(data_1w)}")
             
             if display_from_1w > 0:
                 # Use the price from 1 week ago (not 2 weeks ago)
                 start_price_1w = float(data_1w['Close'].iloc[display_from_1w])
-                st.info(f"🔍 Debug: Using 1W start from index {display_from_1w}: ${start_price_1w:,.2f}")
             else:
                 # Fallback if no display index is set
                 start_price_1w = float(data_1w['Close'].iloc[0])
-                st.info(f"🔍 Debug: Using 1W start from index 0: ${start_price_1w:,.2f}")
             
             data_1w_summary = {
                 'period': '1 week',
@@ -479,33 +469,30 @@ class AIAnalyzer:
             data_1w = analysis_data.get('data_1w', {})
             target_datetime_formatted = analysis_data.get('target_datetime_formatted', 'Friday 4PM ET')
             
-            # Debug: Show the exact data being sent to AI
-            st.info(f"🔍 Debug: Data being sent to AI - Current Price: ${current_price:,.2f}")
-            st.info(f"🔍 Debug: 3M start price: ${data_3m.get('start_price_3m', 0):,.2f}")
-            st.info(f"🔍 Debug: 1W start price: ${data_1w.get('start_price_1w', 0):,.2f}")
-            
             comprehensive_prompt = f"""
             You are a comprehensive Bitcoin analyst providing consistent analysis across technical, predictive, and market sentiment perspectives.
             
             === CRITICAL BITCOIN DATA ===
-            CURRENT BITCOIN PRICE: ${current_price:,.2f}
+            **BITCOIN'S CURRENT PRICE RIGHT NOW: ${current_price:,.2f}**
             Time until {target_datetime_formatted}: {hours_until_target:.1f} hours
             
-            3-MONTH TIMEFRAME (Period: {data_3m.get('start_date', 'N/A')} to {data_3m.get('end_date', 'N/A')}):
-            - Current Price: ${current_price:,.2f}
-            - Start Price: ${data_3m.get('start_price_3m', 0):,.2f} 
-            - Period High: ${data_3m.get('high_3m', 0):,.2f}
-            - Period Low: ${data_3m.get('low_3m', 0):,.2f}
-            - Price Change: {data_3m.get('price_change_3m', 0):+.2f}%
-            - Volatility: {data_3m.get('volatility_3m', 0):.1f}%
+            IMPORTANT: Always use ${current_price:,.2f} as the current price in your analysis.
             
-            1-WEEK TIMEFRAME (Period: {data_1w.get('start_date', 'N/A')} to {data_1w.get('end_date', 'N/A')}):
-            - Current Price: ${current_price:,.2f}
-            - Start Price: ${data_1w.get('start_price_1w', 0):,.2f}
-            - Period High: ${data_1w.get('high_1w', 0):,.2f}
-            - Period Low: ${data_1w.get('low_1w', 0):,.2f}
-            - Price Change: {data_1w.get('price_change_1w', 0):+.2f}%
-            - Volatility: {data_1w.get('volatility_1w', 0):.1f}%
+            3-MONTH HISTORICAL DATA (Period: {data_3m.get('start_date', 'N/A')} to {data_3m.get('end_date', 'N/A')}):
+            - Today's Price: ${current_price:,.2f}
+            - Price 3 Months Ago: ${data_3m.get('start_price_3m', 0):,.2f}
+            - 3-Month High: ${data_3m.get('high_3m', 0):,.2f}
+            - 3-Month Low: ${data_3m.get('low_3m', 0):,.2f}
+            - 3-Month Change: {data_3m.get('price_change_3m', 0):+.2f}%
+            - 3-Month Volatility: {data_3m.get('volatility_3m', 0):.1f}%
+            
+            1-WEEK HISTORICAL DATA (Period: {data_1w.get('start_date', 'N/A')} to {data_1w.get('end_date', 'N/A')}):
+            - Today's Price: ${current_price:,.2f}
+            - Price 1 Week Ago: ${data_1w.get('start_price_1w', 0):,.2f}
+            - 1-Week High: ${data_1w.get('high_1w', 0):,.2f}
+            - 1-Week Low: ${data_1w.get('low_1w', 0):,.2f}
+            - 1-Week Change: {data_1w.get('price_change_1w', 0):+.2f}%
+            - 1-Week Volatility: {data_1w.get('volatility_1w', 0):.1f}%
             
             Technical Indicators:
             {json.dumps(analysis_data.get('indicators', {}), indent=2)}

@@ -37,4 +37,4 @@ localPort = 5000
 externalPort = 80
 
 [agent]
-integrations = ["python_openai==1.0.0"]
+integrations = ["python_openai==1.0.0", "python_anthropic==1.0.0"]

@@ -461,7 +461,7 @@ class AIAnalyzer:
         """Generate comprehensive analysis in a single API call for consistency"""
         try:
             if not self.client:
-                return "Error: OpenAI client not initialized"
+                return "Error: Anthropic client not initialized"
             
             # Extract key data for clarity
             current_price = analysis_data.get('current_price', 0)
@@ -472,9 +472,6 @@ class AIAnalyzer:
             
             # Debug: Show what price we're sending to Claude
             st.success(f"🔍 SENDING TO CLAUDE: Current Price = ${current_price:,.2f}")
-            
-            # Show the FULL prompt being sent
-            st.code(f"FULL PROMPT:\n{comprehensive_prompt}", language="text")
             
             comprehensive_prompt = f"""
             Bitcoin's current price is ${current_price:,.2f}.
@@ -501,6 +498,9 @@ class AIAnalyzer:
             [MARKET_SENTIMENT_END]
             """
             
+            # Show the FULL prompt being sent
+            st.code(f"FULL PROMPT:\n{comprehensive_prompt}", language="text")
+            
             # The newest Anthropic model is "claude-sonnet-4-20250514", not "claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022" nor "claude-3-sonnet-20240229".
             response = self.client.messages.create(
                 model="claude-sonnet-4-20250514",
@@ -512,7 +512,7 @@ class AIAnalyzer:
                 ]
             )
             
-            ai_response = response.content[0].text
+            ai_response = response.content[0].text if response.content and hasattr(response.content[0], 'text') else str(response.content[0])
             
             # Debug: Show what Claude returned (first 300 characters)
             st.success(f"🔍 CLAUDE RESPONSE PREVIEW: {ai_response[:300]}...")

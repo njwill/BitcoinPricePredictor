@@ -37,12 +37,16 @@ def main():
     # Add custom CSS for consistent fonts but preserve icons
     st.markdown(f"""
     <style>
-    /* Remove extra whitespace at top */
+    /* Aggressively remove ALL top whitespace */
     .stApp > header {{
-        background-color: transparent;
+        height: 0rem !important;
+        padding: 0rem !important;
+        margin: 0rem !important;
+        background-color: transparent !important;
     }}
     
     .stApp {{
+        margin-top: -5rem !important;
         padding-top: 0rem !important;
         {'''
         background-color: #0E1117 !important;
@@ -51,6 +55,12 @@ def main():
         background-color: #FFFFFF !important;
         color: #262730 !important;
         '''}
+    }}
+    
+    /* Remove top margin from main content */
+    .block-container {{
+        padding-top: 1rem !important;
+        margin-top: 0rem !important;
     }}
     
     /* Target only text elements, leave icons untouched */

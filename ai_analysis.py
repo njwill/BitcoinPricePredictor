@@ -10,7 +10,6 @@ import streamlit as st
 # GPT-4.1 released April 2025 with 21.4% improvement over GPT-4o
 import anthropic
 from anthropic import Anthropic
-from openai import OpenAI
 
 class AIAnalyzer:
     """Handles AI-powered analysis using Anthropic Claude"""
@@ -24,13 +23,7 @@ class AIAnalyzer:
         else:
             self.claude_client = Anthropic(api_key=self.anthropic_key)
         
-        # Initialize OpenAI (ChatGPT) for market sentiment  
-        self.openai_key = os.getenv("OPENAI_API_KEY", "")
-        if not self.openai_key:
-            st.error("OpenAI API key not found. Please set OPENAI_API_KEY environment variable.")
-            self.openai_client = None
-        else:
-            self.openai_client = OpenAI(api_key=self.openai_key)
+        # Only using Claude for technical analysis now
     
     def generate_comprehensive_analysis(self, data_3m, data_1w, indicators_3m, indicators_1w, current_price, target_datetime=None):
         """
@@ -54,14 +47,8 @@ class AIAnalyzer:
             # Prepare data summary for AI analysis
             analysis_data = self._prepare_analysis_data(data_3m, data_1w, indicators_3m, indicators_1w, current_price, target_datetime)
             
-            # Generate technical analysis with Claude
-            technical_response = self._generate_technical_analysis_claude(analysis_data)
-            
-            # Generate market sentiment with ChatGPT (with web browsing)
-            market_response = self._generate_market_sentiment_chatgpt(analysis_data)
-            
-            # Combine both responses
-            comprehensive_response = f"{technical_response}\n\n{market_response}"
+            # Generate comprehensive technical analysis with Claude
+            comprehensive_response = self._generate_technical_analysis_claude(analysis_data)
             
             # Parse the combined response
             parsed_analysis = self._parse_comprehensive_response(comprehensive_response)
@@ -504,19 +491,82 @@ class AIAnalyzer:
             Provide analysis in three sections:
             
             [TECHNICAL_ANALYSIS_START]
-            Technical Analysis Summary:
-            Analyze Bitcoin at its current price of ${current_price:,.2f} using the technical indicators provided above. Include RSI, MACD, Bollinger Bands, EMA analysis, trends, and trading recommendation.
+            **COMPREHENSIVE TECHNICAL ANALYSIS**
+            
+            **Current Price: ${current_price:,.2f}**
+            
+            **1. MULTI-TIMEFRAME OVERVIEW**
+            - 3-Month Chart Analysis: [Trend, key levels, patterns]
+            - 1-Week Chart Analysis: [Trend, key levels, patterns] 
+            - Timeframe Alignment: [How they agree or conflict]
+            
+            **2. TECHNICAL INDICATORS ANALYSIS**
+            - RSI Analysis: [3M vs 1W RSI, overbought/oversold, divergences]
+            - MACD Analysis: [Signal line crossovers, histogram, divergences]
+            - Bollinger Bands: [Position relative to bands, squeeze/expansion]
+            - EMA Analysis: [20-period trends, price above/below]
+            
+            **3. ADVANCED PATTERN ANALYSIS**
+            - Chart Patterns: [Triangles, head & shoulders, flags, wedges]
+            - Candlestick Patterns: [Recent significant patterns]
+            - Support/Resistance: [Key levels identified from price action]
+            
+            **4. DIVERGENCE ANALYSIS**
+            - Price vs RSI Divergences: [Bullish or bearish divergences]
+            - Price vs MACD Divergences: [Hidden or regular divergences]
+            - Volume Divergences: [If volume data conflicts with price]
+            
+            **5. FAILURE SWING ANALYSIS**
+            - RSI Failure Swings: [Bullish/bearish failure swings in RSI]
+            - MACD Failures: [Failed breakouts or breakdowns]
+            - Price Action Failures: [Failed support/resistance tests]
+            
+            **6. TRENDLINE & STRUCTURE**
+            - Primary Trendlines: [Major ascending/descending lines]
+            - Support Levels: [Key horizontal and trend support]
+            - Resistance Levels: [Key horizontal and trend resistance]
+            - Market Structure: [Higher highs/lows, lower highs/lows]
+            
+            **7. TRADING RECOMMENDATION**
+            - Overall Bias: **[BULLISH/BEARISH/NEUTRAL]**
+            - Entry Strategy: [Specific entry points and conditions]
+            - Stop Loss: [Risk management levels]
+            - Target Levels: [Profit-taking areas]
             [TECHNICAL_ANALYSIS_END]
             
             [PRICE_PREDICTION_START]
-            Price prediction for {target_datetime_formatted}:
-            1. Probability HIGHER than ${current_price:,.2f}: [X]%
-            2. Probability LOWER than ${current_price:,.2f}: [Y]%
-            3. Confidence Level: [Z]%
-            Note: X + Y must equal 100%
+            **PRICE PREDICTION for {target_datetime_formatted}**
+            
+            Based on the comprehensive technical analysis above:
+            
+            1. **Probability HIGHER than ${current_price:,.2f}: [X]%**
+            2. **Probability LOWER than ${current_price:,.2f}: [Y]%**
+            3. **Confidence Level: [Z]%**
+            
+            **Key Technical Factors Supporting This Assessment:**
+            - [List 3-5 specific technical reasons for the prediction]
+            
+            **Potential Price Targets:**
+            - Upside Target 1: $[amount] (reasoning)
+            - Upside Target 2: $[amount] (reasoning)
+            - Downside Target 1: $[amount] (reasoning)
+            - Downside Target 2: $[amount] (reasoning)
+            
+            **Critical Levels to Watch:**
+            - Bullish above: $[level]
+            - Bearish below: $[level]
+            
+            Note: Probabilities must sum to 100%
             [PRICE_PREDICTION_END]
             
-            Focus only on technical analysis and price prediction. Do not include market sentiment.
+            Provide comprehensive technical analysis comparing 3-month and 1-week timeframes, including:
+            
+            1. **Chart Pattern Analysis**: Identify patterns in both timeframes
+            2. **Divergence Analysis**: Compare price vs indicators for divergences
+            3. **Failure Swing Analysis**: Look for RSI and other indicator failure swings
+            4. **Trendline Analysis**: Identify key support/resistance trendlines
+            5. **Multi-timeframe Comparison**: How 3M and 1W charts align or conflict
+            6. **Advanced Pattern Recognition**: Head & shoulders, triangles, flags, etc.
             """
             
             # Show the FULL prompt being sent
@@ -543,118 +593,6 @@ class AIAnalyzer:
         except Exception as e:
             return f"Error generating technical analysis: {str(e)}"
     
-    def _generate_market_sentiment_chatgpt(self, analysis_data):
-        """Generate upcoming events analysis using web search + ChatGPT"""
-        try:
-            if not self.openai_client:
-                return "[MARKET_SENTIMENT_START]\nMarket sentiment analysis unavailable (OpenAI not configured)\n[MARKET_SENTIMENT_END]"
-            
-            current_price = analysis_data.get('current_price', 0)
-            target_datetime_formatted = analysis_data.get('target_datetime_formatted', 'Friday 4PM ET')
-            
-            # Search for upcoming events
-            st.info(f"🔍 SEARCHING WEB for upcoming events until {target_datetime_formatted}...")
-            
-            events_data = self._search_upcoming_events(current_price, target_datetime_formatted)
-            
-            # Debug: Show ChatGPT call
-            st.info(f"🔍 ASKING CHATGPT to analyze upcoming events (current price ${current_price:,.2f})")
-            
-            events_prompt = f"""
-            Bitcoin is currently at ${current_price:,.2f}. 
-            
-            Based on the following upcoming events data, provide a list of upcoming events between now and {target_datetime_formatted} that may impact Bitcoin price:
-            
-            UPCOMING EVENTS DATA:
-            {events_data}
-            
-            Please provide:
-            
-            [MARKET_SENTIMENT_START]
-            Upcoming Events & Bitcoin Impact:
-            
-            List each upcoming event between now and {target_datetime_formatted} with:
-            
-            **[Date] - Event Name**
-            - What: Brief description of the event
-            - Bitcoin Impact: How this event could affect Bitcoin price (bullish/bearish/neutral)
-            - Reasoning: Why this event matters for Bitcoin
-            
-            Focus only on events with specific dates including:
-            - Federal Reserve FOMC meetings and rate decisions
-            - Major economic data releases (CPI, unemployment, GDP)
-            - Bitcoin ETF announcements or deadlines
-            - Options/futures expiry dates
-            - Regulatory hearings or announcements
-            - Major cryptocurrency conferences
-            - Earnings from Bitcoin-related companies
-            
-            Format each event clearly with date, name, impact level, and reasoning.
-            [MARKET_SENTIMENT_END]
-            """
-            
-            # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-            # do not change this unless explicitly requested by the user
-            response = self.openai_client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {"role": "system", "content": "You are a cryptocurrency market analyst with access to current market data and news. Browse the internet for the most recent information about Bitcoin, crypto markets, and relevant economic events."},
-                    {"role": "user", "content": events_prompt}
-                ],
-                max_tokens=1000,
-                temperature=0.3
-            )
-            
-            market_response = response.choices[0].message.content
-            
-            # Debug: Show what ChatGPT returned
-            st.info(f"🔍 CHATGPT MARKET RESPONSE: {market_response[:200]}...")
-            
-            return market_response
-            
-        except Exception as e:
-            return f"[MARKET_SENTIMENT_START]\nError generating market sentiment: {str(e)}\n[MARKET_SENTIMENT_END]"
-    
-    def _search_upcoming_events(self, current_price, target_datetime):
-        """Search web for upcoming events that may impact Bitcoin"""
-        try:
-            from datetime import datetime
-            
-            # Search for upcoming events that may impact Bitcoin
-            search_results = []
-            
-            # Search for Federal Reserve and economic calendar
-            fed_events = self._web_search("Federal Reserve FOMC meeting dates 2025 economic calendar CPI unemployment")
-            search_results.append(f"ECONOMIC EVENTS:\n{fed_events}")
-            
-            # Search for Bitcoin ETF and regulatory events
-            regulatory_events = self._web_search("Bitcoin ETF approval deadlines regulatory hearings 2025 SEC announcements")
-            search_results.append(f"REGULATORY EVENTS:\n{regulatory_events}")
-            
-            # Search for Bitcoin options and futures expiry
-            expiry_events = self._web_search("Bitcoin options futures expiry dates 2025 CME derivatives calendar")
-            search_results.append(f"DERIVATIVES EXPIRY:\n{expiry_events}")
-            
-            # Search for crypto conferences and major events
-            crypto_events = self._web_search("cryptocurrency conference 2025 Bitcoin events blockchain summit")
-            search_results.append(f"CRYPTO EVENTS:\n{crypto_events}")
-            
-            return "\n\n".join(search_results)
-            
-        except Exception as e:
-            return f"Error searching market information: {str(e)}"
-    
-    def _web_search(self, query):
-        """Perform web search and return results"""
-        try:
-            st.info(f"🔍 Searching: {query}")
-            
-            # Use the search tool to get current information
-            # This will be implemented using the available search functionality
-            return f"Search: {query}\n[Real-time search results would be integrated here]"
-            
-        except Exception as e:
-            return f"Search failed: {str(e)}"
     
     def _parse_comprehensive_response(self, response):
         """Parse the comprehensive response into separate sections"""
@@ -675,12 +613,7 @@ class AIAnalyzer:
                 pred_content = response[pred_start + len("[PRICE_PREDICTION_START]"):pred_end].strip()
                 sections['price_prediction'] = pred_content
             
-            # Extract Market Sentiment
-            sent_start = response.find("[MARKET_SENTIMENT_START]")
-            sent_end = response.find("[MARKET_SENTIMENT_END]")
-            if sent_start != -1 and sent_end != -1:
-                sent_content = response[sent_start + len("[MARKET_SENTIMENT_START]"):sent_end].strip()
-                sections['market_sentiment'] = sent_content
+            # Market sentiment section removed - focusing only on technical analysis
             
             # If structured parsing fails, try to split by common headers
             if not sections:
@@ -701,11 +634,7 @@ class AIAnalyzer:
                             sections[current_section] = '\n'.join(current_content).strip()
                         current_section = 'price_prediction'
                         current_content = []
-                    elif 'market sentiment' in line_lower or 'key events' in line_lower:
-                        if current_section and current_content:
-                            sections[current_section] = '\n'.join(current_content).strip()
-                        current_section = 'market_sentiment'
-                        current_content = []
+                    # Market sentiment parsing removed
                     elif current_section:
                         current_content.append(line)
                 

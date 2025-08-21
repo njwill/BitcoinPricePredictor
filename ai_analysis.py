@@ -543,8 +543,14 @@ class AIAnalyzer:
             # Debug: Show what price we're sending to Claude
             st.success(f"🔍 SENDING TO CLAUDE: Current Price = ${current_price:,.2f}")
             
+            # Get current date and actual data range dynamically
+            from datetime import datetime
+            current_date = datetime.now().strftime('%B %d, %Y')
+            start_date = data_3m.get('start_date', 'N/A')
+            end_date = data_3m.get('end_date', 'N/A')
+            
             comprehensive_prompt = f"""
-            CRITICAL: Today is August 21, 2025. The data provided covers ONLY May 24, 2025 through August 21, 2025.
+            CRITICAL: Today is {current_date}. The data provided covers ONLY {start_date} through {end_date}.
             
             DO NOT REFERENCE ANY DATES OUTSIDE THIS RANGE. There is NO December data - do not mention December.
             
@@ -553,8 +559,8 @@ class AIAnalyzer:
             Always use ${current_price:,.2f} when referring to Bitcoin's current price.
             
             DATA RANGE VALIDATION:
-            • Start: {data_3m.get('start_date', 'N/A')}  
-            • End: {data_3m.get('end_date', 'N/A')}
+            • Start: {start_date}  
+            • End: {end_date}
             • ONLY analyze data within this range
             
             COMPREHENSIVE CHART DATA:
@@ -639,9 +645,9 @@ class AIAnalyzer:
             [PRICE_PREDICTION_END]
             
             STRICT ANALYSIS RULES:
-            - ONLY analyze data from May 24, 2025 to August 21, 2025
-            - NEVER mention dates before May 2025 or after August 2025
-            - NEVER reference December, November, September, or any months outside the data range
+            - ONLY analyze data from {start_date} to {end_date}
+            - NEVER mention dates outside this actual data range
+            - NEVER reference December, November, or any months not in the provided data
             - Use ONLY the actual dates provided in the chart data arrays
             
             ANALYZE THE COMPREHENSIVE CHART DATA ABOVE, including full price arrays and indicator series. Use this data for:

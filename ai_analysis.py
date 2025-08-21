@@ -547,7 +547,7 @@ class AIAnalyzer:
         """Generate market sentiment analysis using ChatGPT with web browsing"""
         try:
             if not self.openai_client:
-                return "[MARKET_SENTIMENT_START]\\nMarket sentiment analysis unavailable (OpenAI not configured)\\n[MARKET_SENTIMENT_END]"
+                return "[MARKET_SENTIMENT_START]\nMarket sentiment analysis unavailable (OpenAI not configured)\n[MARKET_SENTIMENT_END]"
             
             current_price = analysis_data.get('current_price', 0)
             target_datetime_formatted = analysis_data.get('target_datetime_formatted', 'Friday 4PM ET')
@@ -555,7 +555,7 @@ class AIAnalyzer:
             # Debug: Show ChatGPT call
             st.info(f"🔍 ASKING CHATGPT for market sentiment (current price ${current_price:,.2f})")
             
-            sentiment_prompt = f\"\"\"
+            sentiment_prompt = f"""
             Bitcoin is currently at ${current_price:,.2f}. I need a comprehensive market sentiment analysis for the period until {target_datetime_formatted}.
             
             Please browse the internet and provide a detailed analysis including:
@@ -590,7 +590,7 @@ class AIAnalyzer:
             
             Be specific about dates, times, and potential impact levels. Include recent news and upcoming events with their scheduled dates.
             [MARKET_SENTIMENT_END]
-            \"\"\"
+            """
             
             # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
             # do not change this unless explicitly requested by the user
@@ -612,7 +612,7 @@ class AIAnalyzer:
             return market_response
             
         except Exception as e:
-            return f"[MARKET_SENTIMENT_START]\\nError generating market sentiment: {str(e)}\\n[MARKET_SENTIMENT_END]"
+            return f"[MARKET_SENTIMENT_START]\nError generating market sentiment: {str(e)}\n[MARKET_SENTIMENT_END]"
     
     def _parse_comprehensive_response(self, response):
         """Parse the comprehensive response into separate sections"""

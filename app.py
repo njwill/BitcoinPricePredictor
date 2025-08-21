@@ -181,16 +181,38 @@ def main():
     # Display the selected target
     target_formatted = target_datetime.strftime('%A, %B %d, %Y at %I:%M %p ET')
     st.info(f"📊 Prediction target: **{target_formatted}**")
+    
+    # Analyze button
+    st.write("")  # Add some space
+    analyze_button = st.button("🚀 **Analyze Bitcoin**", type="primary", use_container_width=True)
+    
+    if not analyze_button:
+        # Show instructions when not analyzing
+        st.markdown("""
+        ### 📋 Ready to Analyze Bitcoin?
+        
+        **Instructions:**
+        1. Select your target **date** and **time** above  
+        2. Click the **"Analyze Bitcoin"** button
+        3. Get comprehensive technical analysis with AI insights
+        
+        The analysis will include:
+        - 🔍 **Multi-timeframe technical analysis** (3-month and 1-week charts)
+        - 📊 **Advanced indicators** (RSI, MACD, Bollinger Bands, EMAs)
+        - 🎯 **Price prediction** with probability assessment
+        - 📈 **Interactive charts** with detailed visualizations
+        """)
+        return  # Exit early, don't run analysis
 
-    # Initialize components
+    # Initialize components (only when analyze button is pressed)
     data_fetcher = BitcoinDataFetcher()
     chart_generator = ChartGenerator()
     technical_analyzer = TechnicalAnalyzer()
     ai_analyzer = AIAnalyzer()
     
-    # Main content area
+    # Main content area (only runs when analyze button is pressed)
     try:
-        # Always fetch fresh data - no caching
+        # Fetch fresh data when user requests analysis
         with st.spinner("📈 Fetching fresh Bitcoin data..."):
             btc_3m = data_fetcher.get_bitcoin_data(period='3mo')
             btc_1w = data_fetcher.get_bitcoin_data(period='1wk')

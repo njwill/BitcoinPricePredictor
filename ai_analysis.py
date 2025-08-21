@@ -540,8 +540,6 @@ class AIAnalyzer:
             data_1w = analysis_data.get('data_1w', {})
             target_datetime_formatted = analysis_data.get('target_datetime_formatted', 'Friday 4PM ET')
             
-            # Debug: Show what price we're sending to Claude
-            st.success(f"🔍 SENDING TO CLAUDE: Current Price = ${current_price:,.2f}")
             
             # Get current date and actual data range dynamically
             from datetime import datetime
@@ -663,8 +661,6 @@ class AIAnalyzer:
             REFERENCE ONLY ACTUAL CHART DATA - no external knowledge about Bitcoin price history.
             """
             
-            # Show the FULL prompt being sent
-            st.code(f"FULL PROMPT:\n{comprehensive_prompt}", language="text")
             
             # The newest Anthropic model is "claude-sonnet-4-20250514", not "claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022" nor "claude-3-sonnet-20240229".
             response = self.claude_client.messages.create(
@@ -679,8 +675,6 @@ class AIAnalyzer:
             
             ai_response = response.content[0].text if response.content and hasattr(response.content[0], 'text') else str(response.content[0])
             
-            # Debug: Show what Claude returned (first 300 characters)
-            st.success(f"🔍 CLAUDE RESPONSE PREVIEW: {ai_response[:300]}...")
             
             return ai_response
             

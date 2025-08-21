@@ -138,8 +138,11 @@ class AIAnalyzer:
                 'end_date': str(data_1w.index[-1])
             }
             
-            # Technical indicators summary
+            # Technical indicators summary (old simple format)
             indicators_summary = self._summarize_indicators(indicators_3m, indicators_1w)
+            
+            # ENHANCED: Add full chart data for deep analysis
+            enhanced_data = self._prepare_enhanced_chart_data(data_3m, data_1w, indicators_3m, indicators_1w)
             
             return {
                 'current_time': current_time.isoformat(),
@@ -148,12 +151,76 @@ class AIAnalyzer:
                 'data_3m': data_3m_summary,
                 'data_1w': data_1w_summary,
                 'indicators': indicators_summary,
+                'enhanced_chart_data': enhanced_data,  # NEW: Full chart data
                 'current_price': actual_current_price,
                 'target_datetime_formatted': prediction_target.strftime('%A %B %d, %Y at %I:%M %p ET')
             }
             
         except Exception as e:
             st.error(f"Error preparing analysis data: {str(e)}")
+            return {}
+    
+    def _prepare_enhanced_chart_data(self, data_3m, data_1w, indicators_3m, indicators_1w):
+        """Prepare comprehensive chart data with full arrays for deep analysis"""
+        try:
+            enhanced = {}
+            
+            # Get recent data points for pattern analysis (last 50 points)
+            recent_3m = data_3m.tail(50)
+            recent_1w = data_1w.tail(30)
+            
+            # 3-MONTH ENHANCED DATA
+            enhanced['3m_data'] = {
+                'timeframe': '3-month',
+                'recent_prices': {
+                    'dates': [str(d) for d in recent_3m.index],
+                    'open': recent_3m['Open'].round(2).tolist(),
+                    'high': recent_3m['High'].round(2).tolist(), 
+                    'low': recent_3m['Low'].round(2).tolist(),
+                    'close': recent_3m['Close'].round(2).tolist(),
+                    'volume': recent_3m['Volume'].round(0).tolist()
+                },
+                'indicators': {}
+            }
+            
+            # Add full indicator arrays for 3M
+            for indicator in ['RSI', 'MACD', 'MACD_Signal', 'MACD_Histogram', 'BB_Upper', 'BB_Lower', 'BB_Middle', 'EMA_20', 'SMA_50', 'SMA_200']:
+                if indicator in indicators_3m:
+                    values = indicators_3m[indicator].tail(50).dropna()
+                    enhanced['3m_data']['indicators'][indicator] = values.round(4).tolist()
+            
+            # 1-WEEK ENHANCED DATA  
+            enhanced['1w_data'] = {
+                'timeframe': '1-week',
+                'recent_prices': {
+                    'dates': [str(d) for d in recent_1w.index],
+                    'open': recent_1w['Open'].round(2).tolist(),
+                    'high': recent_1w['High'].round(2).tolist(),
+                    'low': recent_1w['Low'].round(2).tolist(), 
+                    'close': recent_1w['Close'].round(2).tolist(),
+                    'volume': recent_1w['Volume'].round(0).tolist()
+                },
+                'indicators': {}
+            }
+            
+            # Add full indicator arrays for 1W
+            for indicator in ['RSI', 'MACD', 'MACD_Signal', 'MACD_Histogram', 'BB_Upper', 'BB_Lower', 'BB_Middle', 'EMA_20', 'SMA_50', 'SMA_200']:
+                if indicator in indicators_1w:
+                    values = indicators_1w[indicator].tail(30).dropna()
+                    enhanced['1w_data']['indicators'][indicator] = values.round(4).tolist()
+            
+            # VOLUME ANALYSIS
+            enhanced['volume_analysis'] = {
+                '3m_avg_volume': float(data_3m['Volume'].tail(50).mean()),
+                '3m_volume_trend': 'increasing' if data_3m['Volume'].tail(10).mean() > data_3m['Volume'].tail(50).mean() else 'decreasing',
+                '1w_avg_volume': float(data_1w['Volume'].tail(30).mean()),
+                '1w_volume_trend': 'increasing' if data_1w['Volume'].tail(5).mean() > data_1w['Volume'].tail(30).mean() else 'decreasing'
+            }
+            
+            return enhanced
+            
+        except Exception as e:
+            st.warning(f"Error preparing enhanced chart data: {str(e)}")
             return {}
     
     def _summarize_indicators(self, indicators_3m, indicators_1w):
@@ -481,10 +548,13 @@ class AIAnalyzer:
             
             Always use ${current_price:,.2f} when referring to Bitcoin's current price.
             
-            Technical Indicators Data:
+            COMPREHENSIVE CHART DATA:
+            {json.dumps(analysis_data.get('enhanced_chart_data', {}), indent=2)}
+            
+            SUMMARY INDICATORS:
             {json.dumps(analysis_data.get('indicators', {}), indent=2)}
             
-            Recent Performance:
+            PERFORMANCE SUMMARY:
             • 3-month change: {data_3m.get('price_change_3m', 0):+.2f}%
             • 1-week change: {data_1w.get('price_change_1w', 0):+.2f}%
             
@@ -559,14 +629,15 @@ class AIAnalyzer:
             Note: Probabilities must sum to 100%
             [PRICE_PREDICTION_END]
             
-            Provide comprehensive technical analysis comparing 3-month and 1-week timeframes, including:
+            ANALYZE THE COMPREHENSIVE CHART DATA ABOVE, including full price arrays and indicator series. Use this data for:
             
-            1. **Chart Pattern Analysis**: Identify patterns in both timeframes
-            2. **Divergence Analysis**: Compare price vs indicators for divergences
-            3. **Failure Swing Analysis**: Look for RSI and other indicator failure swings
-            4. **Trendline Analysis**: Identify key support/resistance trendlines
-            5. **Multi-timeframe Comparison**: How 3M and 1W charts align or conflict
-            6. **Advanced Pattern Recognition**: Head & shoulders, triangles, flags, etc.
+            1. **Pattern Recognition**: Use the full price arrays to identify chart patterns
+            2. **Divergence Analysis**: Compare price movements vs full RSI/MACD arrays for divergences  
+            3. **Failure Swing Analysis**: Examine full indicator arrays for failure swings
+            4. **Trendline Analysis**: Use the OHLC arrays to identify support/resistance trendlines
+            5. **Volume Confirmation**: Analyze volume patterns with price movements
+            6. **Multi-timeframe Comparison**: Compare 3M arrays vs 1W arrays for alignment/conflict
+            7. **Candlestick Patterns**: Use OHLC data for candlestick pattern analysis
             """
             
             # Show the FULL prompt being sent

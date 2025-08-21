@@ -544,9 +544,18 @@ class AIAnalyzer:
             st.success(f"🔍 SENDING TO CLAUDE: Current Price = ${current_price:,.2f}")
             
             comprehensive_prompt = f"""
+            CRITICAL: Today is August 21, 2025. The data provided covers ONLY May 24, 2025 through August 21, 2025.
+            
+            DO NOT REFERENCE ANY DATES OUTSIDE THIS RANGE. There is NO December data - do not mention December.
+            
             Bitcoin's current price is ${current_price:,.2f}.
             
             Always use ${current_price:,.2f} when referring to Bitcoin's current price.
+            
+            DATA RANGE VALIDATION:
+            • Start: {data_3m.get('start_date', 'N/A')}  
+            • End: {data_3m.get('end_date', 'N/A')}
+            • ONLY analyze data within this range
             
             COMPREHENSIVE CHART DATA:
             {json.dumps(analysis_data.get('enhanced_chart_data', {}), indent=2)}
@@ -629,6 +638,12 @@ class AIAnalyzer:
             Note: Probabilities must sum to 100%
             [PRICE_PREDICTION_END]
             
+            STRICT ANALYSIS RULES:
+            - ONLY analyze data from May 24, 2025 to August 21, 2025
+            - NEVER mention dates before May 2025 or after August 2025
+            - NEVER reference December, November, September, or any months outside the data range
+            - Use ONLY the actual dates provided in the chart data arrays
+            
             ANALYZE THE COMPREHENSIVE CHART DATA ABOVE, including full price arrays and indicator series. Use this data for:
             
             1. **Pattern Recognition**: Use the full price arrays to identify chart patterns
@@ -638,6 +653,8 @@ class AIAnalyzer:
             5. **Volume Confirmation**: Analyze volume patterns with price movements
             6. **Multi-timeframe Comparison**: Compare 3M arrays vs 1W arrays for alignment/conflict
             7. **Candlestick Patterns**: Use OHLC data for candlestick pattern analysis
+            
+            REFERENCE ONLY ACTUAL CHART DATA - no external knowledge about Bitcoin price history.
             """
             
             # Show the FULL prompt being sent

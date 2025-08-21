@@ -42,6 +42,11 @@ def main():
         display: none !important;
     }}
     
+    /* Target the specific header element you found */
+    .stAppHeader {{
+        display: none !important;
+    }}
+    
     .stApp {{
         padding-top: 0rem !important;
         {'''

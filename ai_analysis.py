@@ -599,7 +599,7 @@ class AIAnalyzer:
                 model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "You are a cryptocurrency market analyst with access to current market data and news. Browse the internet for the most recent information about Bitcoin, crypto markets, and relevant economic events."},
-                    {"role": "user", "content": sentiment_prompt}
+                    {"role": "user", "content": events_prompt}
                 ],
                 max_tokens=1000,
                 temperature=0.3

@@ -137,7 +137,7 @@ def main():
 
     # Header
     st.title("₿itcoin Analysis Dashboard")
-    st.markdown("### Automated Weekly Bitcoin Chart Analysis & Probability Assessments")
+    st.markdown("### Advanced Bitcoin Chart Analysis & Probability Assessments")
     
     # Settings moved to main content area
     eastern_tz = pytz.timezone('US/Eastern')

@@ -478,11 +478,18 @@ class AIAnalyzer:
             
             Always use ${current_price:,.2f} when referring to Bitcoin's current price.
             
+            Technical Indicators Data:
+            {json.dumps(analysis_data.get('indicators', {}), indent=2)}
+            
+            Recent Performance:
+            • 3-month change: {data_3m.get('price_change_3m', 0):+.2f}%
+            • 1-week change: {data_1w.get('price_change_1w', 0):+.2f}%
+            
             Provide analysis in three sections:
             
             [TECHNICAL_ANALYSIS_START]
             Technical Analysis Summary:
-            Analyze Bitcoin at its current price of ${current_price:,.2f}. Include technical indicators, trends, and trading recommendation.
+            Analyze Bitcoin at its current price of ${current_price:,.2f} using the technical indicators provided above. Include RSI, MACD, Bollinger Bands, EMA analysis, trends, and trading recommendation.
             [TECHNICAL_ANALYSIS_END]
             
             [PRICE_PREDICTION_START]

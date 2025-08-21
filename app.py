@@ -37,16 +37,12 @@ def main():
     # Add custom CSS for consistent fonts but preserve icons
     st.markdown(f"""
     <style>
-    /* Aggressively remove ALL top whitespace */
+    /* Remove whitespace while preserving buttons */
     .stApp > header {{
-        height: 0rem !important;
-        padding: 0rem !important;
-        margin: 0rem !important;
         background-color: transparent !important;
     }}
     
     .stApp {{
-        margin-top: -5rem !important;
         padding-top: 0rem !important;
         {'''
         background-color: #0E1117 !important;
@@ -57,10 +53,15 @@ def main():
         '''}
     }}
     
-    /* Remove top margin from main content */
+    /* Reduce top margin from main content but keep buttons visible */
     .block-container {{
-        padding-top: 1rem !important;
+        padding-top: 0.5rem !important;
         margin-top: 0rem !important;
+    }}
+    
+    /* Ensure theme toggle stays visible */
+    [data-testid="column"] {{
+        z-index: 999;
     }}
     
     /* Target only text elements, leave icons untouched */

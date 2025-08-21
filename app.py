@@ -37,9 +37,9 @@ def main():
     # Add custom CSS for consistent fonts but preserve icons
     st.markdown(f"""
     <style>
-    /* Remove whitespace while preserving buttons */
+    /* Completely hide Streamlit header to remove whitespace */
     .stApp > header {{
-        background-color: transparent !important;
+        display: none !important;
     }}
     
     .stApp {{
@@ -53,15 +53,16 @@ def main():
         '''}
     }}
     
-    /* Reduce top margin from main content but keep buttons visible */
+    /* Remove all top padding/margins from main content */
     .block-container {{
-        padding-top: 0.5rem !important;
+        padding-top: 1rem !important;
         margin-top: 0rem !important;
     }}
     
-    /* Ensure theme toggle stays visible */
+    /* Position dark mode button properly without header interference */
     [data-testid="column"] {{
-        z-index: 999;
+        position: relative;
+        z-index: 1000;
     }}
     
     /* Target only text elements, leave icons untouched */

@@ -427,17 +427,6 @@ def main():
                     st.write(cleaned_prediction)
                 else:
                     st.write("Prediction not available")
-                
-                st.markdown("<br>", unsafe_allow_html=True)
-                st.subheader("📰 Market Sentiment & Key Events")
-                market_sentiment = analysis.get('market_sentiment', 'Sentiment analysis not available')
-                if isinstance(market_sentiment, str) and market_sentiment.strip():
-                    cleaned_sentiment = market_sentiment.replace('\\n', '\n').strip()
-                    
-                    # Display the full content using st.write which handles long content better
-                    st.write(cleaned_sentiment)
-                else:
-                    st.write("Sentiment analysis not available")
             
             with col2:
                 st.subheader("📊 Probability Assessment")

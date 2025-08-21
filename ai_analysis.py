@@ -59,7 +59,6 @@ class AIAnalyzer:
             return {
                 'technical_summary': parsed_analysis.get('technical_summary', 'Technical analysis not available'),
                 'price_prediction': parsed_analysis.get('price_prediction', 'Price prediction not available'),
-                'market_sentiment': parsed_analysis.get('market_sentiment', 'Market sentiment not available'),
                 'probabilities': probabilities,
                 'timestamp': datetime.now().isoformat()
             }
@@ -172,8 +171,9 @@ class AIAnalyzer:
             # 3-MONTH ENHANCED DATA
             enhanced['3m_data'] = {
                 'timeframe': '3-month',
+                'data_range': f"{recent_3m.index[0].strftime('%B %d')} to {recent_3m.index[-1].strftime('%B %d, %Y')}",
                 'recent_prices': {
-                    'dates': [str(d) for d in recent_3m.index],
+                    'dates': [d.strftime('%Y-%m-%d %H:%M') for d in recent_3m.index],
                     'open': recent_3m['Open'].round(2).tolist(),
                     'high': recent_3m['High'].round(2).tolist(), 
                     'low': recent_3m['Low'].round(2).tolist(),
@@ -192,8 +192,9 @@ class AIAnalyzer:
             # 1-WEEK ENHANCED DATA  
             enhanced['1w_data'] = {
                 'timeframe': '1-week',
+                'data_range': f"{recent_1w.index[0].strftime('%B %d')} to {recent_1w.index[-1].strftime('%B %d, %Y')}",
                 'recent_prices': {
-                    'dates': [str(d) for d in recent_1w.index],
+                    'dates': [d.strftime('%Y-%m-%d %H:%M') for d in recent_1w.index],
                     'open': recent_1w['Open'].round(2).tolist(),
                     'high': recent_1w['High'].round(2).tolist(),
                     'low': recent_1w['Low'].round(2).tolist(), 
@@ -414,43 +415,6 @@ class AIAnalyzer:
         except Exception as e:
             return f"Error generating price prediction: {str(e)}"
     
-    def _generate_market_sentiment(self, analysis_data):
-        """Generate market sentiment and key events analysis"""
-        try:
-            if not self.client:
-                return "Error: OpenAI client not initialized"
-            current_date = datetime.now().strftime("%Y-%m-%d")
-            
-            prompt = f"""
-            Analyze the general cryptocurrency market sentiment for the upcoming week and identify key events that may impact Bitcoin's price.
-            
-            Current Date: {current_date}
-            Current Bitcoin Price: ${analysis_data.get('current_price', 0):,.2f}
-            
-            Please provide:
-            1. General market sentiment analysis for the upcoming week
-            2. Key scheduled events that typically impact Bitcoin (Fed meetings, economic data releases, options/futures expiry)
-            3. Seasonal or cyclical patterns relevant to this time period
-            4. Potential external factors that could influence Bitcoin price movement
-            5. Risk factors to monitor
-            
-            Focus on factual, recurring events and general market dynamics rather than speculation. Keep analysis concise (200-250 words).
-            """
-            
-            response = self.client.chat.completions.create(
-                model="gpt-4.1",
-                messages=[
-                    {"role": "system", "content": "You are a cryptocurrency market analyst with expertise in macroeconomic factors and market sentiment analysis."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=800,
-                temperature=0.4
-            )
-            
-            return response.choices[0].message.content
-            
-        except Exception as e:
-            return f"Error generating market sentiment: {str(e)}"
     
     def _extract_probabilities(self, prediction_text):
         """Extract probability percentages from prediction text"""
@@ -639,7 +603,6 @@ class AIAnalyzer:
             - Bullish above: $[level]
             - Bearish below: $[level]
             
-            Note: Probabilities must sum to 100%
             [PRICE_PREDICTION_END]
             
             STRICT ANALYSIS RULES:
@@ -647,6 +610,8 @@ class AIAnalyzer:
             - NEVER mention dates outside this actual data range
             - NEVER reference December, November, or any months not in the provided data
             - Use ONLY the actual dates provided in the chart data arrays
+            - ALWAYS reference actual dates (like "May 24" or "August 15"), NEVER array indices (like "132-181")
+            - Probabilities must sum to 100% (internal instruction - do not print this)
             
             ANALYZE THE COMPREHENSIVE CHART DATA ABOVE, including full price arrays and indicator series. Use this data for:
             
@@ -737,5 +702,4 @@ class AIAnalyzer:
             return {
                 'technical_summary': response,
                 'price_prediction': 'Unable to parse prediction section',
-                'market_sentiment': 'Unable to parse sentiment section'
             }

@@ -10,17 +10,27 @@ import streamlit as st
 # GPT-4.1 released April 2025 with 21.4% improvement over GPT-4o
 import anthropic
 from anthropic import Anthropic
+from openai import OpenAI
 
 class AIAnalyzer:
     """Handles AI-powered analysis using Anthropic Claude"""
     
     def __init__(self):
-        self.api_key = os.getenv("ANTHROPIC_API_KEY", "")
-        if not self.api_key:
+        # Initialize Anthropic (Claude) for technical analysis
+        self.anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+        if not self.anthropic_key:
             st.error("Anthropic API key not found. Please set ANTHROPIC_API_KEY environment variable.")
-            self.client = None
+            self.claude_client = None
         else:
-            self.client = Anthropic(api_key=self.api_key)
+            self.claude_client = Anthropic(api_key=self.anthropic_key)
+        
+        # Initialize OpenAI (ChatGPT) for market sentiment  
+        self.openai_key = os.getenv("OPENAI_API_KEY", "")
+        if not self.openai_key:
+            st.error("OpenAI API key not found. Please set OPENAI_API_KEY environment variable.")
+            self.openai_client = None
+        else:
+            self.openai_client = OpenAI(api_key=self.openai_key)
     
     def generate_comprehensive_analysis(self, data_3m, data_1w, indicators_3m, indicators_1w, current_price, target_datetime=None):
         """
@@ -37,17 +47,23 @@ class AIAnalyzer:
         Returns:
             Dictionary with analysis results
         """
-        if not self.client:
-            return {"error": "Anthropic client not initialized"}
+        if not self.claude_client:
+            return {"error": "Claude client not initialized"}
         
         try:
             # Prepare data summary for AI analysis
             analysis_data = self._prepare_analysis_data(data_3m, data_1w, indicators_3m, indicators_1w, current_price, target_datetime)
             
-            # Generate comprehensive analysis in single query for consistency
-            comprehensive_response = self._generate_unified_analysis(analysis_data)
+            # Generate technical analysis with Claude
+            technical_response = self._generate_technical_analysis_claude(analysis_data)
             
-            # Parse the comprehensive response
+            # Generate market sentiment with ChatGPT (with web browsing)
+            market_response = self._generate_market_sentiment_chatgpt(analysis_data)
+            
+            # Combine both responses
+            comprehensive_response = f"{technical_response}\n\n{market_response}"
+            
+            # Parse the combined response
             parsed_analysis = self._parse_comprehensive_response(comprehensive_response)
             
             # Extract probabilities from prediction section
@@ -457,11 +473,11 @@ class AIAnalyzer:
         
         return friday_4pm
     
-    def _generate_unified_analysis(self, analysis_data):
-        """Generate comprehensive analysis in a single API call for consistency"""
+    def _generate_technical_analysis_claude(self, analysis_data):
+        """Generate technical analysis and price prediction using Claude"""
         try:
-            if not self.client:
-                return "Error: Anthropic client not initialized"
+            if not self.claude_client:
+                return "Error: Claude client not initialized"
             
             # Extract key data for clarity
             current_price = analysis_data.get('current_price', 0)
@@ -500,16 +516,14 @@ class AIAnalyzer:
             Note: X + Y must equal 100%
             [PRICE_PREDICTION_END]
             
-            [MARKET_SENTIMENT_START]
-            Market sentiment and key events affecting Bitcoin.
-            [MARKET_SENTIMENT_END]
+            Focus only on technical analysis and price prediction. Do not include market sentiment.
             """
             
             # Show the FULL prompt being sent
             st.code(f"FULL PROMPT:\n{comprehensive_prompt}", language="text")
             
             # The newest Anthropic model is "claude-sonnet-4-20250514", not "claude-3-7-sonnet-20250219", "claude-3-5-sonnet-20241022" nor "claude-3-sonnet-20240229".
-            response = self.client.messages.create(
+            response = self.claude_client.messages.create(
                 model="claude-sonnet-4-20250514",
                 max_tokens=2500,
                 temperature=0.3,
@@ -527,7 +541,78 @@ class AIAnalyzer:
             return ai_response
             
         except Exception as e:
-            return f"Error generating unified analysis: {str(e)}"
+            return f"Error generating technical analysis: {str(e)}"
+    
+    def _generate_market_sentiment_chatgpt(self, analysis_data):
+        """Generate market sentiment analysis using ChatGPT with web browsing"""
+        try:
+            if not self.openai_client:
+                return "[MARKET_SENTIMENT_START]\\nMarket sentiment analysis unavailable (OpenAI not configured)\\n[MARKET_SENTIMENT_END]"
+            
+            current_price = analysis_data.get('current_price', 0)
+            target_datetime_formatted = analysis_data.get('target_datetime_formatted', 'Friday 4PM ET')
+            
+            # Debug: Show ChatGPT call
+            st.info(f"🔍 ASKING CHATGPT for market sentiment (current price ${current_price:,.2f})")
+            
+            sentiment_prompt = f\"\"\"
+            Bitcoin is currently at ${current_price:,.2f}. I need a comprehensive market sentiment analysis for the period until {target_datetime_formatted}.
+            
+            Please browse the internet and provide a detailed analysis including:
+            
+            [MARKET_SENTIMENT_START]
+            Market Sentiment & Key Events:
+            
+            1. **Current Market Sentiment**: Overall crypto market mood, Bitcoin sentiment on social media, institutional sentiment
+            
+            2. **Upcoming Key Events** between now and {target_datetime_formatted}:
+               - Federal Reserve meetings or announcements
+               - Major economic data releases (CPI, employment, etc.)
+               - Bitcoin ETF news or developments
+               - Options/futures expiry dates
+               - Major cryptocurrency conferences or events
+               - Regulatory announcements or hearings
+            
+            3. **Market Structure Analysis**:
+               - Institutional buying/selling patterns
+               - Exchange flows and whale movements
+               - Futures positioning and funding rates
+            
+            4. **External Factors**:
+               - Traditional market conditions (stocks, bonds, dollar strength)
+               - Geopolitical events affecting risk assets
+               - Macroeconomic trends
+            
+            5. **Risk Factors to Monitor**:
+               - Potential negative catalysts
+               - Support levels that could trigger selling
+               - Volatility expectations
+            
+            Be specific about dates, times, and potential impact levels. Include recent news and upcoming events with their scheduled dates.
+            [MARKET_SENTIMENT_END]
+            \"\"\"
+            
+            # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
+            # do not change this unless explicitly requested by the user
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are a cryptocurrency market analyst with access to current market data and news. Browse the internet for the most recent information about Bitcoin, crypto markets, and relevant economic events."},
+                    {"role": "user", "content": sentiment_prompt}
+                ],
+                max_tokens=1000,
+                temperature=0.3
+            )
+            
+            market_response = response.choices[0].message.content
+            
+            # Debug: Show what ChatGPT returned
+            st.info(f"🔍 CHATGPT MARKET RESPONSE: {market_response[:200]}...")
+            
+            return market_response
+            
+        except Exception as e:
+            return f"[MARKET_SENTIMENT_START]\\nError generating market sentiment: {str(e)}\\n[MARKET_SENTIMENT_END]"
     
     def _parse_comprehensive_response(self, response):
         """Parse the comprehensive response into separate sections"""

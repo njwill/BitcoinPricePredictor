@@ -544,7 +544,7 @@ class AIAnalyzer:
             return f"Error generating technical analysis: {str(e)}"
     
     def _generate_market_sentiment_chatgpt(self, analysis_data):
-        """Generate market sentiment analysis using web search + ChatGPT"""
+        """Generate upcoming events analysis using web search + ChatGPT"""
         try:
             if not self.openai_client:
                 return "[MARKET_SENTIMENT_START]\nMarket sentiment analysis unavailable (OpenAI not configured)\n[MARKET_SENTIMENT_END]"
@@ -552,53 +552,44 @@ class AIAnalyzer:
             current_price = analysis_data.get('current_price', 0)
             target_datetime_formatted = analysis_data.get('target_datetime_formatted', 'Friday 4PM ET')
             
-            # Search for current market information
-            st.info(f"🔍 SEARCHING WEB for current Bitcoin market news and events...")
+            # Search for upcoming events
+            st.info(f"🔍 SEARCHING WEB for upcoming events until {target_datetime_formatted}...")
             
-            market_data = self._search_market_information(current_price, target_datetime_formatted)
+            events_data = self._search_upcoming_events(current_price, target_datetime_formatted)
             
             # Debug: Show ChatGPT call
-            st.info(f"🔍 ASKING CHATGPT to analyze market data (current price ${current_price:,.2f})")
+            st.info(f"🔍 ASKING CHATGPT to analyze upcoming events (current price ${current_price:,.2f})")
             
-            sentiment_prompt = f"""
+            events_prompt = f"""
             Bitcoin is currently at ${current_price:,.2f}. 
             
-            Based on the following current market information, provide a comprehensive market sentiment analysis for the period until {target_datetime_formatted}:
+            Based on the following upcoming events data, provide a list of upcoming events between now and {target_datetime_formatted} that may impact Bitcoin price:
             
-            CURRENT MARKET DATA:
-            {market_data}
+            UPCOMING EVENTS DATA:
+            {events_data}
             
-            Please analyze this information and provide:
+            Please provide:
             
             [MARKET_SENTIMENT_START]
-            Market Sentiment & Key Events:
+            Upcoming Events & Bitcoin Impact:
             
-            1. **Current Market Sentiment**: Overall crypto market mood, Bitcoin sentiment on social media, institutional sentiment
+            List each upcoming event between now and {target_datetime_formatted} with:
             
-            2. **Upcoming Key Events** between now and {target_datetime_formatted}:
-               - Federal Reserve meetings or announcements
-               - Major economic data releases (CPI, employment, etc.)
-               - Bitcoin ETF news or developments
-               - Options/futures expiry dates
-               - Major cryptocurrency conferences or events
-               - Regulatory announcements or hearings
+            **[Date] - Event Name**
+            - What: Brief description of the event
+            - Bitcoin Impact: How this event could affect Bitcoin price (bullish/bearish/neutral)
+            - Reasoning: Why this event matters for Bitcoin
             
-            3. **Market Structure Analysis**:
-               - Institutional buying/selling patterns
-               - Exchange flows and whale movements
-               - Futures positioning and funding rates
+            Focus only on events with specific dates including:
+            - Federal Reserve FOMC meetings and rate decisions
+            - Major economic data releases (CPI, unemployment, GDP)
+            - Bitcoin ETF announcements or deadlines
+            - Options/futures expiry dates
+            - Regulatory hearings or announcements
+            - Major cryptocurrency conferences
+            - Earnings from Bitcoin-related companies
             
-            4. **External Factors**:
-               - Traditional market conditions (stocks, bonds, dollar strength)
-               - Geopolitical events affecting risk assets
-               - Macroeconomic trends
-            
-            5. **Risk Factors to Monitor**:
-               - Potential negative catalysts
-               - Support levels that could trigger selling
-               - Volatility expectations
-            
-            Be specific about dates, times, and potential impact levels. Include recent news and upcoming events with their scheduled dates.
+            Format each event clearly with date, name, impact level, and reasoning.
             [MARKET_SENTIMENT_END]
             """
             
@@ -624,29 +615,29 @@ class AIAnalyzer:
         except Exception as e:
             return f"[MARKET_SENTIMENT_START]\nError generating market sentiment: {str(e)}\n[MARKET_SENTIMENT_END]"
     
-    def _search_market_information(self, current_price, target_datetime):
-        """Search web for current Bitcoin market information and upcoming events"""
+    def _search_upcoming_events(self, current_price, target_datetime):
+        """Search web for upcoming events that may impact Bitcoin"""
         try:
             from datetime import datetime
             
-            # Search for recent Bitcoin news and market sentiment
+            # Search for upcoming events that may impact Bitcoin
             search_results = []
             
-            # Search for current Bitcoin news
-            bitcoin_news = self._web_search("Bitcoin price news market sentiment today")
-            search_results.append(f"BITCOIN NEWS:\n{bitcoin_news}")
+            # Search for Federal Reserve and economic calendar
+            fed_events = self._web_search("Federal Reserve FOMC meeting dates 2025 economic calendar CPI unemployment")
+            search_results.append(f"ECONOMIC EVENTS:\n{fed_events}")
             
-            # Search for upcoming Fed meetings and economic events
-            fed_events = self._web_search("Federal Reserve FOMC meeting schedule 2025 economic calendar")
-            search_results.append(f"FED EVENTS:\n{fed_events}")
+            # Search for Bitcoin ETF and regulatory events
+            regulatory_events = self._web_search("Bitcoin ETF approval deadlines regulatory hearings 2025 SEC announcements")
+            search_results.append(f"REGULATORY EVENTS:\n{regulatory_events}")
             
-            # Search for Bitcoin ETF and regulatory news
-            etf_news = self._web_search("Bitcoin ETF approval news regulatory developments 2025")
-            search_results.append(f"ETF/REGULATORY:\n{etf_news}")
+            # Search for Bitcoin options and futures expiry
+            expiry_events = self._web_search("Bitcoin options futures expiry dates 2025 CME derivatives calendar")
+            search_results.append(f"DERIVATIVES EXPIRY:\n{expiry_events}")
             
-            # Search for institutional Bitcoin activity
-            institutional = self._web_search("Bitcoin institutional buying whale movements exchange flows")
-            search_results.append(f"INSTITUTIONAL ACTIVITY:\n{institutional}")
+            # Search for crypto conferences and major events
+            crypto_events = self._web_search("cryptocurrency conference 2025 Bitcoin events blockchain summit")
+            search_results.append(f"CRYPTO EVENTS:\n{crypto_events}")
             
             return "\n\n".join(search_results)
             

@@ -37,8 +37,13 @@ def main():
     # Add custom CSS for consistent fonts but preserve icons
     st.markdown(f"""
     <style>
-    /* Apply theme colors */
+    /* Remove extra whitespace at top */
+    .stApp > header {{
+        background-color: transparent;
+    }}
+    
     .stApp {{
+        padding-top: 0rem !important;
         {'''
         background-color: #0E1117 !important;
         color: #FAFAFA !important;
@@ -152,10 +157,12 @@ def main():
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        # Date selection (default to next Friday)
+        # Date selection (default to upcoming Friday)
         days_until_friday = (4 - current_time.weekday()) % 7
-        if days_until_friday == 0 and current_time.hour >= 16:  # If it's Friday after 4PM
-            days_until_friday = 7
+        if days_until_friday == 0:  # If today is Friday
+            if current_time.hour >= 16:  # If it's Friday after 4PM
+                days_until_friday = 7  # Next Friday
+            # If it's Friday before 4PM, keep days_until_friday = 0 (today)
         default_date = (current_time + timedelta(days=days_until_friday)).date()
         
         selected_date = st.date_input(

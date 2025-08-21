@@ -168,6 +168,22 @@ class AIAnalyzer:
             recent_3m = data_3m.tail(50)
             recent_1w = data_1w.tail(30)
             
+            # Ensure index is datetime to prevent strftime errors
+            try:
+                if hasattr(recent_3m.index[0], 'strftime'):
+                    pass  # Already datetime-like
+                else:
+                    recent_3m.index = pd.to_datetime(recent_3m.index)
+                    
+                if hasattr(recent_1w.index[0], 'strftime'):
+                    pass  # Already datetime-like
+                else:
+                    recent_1w.index = pd.to_datetime(recent_1w.index)
+            except (IndexError, AttributeError):
+                # Handle empty dataframes or other issues
+                st.warning("Issue with date formatting in chart data")
+                return {}
+            
             # 3-MONTH ENHANCED DATA
             enhanced['3m_data'] = {
                 'timeframe': '3-month',

@@ -298,6 +298,10 @@ class AIAnalyzer:
             full_3m = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_3m))
             full_1w = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_1w))
 
+            # Debug: Check 3M data quality first
+            self._dbg("error", f"🔍 3M DATA SHAPE: {full_3m.shape}, Date range: {full_3m.index[0]} to {full_3m.index[-1]}")
+            self._dbg("error", f"🔍 3M LOW COLUMN: Min={full_3m['Low'].min():.2f}, Bottom 5 values={full_3m['Low'].nsmallest(5).tolist()}")
+            
             full_3m_high = float(full_3m["High"].max())
             full_3m_low = float(full_3m["Low"].min())
             full_1w_high = float(full_1w["High"].max())

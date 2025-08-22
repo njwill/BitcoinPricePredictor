@@ -600,6 +600,15 @@ class AIAnalyzer:
             
             # DEBUG: Show actual price data being sent to Claude
             enhanced_data = analysis_data.get('enhanced_chart_data', {})
+            
+            # DEBUG: Check what Claude ACTUALLY retrieves
+            st.warning(f"🎯 CLAUDE RETRIEVES: Keys in analysis_data = {list(analysis_data.keys())}")
+            if 'enhanced_chart_data' in analysis_data:
+                st.warning(f"🎯 ENHANCED_CHART_DATA EXISTS: Type = {type(analysis_data['enhanced_chart_data'])}")
+                if analysis_data['enhanced_chart_data'] and '3m_data' in analysis_data['enhanced_chart_data']:
+                    retrieved_high = analysis_data['enhanced_chart_data']['3m_data']['period_highs_lows']['period_high']
+                    st.warning(f"🎯 CLAUDE SEES: 3M High = {retrieved_high:,.0f}")
+            
             if enhanced_data.get('3m_data') and enhanced_data['3m_data'].get('period_highs_lows'):
                 highs_lows_3m = enhanced_data['3m_data']['period_highs_lows']
                 st.success(f"🔍 3M FULL PERIOD: High=${highs_lows_3m.get('period_high', 0):,.0f}, Low=${highs_lows_3m.get('period_low', 0):,.0f}")

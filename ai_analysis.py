@@ -164,9 +164,15 @@ class AIAnalyzer:
         try:
             enhanced = {}
             
-            # Get recent data points for pattern analysis (last 50 points)
+            # Get recent data points for pattern analysis but also calculate full-range highs/lows
             recent_3m = data_3m.tail(50)
             recent_1w = data_1w.tail(30)
+            
+            # Calculate actual highs/lows from FULL dataset (not just recent points)
+            full_3m_high = float(data_3m['High'].max())
+            full_3m_low = float(data_3m['Low'].min()) 
+            full_1w_high = float(data_1w['High'].max())
+            full_1w_low = float(data_1w['Low'].min())
             
             # Ensure index is datetime to prevent strftime errors
             try:
@@ -187,7 +193,14 @@ class AIAnalyzer:
             # 3-MONTH ENHANCED DATA
             enhanced['3m_data'] = {
                 'timeframe': '3-month',
+                'full_range': f"{data_3m.index[0].strftime('%B %d')} to {data_3m.index[-1].strftime('%B %d, %Y')}",
                 'data_range': f"{recent_3m.index[0].strftime('%B %d')} to {recent_3m.index[-1].strftime('%B %d, %Y')}",
+                'period_highs_lows': {
+                    'period_high': full_3m_high,
+                    'period_low': full_3m_low,
+                    'recent_high': float(recent_3m['High'].max()),
+                    'recent_low': float(recent_3m['Low'].min())
+                },
                 'recent_prices': {
                     'dates': [d.strftime('%Y-%m-%d %H:%M') for d in recent_3m.index],
                     'open': recent_3m['Open'].round(2).tolist(),
@@ -208,7 +221,14 @@ class AIAnalyzer:
             # 1-WEEK ENHANCED DATA  
             enhanced['1w_data'] = {
                 'timeframe': '1-week',
+                'full_range': f"{data_1w.index[0].strftime('%B %d')} to {data_1w.index[-1].strftime('%B %d, %Y')}",
                 'data_range': f"{recent_1w.index[0].strftime('%B %d')} to {recent_1w.index[-1].strftime('%B %d, %Y')}",
+                'period_highs_lows': {
+                    'period_high': full_1w_high,
+                    'period_low': full_1w_low,
+                    'recent_high': float(recent_1w['High'].max()),
+                    'recent_low': float(recent_1w['Low'].min())
+                },
                 'recent_prices': {
                     'dates': [d.strftime('%Y-%m-%d %H:%M') for d in recent_1w.index],
                     'open': recent_1w['Open'].round(2).tolist(),
@@ -529,19 +549,13 @@ class AIAnalyzer:
             
             # DEBUG: Show actual price data being sent to Claude
             enhanced_data = analysis_data.get('enhanced_chart_data', {})
-            if enhanced_data.get('3m_data') and enhanced_data['3m_data'].get('recent_prices'):
-                prices_3m = enhanced_data['3m_data']['recent_prices']
-                high_3m = max(prices_3m.get('high', [0])) if prices_3m.get('high') else 0
-                low_3m = min(prices_3m.get('low', [999999])) if prices_3m.get('low') else 0
-                current_3m = prices_3m.get('close', [0])[-1] if prices_3m.get('close') else 0
-                st.success(f"🔍 3M DATA SENT TO CLAUDE: High=${high_3m:,.0f}, Low=${low_3m:,.0f}, Current=${current_3m:,.0f}")
+            if enhanced_data.get('3m_data') and enhanced_data['3m_data'].get('period_highs_lows'):
+                highs_lows_3m = enhanced_data['3m_data']['period_highs_lows']
+                st.success(f"🔍 3M FULL PERIOD: High=${highs_lows_3m.get('period_high', 0):,.0f}, Low=${highs_lows_3m.get('period_low', 0):,.0f}")
             
-            if enhanced_data.get('1w_data') and enhanced_data['1w_data'].get('recent_prices'):
-                prices_1w = enhanced_data['1w_data']['recent_prices']
-                high_1w = max(prices_1w.get('high', [0])) if prices_1w.get('high') else 0
-                low_1w = min(prices_1w.get('low', [999999])) if prices_1w.get('low') else 0
-                current_1w = prices_1w.get('close', [0])[-1] if prices_1w.get('close') else 0
-                st.success(f"🔍 1W DATA SENT TO CLAUDE: High=${high_1w:,.0f}, Low=${low_1w:,.0f}, Current=${current_1w:,.0f}")
+            if enhanced_data.get('1w_data') and enhanced_data['1w_data'].get('period_highs_lows'):
+                highs_lows_1w = enhanced_data['1w_data']['period_highs_lows']
+                st.success(f"🔍 1W FULL PERIOD: High=${highs_lows_1w.get('period_high', 0):,.0f}, Low=${highs_lows_1w.get('period_low', 0):,.0f}")
             
             st.success(f"🔍 CURRENT PRICE PARAMETER: ${current_price:,.2f}")
             

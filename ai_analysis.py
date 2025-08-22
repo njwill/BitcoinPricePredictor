@@ -31,7 +31,7 @@ class AIAnalyzer:
     def __init__(self, debug: Optional[bool] = None):
         # Debug flag (UI messages gated to avoid spamming users)
         if debug is None:
-            self.debug = True  # Force debug mode to show pricing issue debug messages
+            self.debug = os.getenv("AI_ANALYZER_DEBUG", "0") == "1"
         else:
             self.debug = bool(debug)
 
@@ -179,8 +179,6 @@ class AIAnalyzer:
     ) -> Dict[str, Any]:
         """Prepare and summarize data for AI analysis."""
         try:
-            # Debug: Check data BEFORE any processing
-            self._dbg("error", f"🔍 ORIGINAL 3M Index Type: {type(data_3m.index[0])}, First few: {data_3m.index[:3].tolist()}")
             
             # FIX: The data is coming in with corrupted indices. We need to restore proper datetime processing
             data_3m = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_3m))
@@ -311,8 +309,6 @@ class AIAnalyzer:
             full_1w_high = float(full_1w["High"].max())
             full_1w_low = float(full_1w["Low"].min())
             
-            # Debug: Show final calculated values
-            self._dbg("error", f"🚨 FINAL VALUES: 3M High=${full_3m_high:,.2f}, 3M Low=${full_3m_low:,.2f}")
 
             # Optional display trimming for the RECENT arrays only
             display_from_3m = getattr(data_3m, "attrs", {}).get("display_from_index", 0)

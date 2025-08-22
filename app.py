@@ -271,8 +271,8 @@ def main():
         if analysis and isinstance(analysis, dict) and 'probabilities' in analysis:
             probabilities = analysis['probabilities']
             if isinstance(probabilities, dict):
-                higher_prob = probabilities.get('higher', 0)
-                lower_prob = probabilities.get('lower', 0)
+                higher_prob = probabilities.get('higher_fraction', 0)
+                lower_prob = probabilities.get('lower_fraction', 0)
             else:
                 higher_prob = lower_prob = 0
             

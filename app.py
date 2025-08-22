@@ -570,46 +570,12 @@ def main():
         
         # Footer with last update info
         st.divider()
-        st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: OpenAI GPT-4o")
+        st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: Anthropic Claude")
         
     except Exception as e:
         st.error(f"❌ An error occurred: {str(e)}")
         st.exception(e)
     
-    # Manual refresh section (custom collapsible)
-    st.markdown('<div style="margin-top: 40px;"></div>', unsafe_allow_html=True)
-    
-    # Create a simple collapsible section without expander
-    if 'admin_expanded' not in st.session_state:
-        st.session_state.admin_expanded = False
-    
-    col_toggle, col_spacer = st.columns([1, 6])
-    with col_toggle:
-        if st.button("🔧 Admin", type="secondary", help="Admin controls"):
-            st.session_state.admin_expanded = not st.session_state.admin_expanded
-    
-    if st.session_state.admin_expanded:
-        st.caption("Password protected refresh functionality")
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            refresh_password = st.text_input("Password:", type="password", key="refresh_pwd", label_visibility="collapsed", placeholder="Enter admin password")
-        with col2:
-            if st.button("Refresh", type="secondary"):
-                if refresh_password == "bitcoin2025":
-                    # Clear all caches including file cache
-                    st.session_state.data_cache = {}
-                    st.session_state.analysis_cache = {}
-                    try:
-                        import os
-                        cache_file = "bitcoin_analysis_cache.json"
-                        if os.path.exists(cache_file):
-                            os.remove(cache_file)
-                    except:
-                        pass
-                    st.success("Analysis refreshed successfully!")
-                    st.rerun()
-                else:
-                    st.error("Incorrect password.")
 
 if __name__ == "__main__":
     main()

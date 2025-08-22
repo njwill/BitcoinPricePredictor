@@ -598,24 +598,19 @@ class AIAnalyzer:
             start_date = data_3m.get('start_date', 'N/A')
             end_date = data_3m.get('end_date', 'N/A')
             
-            # DEBUG: Show actual price data being sent to Claude
+            # FIX: Use the SAME data source that Claude uses
             enhanced_data = analysis_data.get('enhanced_chart_data', {})
             
-            # DEBUG: Check what Claude ACTUALLY retrieves
-            st.warning(f"🎯 CLAUDE RETRIEVES: Keys in analysis_data = {list(analysis_data.keys())}")
-            if 'enhanced_chart_data' in analysis_data:
-                st.warning(f"🎯 ENHANCED_CHART_DATA EXISTS: Type = {type(analysis_data['enhanced_chart_data'])}")
-                if analysis_data['enhanced_chart_data'] and '3m_data' in analysis_data['enhanced_chart_data']:
-                    retrieved_high = analysis_data['enhanced_chart_data']['3m_data']['period_highs_lows']['period_high']
-                    st.warning(f"🎯 CLAUDE SEES: 3M High = {retrieved_high:,.0f}")
+            # DEBUG: Show that Claude gets the correct data
+            if 'enhanced_chart_data' in analysis_data and analysis_data['enhanced_chart_data'].get('3m_data'):
+                claude_3m_high = analysis_data['enhanced_chart_data']['3m_data']['period_highs_lows']['period_high']
+                claude_3m_low = analysis_data['enhanced_chart_data']['3m_data']['period_highs_lows']['period_low']
+                st.success(f"🔍 3M FULL PERIOD: High=${claude_3m_high:,.0f}, Low=${claude_3m_low:,.0f}")
             
-            if enhanced_data.get('3m_data') and enhanced_data['3m_data'].get('period_highs_lows'):
-                highs_lows_3m = enhanced_data['3m_data']['period_highs_lows']
-                st.success(f"🔍 3M FULL PERIOD: High=${highs_lows_3m.get('period_high', 0):,.0f}, Low=${highs_lows_3m.get('period_low', 0):,.0f}")
-            
-            if enhanced_data.get('1w_data') and enhanced_data['1w_data'].get('period_highs_lows'):
-                highs_lows_1w = enhanced_data['1w_data']['period_highs_lows']
-                st.success(f"🔍 1W FULL PERIOD: High=${highs_lows_1w.get('period_high', 0):,.0f}, Low=${highs_lows_1w.get('period_low', 0):,.0f}")
+            if 'enhanced_chart_data' in analysis_data and analysis_data['enhanced_chart_data'].get('1w_data'):
+                claude_1w_high = analysis_data['enhanced_chart_data']['1w_data']['period_highs_lows']['period_high']
+                claude_1w_low = analysis_data['enhanced_chart_data']['1w_data']['period_highs_lows']['period_low']
+                st.success(f"🔍 1W FULL PERIOD: High=${claude_1w_high:,.0f}, Low=${claude_1w_low:,.0f}")
             
             st.success(f"🔍 CURRENT PRICE PARAMETER: ${current_price:,.2f}")
             

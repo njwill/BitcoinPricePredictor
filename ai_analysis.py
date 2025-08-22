@@ -163,13 +163,13 @@ class AIAnalyzer:
     ) -> Dict[str, Any]:
         """Prepare and summarize data for AI analysis."""
         try:
-            # Ensure datetime indexes & ascending order, and coerce to numeric
-            data_3m = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_3m))
-            data_1w = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_1w))
-
-            # Constrain to the intended time windows (safety if callers pass extra history)
-            window_3m = self._limit_to_days(data_3m, 92)  # ~3 months
-            window_1w = self._limit_to_days(data_1w, 7)   # 1 week
+            # Debug: Check data BEFORE any processing
+            self._dbg("error", f"🔍 ORIGINAL 3M Date Range: {data_3m.index[0]} to {data_3m.index[-1]}")
+            
+            # Skip the problematic datetime processing that's corrupting the data
+            # Use the data as-is since it's already properly formatted from the caller
+            window_3m = data_3m  # Don't re-process, use directly
+            window_1w = data_1w  # Don't re-process, use directly
 
             eastern_tz = pytz.timezone("US/Eastern")
             current_time = datetime.now(eastern_tz)
@@ -233,11 +233,6 @@ class AIAnalyzer:
                 "end_date": str(window_1w.index[-1]),
             }
 
-            self._dbg(
-                "warning",
-                f"📊 DATA SUMMARY TO CLAUDE: 3M High=${data_3m_summary['high_3m']:,.2f}, "
-                f"1W High=${data_1w_summary['high_1w']:,.2f}"
-            )
 
             # Indicator summary must consider the actual current price
             indicators_summary = self._summarize_indicators(indicators_3m, indicators_1w, actual_current_price)
@@ -265,12 +260,6 @@ class AIAnalyzer:
                 "target_datetime_formatted": prediction_target.strftime("%A %B %d, %Y at %I:%M %p ET"),
             }
 
-            self._dbg(
-                "success",
-                f"📋 AFTER STORING: 3M period_high="
-                f"{analysis_data['enhanced_chart_data']['3m_data']['period_highs_lows']['period_high']:,.2f} "
-                f"(should match summary ~{data_3m_summary['high_3m']:,.2f})"
-            )
 
             return analysis_data
 
@@ -298,18 +287,16 @@ class AIAnalyzer:
             full_3m = data_3m
             full_1w = data_1w
 
-            # Debug: Check 3M data quality first  
-            self._dbg("error", f"🔍 3M DATA SHAPE: {full_3m.shape}, Date range: {full_3m.index[0]} to {full_3m.index[-1]}")
-            self._dbg("error", f"🔍 3M LOW COLUMN: Min={full_3m['Low'].min():.2f}, Bottom 5 values={full_3m['Low'].nsmallest(5).tolist()}")
+            # Debug: Just show what we need to troubleshoot
+            self._dbg("error", f"🔍 3M Date Range: {full_3m.index[0]} to {full_3m.index[-1]}")
             
             full_3m_high = float(full_3m["High"].max())
             full_3m_low = float(full_3m["Low"].min())
             full_1w_high = float(full_1w["High"].max())
             full_1w_low = float(full_1w["Low"].min())
             
-            # Debug: Show the actual calculated values
-            self._dbg("error", f"🚨 CALCULATED BEFORE STORAGE: 3M High=${full_3m_high:,.2f}, 3M Low=${full_3m_low:,.2f}")
-            self._dbg("error", f"🚨 CALCULATED BEFORE STORAGE: 1W High=${full_1w_high:,.2f}, 1W Low=${full_1w_low:,.2f}")
+            # Debug: Show calculated values before any processing
+            self._dbg("error", f"🚨 RAW CALCULATION: 3M Low=${full_3m_low:,.2f} (should be ~98.2K)")
 
             # Optional display trimming for the RECENT arrays only
             display_from_3m = getattr(data_3m, "attrs", {}).get("display_from_index", 0)
@@ -329,10 +316,6 @@ class AIAnalyzer:
             tail_3m = recent_3m.tail(50)
             tail_1w = recent_1w.tail(30)
 
-            self._dbg(
-                "error",
-                f"🚨 WINDOWED STATS: 3M High=${full_3m_high:,.2f}, 1W High=${full_1w_high:,.2f}"
-            )
 
             # 3-MONTH ENHANCED DATA
             enhanced["3m_data"] = {
@@ -357,7 +340,6 @@ class AIAnalyzer:
                 "indicators": {},
             }
 
-            self._dbg("warning", f"🔧 ENHANCED 3M STORED: {enhanced['3m_data']['period_highs_lows']['period_high']:,.2f}")
 
             # Fill 3M indicator arrays (last 50)
             for indicator in [
@@ -399,7 +381,6 @@ class AIAnalyzer:
                 "indicators": {},
             }
 
-            self._dbg("warning", f"🔧 ENHANCED 1W STORED: {enhanced['1w_data']['period_highs_lows']['period_high']:,.2f}")
 
             # Fill 1W indicator arrays (last 30)
             for indicator in [
@@ -430,11 +411,6 @@ class AIAnalyzer:
                 else "decreasing",
             }
 
-            self._dbg(
-                "error",
-                f"🚀 ABOUT TO RETURN: 3M={enhanced['3m_data']['period_highs_lows']['period_high']:,.2f}, "
-                f"1W={enhanced['1w_data']['period_highs_lows']['period_high']:,.2f}"
-            )
 
             return enhanced
 
@@ -545,14 +521,11 @@ class AIAnalyzer:
             if "enhanced_chart_data" in analysis_data and analysis_data["enhanced_chart_data"].get("3m_data"):
                 claude_3m_high = analysis_data["enhanced_chart_data"]["3m_data"]["period_highs_lows"]["period_high"]
                 claude_3m_low = analysis_data["enhanced_chart_data"]["3m_data"]["period_highs_lows"]["period_low"]
-                self._dbg("success", f"🔍 3M FULL PERIOD: High=${claude_3m_high:,.2f}, Low=${claude_3m_low:,.2f}")
 
             if "enhanced_chart_data" in analysis_data and analysis_data["enhanced_chart_data"].get("1w_data"):
                 claude_1w_high = analysis_data["enhanced_chart_data"]["1w_data"]["period_highs_lows"]["period_high"]
                 claude_1w_low = analysis_data["enhanced_chart_data"]["1w_data"]["period_highs_lows"]["period_low"]
-                self._dbg("success", f"🔍 1W FULL PERIOD: High=${claude_1w_high:,.2f}, Low=${claude_1w_low:,.2f}")
 
-            self._dbg("success", f"🔍 CURRENT PRICE PARAMETER: ${current_price:,.2f}")
             
             # Debug: Show exactly what values are being sent to Claude
             self._dbg("error", f"🔍 SENDING TO CLAUDE - 3M HIGH: ${data_3m.get('high_3m', float('nan')):,.2f}")

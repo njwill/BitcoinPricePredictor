@@ -31,7 +31,7 @@ class AIAnalyzer:
     def __init__(self, debug: Optional[bool] = None):
         # Debug flag (UI messages gated to avoid spamming users)
         if debug is None:
-            self.debug = os.getenv("AI_ANALYZER_DEBUG", "0") == "1"
+            self.debug = True  # Force debug mode to show pricing issue debug messages
         else:
             self.debug = bool(debug)
 

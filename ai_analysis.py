@@ -550,34 +550,26 @@ class AIAnalyzer:
             Bitcoin's current price is ${current_price:,.2f}.
             Always use ${current_price:,.2f} when referring to Bitcoin's current price.
 
-            GROUND-TRUTH ANCHORS (use these exact values when you mention "period high/low"):
-            • 3M period high: ${data_3m.get('high_3m', float('nan')):,.2f}
-            • 3M period low:  ${data_3m.get('low_3m', float('nan')):,.2f}
-            • 1W period high: ${data_1w.get('high_1w', float('nan')):,.2f}
-            • 1W period low:  ${data_1w.get('low_1w', float('nan')):,.2f}
-            You must not substitute 1W values when discussing 3M, and vice versa.
+            ⚠️ CRITICAL DATA REFERENCE - USE ONLY THESE VALUES ⚠️
+            When discussing period highs and lows, you MUST use only these exact values:
 
-            PRICE VS INDICATORS CONTEXT:
-            Current price ${current_price:,.2f} compared to key levels:
-            - 3M Bollinger Band Lower: {enhanced_data.get('3m_data', {}).get('indicators', {}).get('BB_Lower', ['N/A'])[-1] if enhanced_data.get('3m_data', {}).get('indicators', {}).get('BB_Lower') else 'N/A'}
-            - 3M Bollinger Band Upper: {enhanced_data.get('3m_data', {}).get('indicators', {}).get('BB_Upper', ['N/A'])[-1] if enhanced_data.get('3m_data', {}).get('indicators', {}).get('BB_Upper') else 'N/A'}
-            - 1W Bollinger Band Lower: {enhanced_data.get('1w_data', {}).get('indicators', {}).get('BB_Lower', ['N/A'])[-1] if enhanced_data.get('1w_data', {}).get('indicators', {}).get('BB_Lower') else 'N/A'}
-            - 1W Bollinger Band Upper: {enhanced_data.get('1w_data', {}).get('indicators', {}).get('BB_Upper', ['N/A'])[-1] if enhanced_data.get('1w_data', {}).get('indicators', {}).get('BB_Upper') else 'N/A'}
+            3-MONTH TIMEFRAME:
+            • MAXIMUM price (period HIGH): ${data_3m.get('high_3m', float('nan')):,.2f}
+            • MINIMUM price (period LOW): ${data_3m.get('low_3m', float('nan')):,.2f}
 
-            DATA RANGE VALIDATION:
-            • Start: {start_date}
-            • End: {end_date}
-            • ONLY analyze data within this range
+            1-WEEK TIMEFRAME:
+            • MAXIMUM price (period HIGH): ${data_1w.get('high_1w', float('nan')):,.2f}
+            • MINIMUM price (period LOW): ${data_1w.get('low_1w', float('nan')):,.2f}
 
-            COMPREHENSIVE CHART DATA:
-            {json.dumps(analysis_data.get('enhanced_chart_data', {}), indent=2)}
+            DO NOT confuse or swap these values. The MAXIMUM is always the HIGH, the MINIMUM is always the LOW.
+            DO NOT use any other numbers when referring to period highs and lows.
 
-            SUMMARY INDICATORS:
-            {json.dumps(analysis_data.get('indicators', {}), indent=2)}
-
-            PERFORMANCE SUMMARY:
+            PRICE PERFORMANCE:
             • 3-month change: {analysis_data.get('data_3m', {}).get('price_change_3m', 0):+.2f}%
             • 1-week change: {analysis_data.get('data_1w', {}).get('price_change_1w', 0):+.2f}%
+
+            TECHNICAL INDICATORS SUMMARY:
+            {json.dumps(analysis_data.get('indicators', {}), indent=2)}
 
             Provide analysis in three sections:
 

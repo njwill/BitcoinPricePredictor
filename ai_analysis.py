@@ -164,23 +164,45 @@ class AIAnalyzer:
         try:
             enhanced = {}
             
-            # Get recent data points for pattern analysis but also calculate full-range highs/lows
-            recent_3m = data_3m.tail(50)
-            recent_1w = data_1w.tail(30)
+            # FIX: Use only the DISPLAY portion of data, not the full extended fetch
+            # Check if data has display range markers
+            display_from_3m = getattr(data_3m, 'attrs', {}).get('display_from_index', 0)
+            display_from_1w = getattr(data_1w, 'attrs', {}).get('display_from_index', 0)
             
-            # Calculate actual highs/lows from FULL dataset (not just recent points)
-            full_3m_high = float(data_3m['High'].max())
-            full_3m_low = float(data_3m['Low'].min()) 
-            full_1w_high = float(data_1w['High'].max())
-            full_1w_low = float(data_1w['Low'].min())
+            # Get the correct data ranges for analysis
+            if display_from_3m > 0:
+                analysis_data_3m = data_3m.iloc[display_from_3m:]
+            else:
+                analysis_data_3m = data_3m
+                
+            if display_from_1w > 0:
+                analysis_data_1w = data_1w.iloc[display_from_1w:]
+            else:
+                analysis_data_1w = data_1w
+            
+            # Get recent data points from the CORRECT display ranges
+            recent_3m = analysis_data_3m.tail(50)
+            recent_1w = analysis_data_1w.tail(30)
+            
+            # Calculate highs/lows from CORRECT display data ranges
+            full_3m_high = float(analysis_data_3m['High'].max())
+            full_3m_low = float(analysis_data_3m['Low'].min()) 
+            full_1w_high = float(analysis_data_1w['High'].max())
+            full_1w_low = float(analysis_data_1w['Low'].min())
+            
+            # DEBUG: Show corrected data info
+            st.error(f"🚨 3M ANALYSIS DATA: Shape={analysis_data_3m.shape}, Display from index={display_from_3m}")
+            st.error(f"🚨 3M CORRECTED HIGHS: Top 5 = {analysis_data_3m['High'].nlargest(5).tolist()}")
+            st.error(f"🚨 1W ANALYSIS DATA: Shape={analysis_data_1w.shape}, Display from index={display_from_1w}")
+            st.error(f"🚨 1W CORRECTED HIGHS: Top 5 = {analysis_data_1w['High'].nlargest(5).tolist()}")
             
             # Ensure ALL indexes are datetime to prevent strftime errors
             try:
-                # Convert full dataset indexes
-                if not hasattr(data_3m.index[0], 'strftime'):
-                    data_3m.index = pd.to_datetime(data_3m.index)
-                if not hasattr(data_1w.index[0], 'strftime'):
-                    data_1w.index = pd.to_datetime(data_1w.index)
+                # Convert analysis dataset indexes
+                if not hasattr(analysis_data_3m.index[0], 'strftime'):
+                    analysis_data_3m.index = pd.to_datetime(analysis_data_3m.index)
+                if not hasattr(analysis_data_1w.index[0], 'strftime'):
+                    analysis_data_1w.index = pd.to_datetime(analysis_data_1w.index)
                     
                 # Convert recent dataset indexes
                 if not hasattr(recent_3m.index[0], 'strftime'):
@@ -196,7 +218,7 @@ class AIAnalyzer:
             # 3-MONTH ENHANCED DATA
             enhanced['3m_data'] = {
                 'timeframe': '3-month',
-                'full_range': f"{data_3m.index[0].strftime('%B %d')} to {data_3m.index[-1].strftime('%B %d, %Y')}",
+                'full_range': f"{analysis_data_3m.index[0].strftime('%B %d')} to {analysis_data_3m.index[-1].strftime('%B %d, %Y')}",
                 'data_range': f"{recent_3m.index[0].strftime('%B %d')} to {recent_3m.index[-1].strftime('%B %d, %Y')}",
                 'period_highs_lows': {
                     'period_high': full_3m_high,
@@ -224,7 +246,7 @@ class AIAnalyzer:
             # 1-WEEK ENHANCED DATA  
             enhanced['1w_data'] = {
                 'timeframe': '1-week',
-                'full_range': f"{data_1w.index[0].strftime('%B %d')} to {data_1w.index[-1].strftime('%B %d, %Y')}",
+                'full_range': f"{analysis_data_1w.index[0].strftime('%B %d')} to {analysis_data_1w.index[-1].strftime('%B %d, %Y')}",
                 'data_range': f"{recent_1w.index[0].strftime('%B %d')} to {recent_1w.index[-1].strftime('%B %d, %Y')}",
                 'period_highs_lows': {
                     'period_high': full_1w_high,

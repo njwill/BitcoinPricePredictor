@@ -148,8 +148,11 @@ class AIAnalyzer:
             # ENHANCED: Add full chart data for deep analysis
             enhanced_data = self._prepare_enhanced_chart_data(data_3m, data_1w, indicators_3m, indicators_1w)
             
-            # DEBUG: Check if data gets corrupted after return
-            st.success(f"📦 RECEIVED FROM FUNCTION: 3M={enhanced_data['3m_data']['period_highs_lows']['period_high']:,.0f}")
+            # FIX: Override summary with SAME values as enhanced data to eliminate inconsistency
+            data_3m_summary['high_3m'] = enhanced_data['3m_data']['period_highs_lows']['period_high']
+            data_3m_summary['low_3m'] = enhanced_data['3m_data']['period_highs_lows']['period_low']
+            data_1w_summary['high_1w'] = enhanced_data['1w_data']['period_highs_lows']['period_high']
+            data_1w_summary['low_1w'] = enhanced_data['1w_data']['period_highs_lows']['period_low']
             
             # Create the analysis_data dictionary
             analysis_data = {

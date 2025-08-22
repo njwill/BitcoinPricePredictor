@@ -245,6 +245,9 @@ class AIAnalyzer:
                 'indicators': {}
             }
             
+            # DEBUG: Verify what was actually stored in enhanced data
+            st.warning(f"🔧 ENHANCED 3M STORED: {enhanced['3m_data']['period_highs_lows']['period_high']:,.0f}")
+            
             # Add full indicator arrays for 3M
             for indicator in ['RSI', 'MACD', 'MACD_Signal', 'MACD_Histogram', 'BB_Upper', 'BB_Lower', 'BB_Middle', 'EMA_20', 'SMA_50', 'SMA_200']:
                 if indicator in indicators_3m:
@@ -272,6 +275,9 @@ class AIAnalyzer:
                 },
                 'indicators': {}
             }
+            
+            # DEBUG: Verify what was actually stored in enhanced data
+            st.warning(f"🔧 ENHANCED 1W STORED: {enhanced['1w_data']['period_highs_lows']['period_high']:,.0f}")
             
             # Add full indicator arrays for 1W
             for indicator in ['RSI', 'MACD', 'MACD_Signal', 'MACD_Histogram', 'BB_Upper', 'BB_Lower', 'BB_Middle', 'EMA_20', 'SMA_50', 'SMA_200']:

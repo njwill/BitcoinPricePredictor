@@ -552,23 +552,24 @@ class AIAnalyzer:
             Bitcoin's current price is ${current_price:,.2f}.
             Always use ${current_price:,.2f} when referring to Bitcoin's current price.
 
-            🚨🚨🚨 CRITICAL DATA REFERENCE - FOLLOW EXACTLY 🚨🚨🚨
+            🚨🚨🚨 ABSOLUTE REFERENCE VALUES - DO NOT DEVIATE 🚨🚨🚨
             
-            THESE ARE THE ONLY VALID PERIOD HIGH AND LOW VALUES:
+            MEMORIZE THESE EXACT MAPPINGS:
             
-            FOR 3-MONTH ANALYSIS:
-            When you mention "3M period high" or "3-month high" → ONLY use: ${data_3m.get('high_3m', float('nan')):,.2f}
-            When you mention "3M period low" or "3-month low" → ONLY use: ${data_3m.get('low_3m', float('nan')):,.2f}
+            3-MONTH TIMEFRAME ONLY:
+            ✅ 3M HIGH = ${data_3m.get('high_3m', float('nan')):,.2f} (this is the MAXIMUM price)
+            ✅ 3M LOW = ${data_3m.get('low_3m', float('nan')):,.2f} (this is the MINIMUM price)
             
-            FOR 1-WEEK ANALYSIS:
-            When you mention "1W period high" or "1-week high" → ONLY use: ${data_1w.get('high_1w', float('nan')):,.2f}
-            When you mention "1W period low" or "1-week low" → ONLY use: ${data_1w.get('low_1w', float('nan')):,.2f}
+            1-WEEK TIMEFRAME ONLY:  
+            ✅ 1W HIGH = ${data_1w.get('high_1w', float('nan')):,.2f} (this is the MAXIMUM price)
+            ✅ 1W LOW = ${data_1w.get('low_1w', float('nan')):,.2f} (this is the MINIMUM price)
             
-            VALIDATION CHECK:
-            - Is ${data_3m.get('high_3m', float('nan')):,.2f} > ${data_3m.get('low_3m', float('nan')):,.2f}? (3M high > 3M low) ✓
-            - Is ${data_1w.get('high_1w', float('nan')):,.2f} > ${data_1w.get('low_1w', float('nan')):,.2f}? (1W high > 1W low) ✓
+            CRITICAL: ${data_3m.get('low_3m', float('nan')):,.2f} IS THE 3M LOW, NOT THE 3M HIGH
+            CRITICAL: ${data_1w.get('high_1w', float('nan')):,.2f} IS THE 1W HIGH, NOT THE 1W LOW
             
-            NEVER SWAP OR CONFUSE THESE VALUES. NEVER USE ANY OTHER NUMBERS FOR PERIOD HIGHS/LOWS.
+            WRONG EXAMPLES TO AVOID:
+            ❌ Don't say "3M high of ${data_3m.get('low_3m', float('nan')):,.2f}" - this is WRONG
+            ❌ Don't say "1W low of ${data_1w.get('high_1w', float('nan')):,.2f}" - this is WRONG
 
             PRICE PERFORMANCE:
             • 3-month change: {analysis_data.get('data_3m', {}).get('price_change_3m', 0):+.2f}%

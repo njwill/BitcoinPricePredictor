@@ -170,13 +170,20 @@ class AIAnalyzer:
             display_from_1w = getattr(data_1w, 'attrs', {}).get('display_from_index', 0)
             
             # Get the correct data ranges for analysis
-            if display_from_3m > 0:
+            # FIX: Check bounds before slicing
+            if display_from_3m > 0 and display_from_3m < len(data_3m):
                 analysis_data_3m = data_3m.iloc[display_from_3m:]
+            elif display_from_3m > 0:
+                # If display_from_index is out of bounds, use all data (already trimmed)
+                analysis_data_3m = data_3m
             else:
                 analysis_data_3m = data_3m
                 
-            if display_from_1w > 0:
+            if display_from_1w > 0 and display_from_1w < len(data_1w):
                 analysis_data_1w = data_1w.iloc[display_from_1w:]
+            elif display_from_1w > 0:
+                # If display_from_index is out of bounds, use all data (already trimmed)
+                analysis_data_1w = data_1w
             else:
                 analysis_data_1w = data_1w
             
@@ -191,10 +198,11 @@ class AIAnalyzer:
             full_1w_low = float(analysis_data_1w['Low'].min())
             
             # DEBUG: Show corrected data info
-            st.error(f"🚨 3M ANALYSIS DATA: Shape={analysis_data_3m.shape}, Display from index={display_from_3m}")
-            st.error(f"🚨 3M CORRECTED HIGHS: Top 5 = {analysis_data_3m['High'].nlargest(5).tolist()}")
-            st.error(f"🚨 1W ANALYSIS DATA: Shape={analysis_data_1w.shape}, Display from index={display_from_1w}")
-            st.error(f"🚨 1W CORRECTED HIGHS: Top 5 = {analysis_data_1w['High'].nlargest(5).tolist()}")
+            st.error(f"🚨 3M: Original Shape={data_3m.shape}, Display from index={display_from_3m}, Final Shape={analysis_data_3m.shape}")
+            st.error(f"🚨 3M FINAL HIGHS: Top 5 = {analysis_data_3m['High'].nlargest(5).tolist()}")
+            st.error(f"🚨 1W: Original Shape={data_1w.shape}, Display from index={display_from_1w}, Final Shape={analysis_data_1w.shape}")
+            st.error(f"🚨 1W FINAL HIGHS: Top 5 = {analysis_data_1w['High'].nlargest(5).tolist()}")
+            st.error(f"🚨 CALCULATED VALUES: 3M High=${full_3m_high:,.0f}, 1W High=${full_1w_high:,.0f}")
             
             # Ensure ALL indexes are datetime to prevent strftime errors
             try:

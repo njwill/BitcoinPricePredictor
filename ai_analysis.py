@@ -559,27 +559,6 @@ class AIAnalyzer:
             Bitcoin's current price is ${current_price:,.2f}.
             Always use ${current_price:,.2f} when referring to Bitcoin's current price.
 
-            🚨🚨🚨 STRICT VALUE ENFORCEMENT - NEVER DEVIATE 🚨🚨🚨
-            
-            YOU MUST USE THESE EXACT TEMPLATE PHRASES:
-            
-            FOR 3-MONTH ANALYSIS ONLY SAY:
-            ✅ "3M period high of $124,457.12" (NEVER use 98,286.20 here)
-            ✅ "3M period low of $98,286.20" (NEVER use 124,457.12 here)
-            
-            FOR 1-WEEK ANALYSIS ONLY SAY:
-            ✅ "1W period high of $118,563.10" (NEVER use 111,678.95 here)  
-            ✅ "1W period low of $111,678.95" (NEVER use 118,563.10 here)
-            
-            ABSOLUTELY FORBIDDEN PHRASES:
-            ❌ "3M high of $98,286.20" ← WRONG NUMBER FOR HIGH
-            ❌ "1W high of $111,678.95" ← WRONG NUMBER FOR HIGH
-            ❌ "3M low of $124,457.12" ← WRONG NUMBER FOR LOW
-            ❌ "1W low of $118,563.10" ← WRONG NUMBER FOR LOW
-            
-            LOGIC CHECK: $124,457 > $98,286 (so 124K is HIGH, 98K is LOW)
-            LOGIC CHECK: $118,563 > $111,678 (so 118K is HIGH, 111K is LOW)
-
             PRICE PERFORMANCE:
             • 3-month change: {analysis_data.get('data_3m', {}).get('price_change_3m', 0):+.2f}%
             • 1-week change: {analysis_data.get('data_1w', {}).get('price_change_1w', 0):+.2f}%

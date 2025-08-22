@@ -623,23 +623,7 @@ class AIAnalyzer:
             
             Always use ${current_price:,.2f} when referring to Bitcoin's current price.
             
-            PRICE VS INDICATORS CONTEXT:
-            Current price ${current_price:,.2f} compared to key levels:
-            
-            BOLLINGER BANDS:
-            - 3M BB Lower: {enhanced_data.get('3m_data', {}).get('indicators', {}).get('BB_Lower', ['N/A'])[-1] if enhanced_data.get('3m_data', {}).get('indicators', {}).get('BB_Lower') else 'N/A'}
-            - 3M BB Upper: {enhanced_data.get('3m_data', {}).get('indicators', {}).get('BB_Upper', ['N/A'])[-1] if enhanced_data.get('3m_data', {}).get('indicators', {}).get('BB_Upper') else 'N/A'}
-            - 1W BB Lower: {enhanced_data.get('1w_data', {}).get('indicators', {}).get('BB_Lower', ['N/A'])[-1] if enhanced_data.get('1w_data', {}).get('indicators', {}).get('BB_Lower') else 'N/A'}
-            - 1W BB Upper: {enhanced_data.get('1w_data', {}).get('indicators', {}).get('BB_Upper', ['N/A'])[-1] if enhanced_data.get('1w_data', {}).get('indicators', {}).get('BB_Upper') else 'N/A'}
-            
-            MOVING AVERAGES:
-            - 3M EMA-20: {enhanced_data.get('3m_data', {}).get('indicators', {}).get('EMA_20', ['N/A'])[-1] if enhanced_data.get('3m_data', {}).get('indicators', {}).get('EMA_20') else 'N/A'}
-            - 3M SMA-50: {enhanced_data.get('3m_data', {}).get('indicators', {}).get('SMA_50', ['N/A'])[-1] if enhanced_data.get('3m_data', {}).get('indicators', {}).get('SMA_50') else 'N/A'}
-            - 3M SMA-200: {enhanced_data.get('3m_data', {}).get('indicators', {}).get('SMA_200', ['N/A'])[-1] if enhanced_data.get('3m_data', {}).get('indicators', {}).get('SMA_200') else 'N/A'}
-            - 1W EMA-20: {enhanced_data.get('1w_data', {}).get('indicators', {}).get('EMA_20', ['N/A'])[-1] if enhanced_data.get('1w_data', {}).get('indicators', {}).get('EMA_20') else 'N/A'}
-            - 1W SMA-50: {enhanced_data.get('1w_data', {}).get('indicators', {}).get('SMA_50', ['N/A'])[-1] if enhanced_data.get('1w_data', {}).get('indicators', {}).get('SMA_50') else 'N/A'}
-            
-            CRITICAL: Compare current price ${current_price:,.2f} to these exact values to determine if price is above/below each level.
+            CRITICAL: When analyzing Bollinger Bands, EMAs, and other indicators, compare the current price ${current_price:,.2f} to the exact indicator values provided in the data to determine if price is above/below each level.
             
             DATA RANGE VALIDATION:
             • Start: {start_date}  

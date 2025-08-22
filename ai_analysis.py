@@ -294,11 +294,11 @@ class AIAnalyzer:
         try:
             enhanced: Dict[str, Any] = {}
 
-            # Always compute "period" stats from the full WINDOW (not the display slice)
-            full_3m = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_3m))
-            full_1w = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_1w))
+            # Use the pre-processed windowed data directly (don't re-process to avoid corruption)
+            full_3m = data_3m
+            full_1w = data_1w
 
-            # Debug: Check 3M data quality first
+            # Debug: Check 3M data quality first  
             self._dbg("error", f"🔍 3M DATA SHAPE: {full_3m.shape}, Date range: {full_3m.index[0]} to {full_3m.index[-1]}")
             self._dbg("error", f"🔍 3M LOW COLUMN: Min={full_3m['Low'].min():.2f}, Bottom 5 values={full_3m['Low'].nsmallest(5).tolist()}")
             

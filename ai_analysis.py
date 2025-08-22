@@ -527,6 +527,24 @@ class AIAnalyzer:
             start_date = data_3m.get('start_date', 'N/A')
             end_date = data_3m.get('end_date', 'N/A')
             
+            # DEBUG: Show actual price data being sent to Claude
+            enhanced_data = analysis_data.get('enhanced_chart_data', {})
+            if enhanced_data.get('3m_data') and enhanced_data['3m_data'].get('recent_prices'):
+                prices_3m = enhanced_data['3m_data']['recent_prices']
+                high_3m = max(prices_3m.get('high', [0])) if prices_3m.get('high') else 0
+                low_3m = min(prices_3m.get('low', [999999])) if prices_3m.get('low') else 0
+                current_3m = prices_3m.get('close', [0])[-1] if prices_3m.get('close') else 0
+                st.success(f"🔍 3M DATA SENT TO CLAUDE: High=${high_3m:,.0f}, Low=${low_3m:,.0f}, Current=${current_3m:,.0f}")
+            
+            if enhanced_data.get('1w_data') and enhanced_data['1w_data'].get('recent_prices'):
+                prices_1w = enhanced_data['1w_data']['recent_prices']
+                high_1w = max(prices_1w.get('high', [0])) if prices_1w.get('high') else 0
+                low_1w = min(prices_1w.get('low', [999999])) if prices_1w.get('low') else 0
+                current_1w = prices_1w.get('close', [0])[-1] if prices_1w.get('close') else 0
+                st.success(f"🔍 1W DATA SENT TO CLAUDE: High=${high_1w:,.0f}, Low=${low_1w:,.0f}, Current=${current_1w:,.0f}")
+            
+            st.success(f"🔍 CURRENT PRICE PARAMETER: ${current_price:,.2f}")
+            
             comprehensive_prompt = f"""
             CRITICAL: Today is {current_date}. The data provided covers ONLY {start_date} through {end_date}.
             

@@ -273,8 +273,10 @@ def main():
             if isinstance(probabilities, dict):
                 higher_prob = probabilities.get('higher_fraction', 0)
                 lower_prob = probabilities.get('lower_fraction', 0)
+                predicted_price = probabilities.get('predicted_price', None)
             else:
                 higher_prob = lower_prob = 0
+                predicted_price = None
             
             # Determine direction and probability
             if higher_prob > lower_prob:
@@ -292,7 +294,9 @@ def main():
             else:
                 recommendation = "**Hold**"
             
-            analysis_message = f"Based on fresh analysis at {current_time_str} ET, Bitcoin has a {probability:.0%} chance of being {direction} by {target_formatted}. Recommendation: {recommendation}"
+            # Create base message with prediction
+            predicted_price_text = f" Predicted price: ${predicted_price:,.0f}." if predicted_price else ""
+            analysis_message = f"Based on fresh analysis at {current_time_str} ET, Bitcoin has a {probability:.0%} chance of being {direction} by {target_formatted}.{predicted_price_text} Recommendation: {recommendation}"
             st.info(f"📊 {analysis_message}")
         else:
             st.success(f"📊 Fresh analysis completed at {current_time_str} ET")

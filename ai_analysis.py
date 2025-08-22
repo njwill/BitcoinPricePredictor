@@ -31,7 +31,7 @@ class AIAnalyzer:
     def __init__(self, debug: Optional[bool] = None):
         # Debug flag (UI messages gated to avoid spamming users)
         if debug is None:
-            self.debug = True  # Force debug back on to see what's wrong with data
+            self.debug = os.getenv("AI_ANALYZER_DEBUG", "0") == "1"
         else:
             self.debug = bool(debug)
 
@@ -309,12 +309,6 @@ class AIAnalyzer:
             full_1w_high = float(full_1w["High"].max())
             full_1w_low = float(full_1w["Low"].min())
             
-            # DEBUG: Show the raw calculated values
-            self._dbg("error", f"🔍 RAW DATA CALCULATION:")
-            self._dbg("error", f"   3M HIGH calculated: ${full_3m_high:,.2f}")
-            self._dbg("error", f"   3M LOW calculated: ${full_3m_low:,.2f}")
-            self._dbg("error", f"   1W HIGH calculated: ${full_1w_high:,.2f}")
-            self._dbg("error", f"   1W LOW calculated: ${full_1w_low:,.2f}")
             
 
             # Optional display trimming for the RECENT arrays only
@@ -546,11 +540,6 @@ class AIAnalyzer:
                 claude_1w_low = analysis_data["enhanced_chart_data"]["1w_data"]["period_highs_lows"]["period_low"]
 
             
-            # Debug: Show exactly what values are being sent to Claude
-            self._dbg("error", f"🔍 SENDING TO CLAUDE - 3M HIGH: ${data_3m.get('high_3m', float('nan')):,.2f}")
-            self._dbg("error", f"🔍 SENDING TO CLAUDE - 3M LOW: ${data_3m.get('low_3m', float('nan')):,.2f}")
-            self._dbg("error", f"🔍 SENDING TO CLAUDE - 1W HIGH: ${data_1w.get('high_1w', float('nan')):,.2f}")
-            self._dbg("error", f"🔍 SENDING TO CLAUDE - 1W LOW: ${data_1w.get('low_1w', float('nan')):,.2f}")
 
             comprehensive_prompt = f"""
             CRITICAL: Today is {current_date}. The data provided covers ONLY {start_date} through {end_date}.
@@ -616,6 +605,8 @@ class AIAnalyzer:
             **PRICE PREDICTION for {target_datetime_formatted}**
 
             Based on the comprehensive technical analysis above:
+
+            **PREDICTED PRICE: I predict Bitcoin will be at $[XX,XXX] on {target_datetime_formatted}**
 
             1. **Probability HIGHER than ${current_price:,.2f}: [X]%**
             2. **Probability LOWER than ${current_price:,.2f}: [Y]%**
@@ -702,9 +693,9 @@ class AIAnalyzer:
             return {"technical_summary": response, "price_prediction": "Unable to parse prediction section"}
 
     def _extract_probabilities(self, prediction_text: str) -> Dict[str, Any]:
-        """Extract probability percentages from prediction text. Returns both fractions and percents."""
+        """Extract probability percentages and predicted price from prediction text. Returns both fractions and percents."""
         probs = {"higher_fraction": 0.5, "lower_fraction": 0.5, "confidence_fraction": 0.5,
-                 "higher_pct": 50.0, "lower_pct": 50.0, "confidence_pct": 50.0}
+                 "higher_pct": 50.0, "lower_pct": 50.0, "confidence_pct": 50.0, "predicted_price": None}
         try:
             import re
 
@@ -726,21 +717,33 @@ class AIAnalyzer:
                     r"(\d+)%.*?confidence",
                     r"confident.*?(\d+)%",
                 ],
+                "predicted_price": [
+                    r"predict.*?\$([\d,]+)(?:\.\d+)?",
+                    r"predicted price.*?\$([\d,]+)(?:\.\d+)?",
+                    r"will be.*?\$([\d,]+)(?:\.\d+)?",
+                    r"target.*?\$([\d,]+)(?:\.\d+)?",
+                    r"bitcoin.*?\$([\d,]+)(?:\.\d+)?",
+                ],
             }
 
             text_lower = prediction_text.lower()
 
-            for key in ["higher", "lower", "confidence"]:
+            for key in ["higher", "lower", "confidence", "predicted_price"]:
                 for pat in patterns[key]:
                     m = re.findall(pat, text_lower, flags=re.IGNORECASE)
                     if m:
-                        val = float(m[0])
-                        if key == "higher":
-                            probs["higher_pct"] = val
-                        elif key == "lower":
-                            probs["lower_pct"] = val
+                        if key == "predicted_price":
+                            # Remove commas and convert to float
+                            price_str = m[0].replace(',', '')
+                            probs["predicted_price"] = float(price_str)
                         else:
-                            probs["confidence_pct"] = val
+                            val = float(m[0])
+                            if key == "higher":
+                                probs["higher_pct"] = val
+                            elif key == "lower":
+                                probs["lower_pct"] = val
+                            else:
+                                probs["confidence_pct"] = val
                         break
 
             # Normalize higher/lower to sum to 100

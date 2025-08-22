@@ -31,7 +31,7 @@ class AIAnalyzer:
     def __init__(self, debug: Optional[bool] = None):
         # Debug flag (UI messages gated to avoid spamming users)
         if debug is None:
-            self.debug = os.getenv("AI_ANALYZER_DEBUG", "0") == "1"
+            self.debug = True  # Force debug back on to see what's wrong with data
         else:
             self.debug = bool(debug)
 
@@ -309,6 +309,13 @@ class AIAnalyzer:
             full_1w_high = float(full_1w["High"].max())
             full_1w_low = float(full_1w["Low"].min())
             
+            # DEBUG: Show the raw calculated values
+            self._dbg("error", f"🔍 RAW DATA CALCULATION:")
+            self._dbg("error", f"   3M HIGH calculated: ${full_3m_high:,.2f}")
+            self._dbg("error", f"   3M LOW calculated: ${full_3m_low:,.2f}")
+            self._dbg("error", f"   1W HIGH calculated: ${full_1w_high:,.2f}")
+            self._dbg("error", f"   1W LOW calculated: ${full_1w_low:,.2f}")
+            
 
             # Optional display trimming for the RECENT arrays only
             display_from_3m = getattr(data_3m, "attrs", {}).get("display_from_index", 0)
@@ -566,6 +573,12 @@ class AIAnalyzer:
             
             CRITICAL: ${data_3m.get('low_3m', float('nan')):,.2f} IS THE 3M LOW, NOT THE 3M HIGH
             CRITICAL: ${data_1w.get('high_1w', float('nan')):,.2f} IS THE 1W HIGH, NOT THE 1W LOW
+            
+            🚨 FINAL DEBUG CHECK - VALUES BEING SENT TO AI:
+            3M HIGH: ${data_3m.get('high_3m', float('nan')):,.2f}
+            3M LOW: ${data_3m.get('low_3m', float('nan')):,.2f}
+            1W HIGH: ${data_1w.get('high_1w', float('nan')):,.2f}
+            1W LOW: ${data_1w.get('low_1w', float('nan')):,.2f}
             
             WRONG EXAMPLES TO AVOID:
             ❌ Don't say "3M high of ${data_3m.get('low_3m', float('nan')):,.2f}" - this is WRONG

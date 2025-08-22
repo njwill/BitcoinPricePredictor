@@ -154,6 +154,9 @@ class AIAnalyzer:
             data_1w_summary['high_1w'] = enhanced_data['1w_data']['period_highs_lows']['period_high']
             data_1w_summary['low_1w'] = enhanced_data['1w_data']['period_highs_lows']['period_low']
             
+            # DEBUG: Verify override worked
+            st.success(f"🎯 OVERRIDE COMPLETE: Summary now shows 3M High=${data_3m_summary['high_3m']:,.0f}")
+            
             # Create the analysis_data dictionary
             analysis_data = {
                 'current_time': current_time.isoformat(),

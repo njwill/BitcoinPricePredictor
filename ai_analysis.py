@@ -623,6 +623,15 @@ class AIAnalyzer:
             
             Always use ${current_price:,.2f} when referring to Bitcoin's current price.
             
+            PRICE VS INDICATORS CONTEXT:
+            Current price ${current_price:,.2f} compared to key levels:
+            - 3M Bollinger Band Lower: {enhanced_data.get('3m_data', {}).get('indicators', {}).get('BB_Lower', ['N/A'])[-1] if enhanced_data.get('3m_data', {}).get('indicators', {}).get('BB_Lower') else 'N/A'}
+            - 3M Bollinger Band Upper: {enhanced_data.get('3m_data', {}).get('indicators', {}).get('BB_Upper', ['N/A'])[-1] if enhanced_data.get('3m_data', {}).get('indicators', {}).get('BB_Upper') else 'N/A'}
+            - 1W Bollinger Band Lower: {enhanced_data.get('1w_data', {}).get('indicators', {}).get('BB_Lower', ['N/A'])[-1] if enhanced_data.get('1w_data', {}).get('indicators', {}).get('BB_Lower') else 'N/A'}
+            - 1W Bollinger Band Upper: {enhanced_data.get('1w_data', {}).get('indicators', {}).get('BB_Upper', ['N/A'])[-1] if enhanced_data.get('1w_data', {}).get('indicators', {}).get('BB_Upper') else 'N/A'}
+            
+            CRITICAL: Compare these exact values to determine if price is above, below, or between the bands.
+            
             DATA RANGE VALIDATION:
             • Start: {start_date}  
             • End: {end_date}

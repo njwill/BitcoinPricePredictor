@@ -16,7 +16,9 @@ class AIAnalyzer:
     Expects:
       - data_3m, data_1w: pandas.DataFrame with columns ['Open','High','Low','Close','Volume'].
         Index should be datetime-like (will be coerced if needed) and sorted ascending.
-        Optional: df.attrs['display_from_index'] to indicate a trimmed display window.
+        These should represent the "3-month" and "1-week" datasets respectively; if they
+        contain more than those windows, this class will trim them internally.
+        Optional: df.attrs['display_from_index'] to indicate a trimmed display window (for RECENT arrays only).
       - indicators_3m, indicators_1w: dict-like of pandas.Series for technical indicators
         (e.g., 'RSI','MACD','MACD_Signal','BB_Upper','BB_Lower','BB_Middle','EMA_20','SMA_50','SMA_200').
 
@@ -58,7 +60,7 @@ class AIAnalyzer:
         Generate comprehensive AI analysis including technical analysis and price prediction.
 
         Args:
-            data_3m: 3-month Bitcoin price data (likely daily bars)
+            data_3m: 3-month Bitcoin price data (likely daily bars or similar)
             data_1w: 1-week Bitcoin price data (likely hourly bars)
             indicators_3m: Technical indicators for 3-month data
             indicators_1w: Technical indicators for 1-week data
@@ -110,6 +112,25 @@ class AIAnalyzer:
             df = df.sort_index()
         return df
 
+    def _coerce_ohlcv_numeric(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Ensure OHLCV are numeric (handle strings with commas)."""
+        if df.empty:
+            return df
+        df = df.copy()
+        for col in ["Open", "High", "Low", "Close", "Volume"]:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", ""), errors="coerce")
+        return df
+
+    def _limit_to_days(self, df: pd.DataFrame, days: int) -> pd.DataFrame:
+        """Return the slice of df covering the last `days` days."""
+        if df.empty:
+            return df
+        df = self._ensure_datetime_index(df)
+        end = df.index.max()
+        start = end - pd.Timedelta(days=days)
+        return df.loc[df.index >= start]
+
     def _annualization_sqrt(self, index: pd.Index) -> float:
         """
         Compute sqrt of periods-per-year from index spacing.
@@ -142,9 +163,13 @@ class AIAnalyzer:
     ) -> Dict[str, Any]:
         """Prepare and summarize data for AI analysis."""
         try:
-            # Ensure datetime indexes & ascending order
-            data_3m = self._ensure_datetime_index(data_3m)
-            data_1w = self._ensure_datetime_index(data_1w)
+            # Ensure datetime indexes & ascending order, and coerce to numeric
+            data_3m = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_3m))
+            data_1w = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_1w))
+
+            # Constrain to the intended time windows (safety if callers pass extra history)
+            window_3m = self._limit_to_days(data_3m, 92)  # ~3 months
+            window_1w = self._limit_to_days(data_1w, 7)   # 1 week
 
             eastern_tz = pytz.timezone("US/Eastern")
             current_time = datetime.now(eastern_tz)
@@ -160,77 +185,70 @@ class AIAnalyzer:
 
             actual_current_price = float(current_price)
 
-            # Respect display-window hints (if present)
-            display_from_3m = getattr(data_3m, "attrs", {}).get("display_from_index", 0)
-            display_from_1w = getattr(data_1w, "attrs", {}).get("display_from_index", 0)
-
-            if display_from_3m > 0 and display_from_3m < len(data_3m):
-                analysis_data_3m = data_3m.iloc[display_from_3m:]
-            else:
-                analysis_data_3m = data_3m
-
-            if display_from_1w > 0 and display_from_1w < len(data_1w):
-                analysis_data_1w = data_1w.iloc[display_from_1w:]
-            else:
-                analysis_data_1w = data_1w
-
             # Basic checks
-            if analysis_data_3m.empty or analysis_data_1w.empty:
-                self._dbg("warning", "One of the analysis datasets is empty after display-window trimming.")
+            if window_3m.empty or window_1w.empty:
+                self._dbg("warning", "One of the analysis datasets is empty after time-window trimming.")
                 return {}
 
-            start_price_3m = float(analysis_data_3m["Close"].iloc[0])
-            start_price_1w = float(analysis_data_1w["Close"].iloc[0])
+            # Sanity: warn if provided current price is far from latest 1w close
+            latest_close_1w = float(window_1w["Close"].iloc[-1])
+            if latest_close_1w > 0:
+                rel_diff = abs(latest_close_1w - actual_current_price) / latest_close_1w
+                if rel_diff > 0.02:  # >2%
+                    self._dbg(
+                        "warning",
+                        f"⚠️ current_price {actual_current_price:,.2f} differs from latest 1w close "
+                        f"{latest_close_1w:,.2f} by {rel_diff*100:.1f}%."
+                    )
+
+            start_price_3m = float(window_3m["Close"].iloc[0])
+            start_price_1w = float(window_1w["Close"].iloc[0])
 
             # Volatility (annualized) using detected frequency
-            ann_sqrt_3m = self._annualization_sqrt(analysis_data_3m.index)
-            ann_sqrt_1w = self._annualization_sqrt(analysis_data_1w.index)
+            ann_sqrt_3m = self._annualization_sqrt(window_3m.index)
+            ann_sqrt_1w = self._annualization_sqrt(window_1w.index)
 
             data_3m_summary = {
                 "period": "3 months",
                 "current_price": actual_current_price,
                 "start_price_3m": start_price_3m,
-                "high_3m": float(analysis_data_3m["High"].max()),
-                "low_3m": float(analysis_data_3m["Low"].min()),
+                "high_3m": float(window_3m["High"].max()),
+                "low_3m": float(window_3m["Low"].min()),
                 "price_change_3m": float((actual_current_price - start_price_3m) / start_price_3m * 100.0),
-                "volatility_3m": float(analysis_data_3m["Close"].pct_change().std() * ann_sqrt_3m * 100.0),
-                "avg_volume_3m": float(analysis_data_3m["Volume"].mean()),
-                "start_date": str(analysis_data_3m.index[0]),
-                "end_date": str(analysis_data_3m.index[-1]),
+                "volatility_3m": float(window_3m["Close"].pct_change().std() * ann_sqrt_3m * 100.0),
+                "avg_volume_3m": float(window_3m["Volume"].mean()),
+                "start_date": str(window_3m.index[0]),
+                "end_date": str(window_3m.index[-1]),
             }
 
             data_1w_summary = {
                 "period": "1 week",
                 "start_price_1w": start_price_1w,
-                "high_1w": float(analysis_data_1w["High"].max()),
-                "low_1w": float(analysis_data_1w["Low"].min()),
+                "high_1w": float(window_1w["High"].max()),
+                "low_1w": float(window_1w["Low"].min()),
                 "price_change_1w": float((actual_current_price - start_price_1w) / start_price_1w * 100.0),
-                "volatility_1w": float(analysis_data_1w["Close"].pct_change().std() * ann_sqrt_1w * 100.0),
-                "avg_volume_1w": float(analysis_data_1w["Volume"].mean()),
-                "start_date": str(analysis_data_1w.index[0]),
-                "end_date": str(analysis_data_1w.index[-1]),
+                "volatility_1w": float(window_1w["Close"].pct_change().std() * ann_sqrt_1w * 100.0),
+                "avg_volume_1w": float(window_1w["Volume"].mean()),
+                "start_date": str(window_1w.index[0]),
+                "end_date": str(window_1w.index[-1]),
             }
 
             self._dbg(
                 "warning",
-                f"📊 DATA SUMMARY TO CLAUDE: 3M High=${data_3m_summary['high_3m']:,.0f}, 1W High=${data_1w_summary['high_1w']:,.0f}",
+                f"📊 DATA SUMMARY TO CLAUDE: 3M High=${data_3m_summary['high_3m']:,.2f}, "
+                f"1W High=${data_1w_summary['high_1w']:,.2f}"
             )
 
-            # FIX: indicator summary must consider the actual current price
+            # Indicator summary must consider the actual current price
             indicators_summary = self._summarize_indicators(indicators_3m, indicators_1w, actual_current_price)
 
+            # Prepare enhanced chart data using the WINDOWED frames
             enhanced_data = self._prepare_enhanced_chart_data(
-                data_3m, data_1w, indicators_3m, indicators_1w
+                window_3m, window_1w, indicators_3m, indicators_1w
             )
 
-            # Override highs/lows from enhanced data for consistency (if available)
-            try:
-                data_3m_summary["high_3m"] = enhanced_data["3m_data"]["period_highs_lows"]["period_high"]
-                data_3m_summary["low_3m"] = enhanced_data["3m_data"]["period_highs_lows"]["period_low"]
-                data_1w_summary["high_1w"] = enhanced_data["1w_data"]["period_highs_lows"]["period_high"]
-                data_1w_summary["low_1w"] = enhanced_data["1w_data"]["period_highs_lows"]["period_low"]
-            except Exception:
-                pass
+            # DO NOT overwrite highs/lows from summaries with display-trimmed values.
+            # (enhanced_data["*_data"]["period_highs_lows"]["period_high"] is computed on the windowed full range as well.)
 
             analysis_data = {
                 "current_time": current_time.isoformat(),
@@ -246,7 +264,9 @@ class AIAnalyzer:
 
             self._dbg(
                 "success",
-                f"📋 AFTER STORING: 3M={analysis_data['enhanced_chart_data']['3m_data']['period_highs_lows']['period_high']:,.0f}",
+                f"📋 AFTER STORING: 3M period_high="
+                f"{analysis_data['enhanced_chart_data']['3m_data']['period_highs_lows']['period_high']:,.2f} "
+                f"(should match summary ~{data_3m_summary['high_3m']:,.2f})"
             )
 
             return analysis_data
@@ -262,57 +282,53 @@ class AIAnalyzer:
         indicators_3m: Dict[str, pd.Series],
         indicators_1w: Dict[str, pd.Series],
     ) -> Dict[str, Any]:
-        """Prepare comprehensive chart data with full arrays for deep analysis."""
+        """
+        Prepare comprehensive chart data with full arrays for deep analysis.
+
+        NOTE: `data_3m` and `data_1w` are expected to be the WINDOWED datasets
+              (i.e., already trimmed to ~3 months and 1 week respectively).
+        """
         try:
             enhanced: Dict[str, Any] = {}
 
+            # Always compute "period" stats from the full WINDOW (not the display slice)
+            full_3m = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_3m))
+            full_1w = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_1w))
+
+            full_3m_high = float(full_3m["High"].max())
+            full_3m_low = float(full_3m["Low"].min())
+            full_1w_high = float(full_1w["High"].max())
+            full_1w_low = float(full_1w["Low"].min())
+
+            # Optional display trimming for the RECENT arrays only
             display_from_3m = getattr(data_3m, "attrs", {}).get("display_from_index", 0)
             display_from_1w = getattr(data_1w, "attrs", {}).get("display_from_index", 0)
 
-            if display_from_3m > 0 and display_from_3m < len(data_3m):
-                analysis_data_3m = data_3m.iloc[display_from_3m:]
+            if display_from_3m > 0 and display_from_3m < len(full_3m):
+                recent_3m = full_3m.iloc[display_from_3m:]
             else:
-                analysis_data_3m = data_3m
+                recent_3m = full_3m
 
-            if display_from_1w > 0 and display_from_1w < len(data_1w):
-                analysis_data_1w = data_1w.iloc[display_from_1w:]
+            if display_from_1w > 0 and display_from_1w < len(full_1w):
+                recent_1w = full_1w.iloc[display_from_1w:]
             else:
-                analysis_data_1w = data_1w
+                recent_1w = full_1w
 
-            # Safety: coerce datetime indexes on slices too
-            analysis_data_3m = self._ensure_datetime_index(analysis_data_3m)
-            analysis_data_1w = self._ensure_datetime_index(analysis_data_1w)
-
-            # Get recent tails
-            recent_3m = analysis_data_3m.tail(50)
-            recent_1w = analysis_data_1w.tail(30)
-
-            full_3m_high = float(analysis_data_3m["High"].max())
-            full_3m_low = float(analysis_data_3m["Low"].min())
-            full_1w_high = float(analysis_data_1w["High"].max())
-            full_1w_low = float(analysis_data_1w["Low"].min())
+            # Get "tails" to keep arrays compact in prompt
+            tail_3m = recent_3m.tail(50)
+            tail_1w = recent_1w.tail(30)
 
             self._dbg(
                 "error",
-                f"🚨 3M: Original Shape={data_3m.shape}, Display from index={display_from_3m}, Final Shape={analysis_data_3m.shape}",
+                f"🚨 WINDOWED STATS: 3M High=${full_3m_high:,.2f}, 1W High=${full_1w_high:,.2f}"
             )
-            self._dbg("error", f"🚨 3M FINAL HIGHS: Top 5 = {analysis_data_3m['High'].nlargest(5).tolist()}")
-            self._dbg(
-                "error",
-                f"🚨 1W: Original Shape={data_1w.shape}, Display from index={display_from_1w}, Final Shape={analysis_data_1w.shape}",
-            )
-            self._dbg("error", f"🚨 1W FINAL HIGHS: Top 5 = {analysis_data_1w['High'].nlargest(5).tolist()}")
-            self._dbg("error", f"🚨 CALCULATED VALUES: 3M High=${full_3m_high:,.0f}, 1W High=${full_1w_high:,.0f}")
-
-            # Ensure datetime indexes for recent windows (idempotent)
-            recent_3m = self._ensure_datetime_index(recent_3m)
-            recent_1w = self._ensure_datetime_index(recent_1w)
 
             # 3-MONTH ENHANCED DATA
             enhanced["3m_data"] = {
                 "timeframe": "3-month",
-                "full_range": f"{analysis_data_3m.index[0].strftime('%B %d')} to {analysis_data_3m.index[-1].strftime('%B %d, %Y')}",
-                "data_range": f"{recent_3m.index[0].strftime('%B %d')} to {recent_3m.index[-1].strftime('%B %d, %Y')}",
+                "full_range": f"{full_3m.index[0].strftime('%B %d')} to {full_3m.index[-1].strftime('%B %d, %Y')}",
+                "data_range": f"{tail_3m.index[0].strftime('%B %d')} to {tail_3m.index[-1].strftime('%B %d, %Y')}"
+                if not tail_3m.empty else "N/A",
                 "period_highs_lows": {
                     "period_high": full_3m_high,
                     "period_low": full_3m_low,
@@ -320,17 +336,17 @@ class AIAnalyzer:
                     "recent_low": float(recent_3m["Low"].min()) if not recent_3m.empty else None,
                 },
                 "recent_prices": {
-                    "dates": [d.strftime("%Y-%m-%d %H:%M") for d in recent_3m.index],
-                    "open": recent_3m["Open"].round(2).tolist(),
-                    "high": recent_3m["High"].round(2).tolist(),
-                    "low": recent_3m["Low"].round(2).tolist(),
-                    "close": recent_3m["Close"].round(2).tolist(),
-                    "volume": recent_3m["Volume"].round(0).tolist(),
+                    "dates": [d.strftime("%Y-%m-%d %H:%M") for d in tail_3m.index],
+                    "open": tail_3m["Open"].round(2).tolist(),
+                    "high": tail_3m["High"].round(2).tolist(),
+                    "low": tail_3m["Low"].round(2).tolist(),
+                    "close": tail_3m["Close"].round(2).tolist(),
+                    "volume": tail_3m["Volume"].round(0).tolist(),
                 },
                 "indicators": {},
             }
 
-            self._dbg("warning", f"🔧 ENHANCED 3M STORED: {enhanced['3m_data']['period_highs_lows']['period_high']:,.0f}")
+            self._dbg("warning", f"🔧 ENHANCED 3M STORED: {enhanced['3m_data']['period_highs_lows']['period_high']:,.2f}")
 
             # Fill 3M indicator arrays (last 50)
             for indicator in [
@@ -346,14 +362,15 @@ class AIAnalyzer:
                 "SMA_200",
             ]:
                 if indicator in indicators_3m:
-                    values = indicators_3m[indicator].tail(50).dropna()
+                    values = indicators_3m[indicator].dropna().tail(50)
                     enhanced["3m_data"]["indicators"][indicator] = values.round(4).tolist()
 
             # 1-WEEK ENHANCED DATA
             enhanced["1w_data"] = {
                 "timeframe": "1-week",
-                "full_range": f"{analysis_data_1w.index[0].strftime('%B %d')} to {analysis_data_1w.index[-1].strftime('%B %d, %Y')}",
-                "data_range": f"{recent_1w.index[0].strftime('%B %d')} to {recent_1w.index[-1].strftime('%B %d, %Y')}",
+                "full_range": f"{full_1w.index[0].strftime('%B %d')} to {full_1w.index[-1].strftime('%B %d, %Y')}",
+                "data_range": f"{tail_1w.index[0].strftime('%B %d')} to {tail_1w.index[-1].strftime('%B %d, %Y')}"
+                if not tail_1w.empty else "N/A",
                 "period_highs_lows": {
                     "period_high": full_1w_high,
                     "period_low": full_1w_low,
@@ -361,17 +378,17 @@ class AIAnalyzer:
                     "recent_low": float(recent_1w["Low"].min()) if not recent_1w.empty else None,
                 },
                 "recent_prices": {
-                    "dates": [d.strftime("%Y-%m-%d %H:%M") for d in recent_1w.index],
-                    "open": recent_1w["Open"].round(2).tolist(),
-                    "high": recent_1w["High"].round(2).tolist(),
-                    "low": recent_1w["Low"].round(2).tolist(),
-                    "close": recent_1w["Close"].round(2).tolist(),
-                    "volume": recent_1w["Volume"].round(0).tolist(),
+                    "dates": [d.strftime("%Y-%m-%d %H:%M") for d in tail_1w.index],
+                    "open": tail_1w["Open"].round(2).tolist(),
+                    "high": tail_1w["High"].round(2).tolist(),
+                    "low": tail_1w["Low"].round(2).tolist(),
+                    "close": tail_1w["Close"].round(2).tolist(),
+                    "volume": tail_1w["Volume"].round(0).tolist(),
                 },
                 "indicators": {},
             }
 
-            self._dbg("warning", f"🔧 ENHANCED 1W STORED: {enhanced['1w_data']['period_highs_lows']['period_high']:,.0f}")
+            self._dbg("warning", f"🔧 ENHANCED 1W STORED: {enhanced['1w_data']['period_highs_lows']['period_high']:,.2f}")
 
             # Fill 1W indicator arrays (last 30)
             for indicator in [
@@ -387,25 +404,25 @@ class AIAnalyzer:
                 "SMA_200",
             ]:
                 if indicator in indicators_1w:
-                    values = indicators_1w[indicator].tail(30).dropna()
+                    values = indicators_1w[indicator].dropna().tail(30)
                     enhanced["1w_data"]["indicators"][indicator] = values.round(4).tolist()
 
-            # Volume analysis on corrected windows
+            # Volume analysis on display-trimmed windows (but still derived from WINDOWED data)
             enhanced["volume_analysis"] = {
-                "3m_avg_volume": float(analysis_data_3m["Volume"].tail(50).mean()),
+                "3m_avg_volume": float(full_3m["Volume"].tail(50).mean()),
                 "3m_volume_trend": "increasing"
-                if analysis_data_3m["Volume"].tail(10).mean() > analysis_data_3m["Volume"].tail(50).mean()
+                if full_3m["Volume"].tail(10).mean() > full_3m["Volume"].tail(50).mean()
                 else "decreasing",
-                "1w_avg_volume": float(analysis_data_1w["Volume"].tail(30).mean()),
+                "1w_avg_volume": float(full_1w["Volume"].tail(30).mean()),
                 "1w_volume_trend": "increasing"
-                if analysis_data_1w["Volume"].tail(5).mean() > analysis_data_1w["Volume"].tail(30).mean()
+                if full_1w["Volume"].tail(5).mean() > full_1w["Volume"].tail(30).mean()
                 else "decreasing",
             }
 
             self._dbg(
                 "error",
-                f"🚀 ABOUT TO RETURN: 3M={enhanced['3m_data']['period_highs_lows']['period_high']:,.0f}, "
-                f"1W={enhanced['1w_data']['period_highs_lows']['period_high']:,.0f}",
+                f"🚀 ABOUT TO RETURN: 3M={enhanced['3m_data']['period_highs_lows']['period_high']:,.2f}, "
+                f"1W={enhanced['1w_data']['period_highs_lows']['period_high']:,.2f}"
             )
 
             return enhanced
@@ -517,22 +534,28 @@ class AIAnalyzer:
             if "enhanced_chart_data" in analysis_data and analysis_data["enhanced_chart_data"].get("3m_data"):
                 claude_3m_high = analysis_data["enhanced_chart_data"]["3m_data"]["period_highs_lows"]["period_high"]
                 claude_3m_low = analysis_data["enhanced_chart_data"]["3m_data"]["period_highs_lows"]["period_low"]
-                self._dbg("success", f"🔍 3M FULL PERIOD: High=${claude_3m_high:,.0f}, Low=${claude_3m_low:,.0f}")
+                self._dbg("success", f"🔍 3M FULL PERIOD: High=${claude_3m_high:,.2f}, Low=${claude_3m_low:,.2f}")
 
             if "enhanced_chart_data" in analysis_data and analysis_data["enhanced_chart_data"].get("1w_data"):
                 claude_1w_high = analysis_data["enhanced_chart_data"]["1w_data"]["period_highs_lows"]["period_high"]
                 claude_1w_low = analysis_data["enhanced_chart_data"]["1w_data"]["period_highs_lows"]["period_low"]
-                self._dbg("success", f"🔍 1W FULL PERIOD: High=${claude_1w_high:,.0f}, Low=${claude_1w_low:,.0f}")
+                self._dbg("success", f"🔍 1W FULL PERIOD: High=${claude_1w_high:,.2f}, Low=${claude_1w_low:,.2f}")
 
             self._dbg("success", f"🔍 CURRENT PRICE PARAMETER: ${current_price:,.2f}")
 
             comprehensive_prompt = f"""
             CRITICAL: Today is {current_date}. The data provided covers ONLY {start_date} through {end_date}.
-
             DO NOT REFERENCE ANY DATES OUTSIDE THIS RANGE.
 
             Bitcoin's current price is ${current_price:,.2f}.
             Always use ${current_price:,.2f} when referring to Bitcoin's current price.
+
+            GROUND-TRUTH ANCHORS (use these exact values when you mention "period high/low"):
+            • 3M period high: ${data_3m.get('high_3m', float('nan')):,.2f}
+            • 3M period low:  ${data_3m.get('low_3m', float('nan')):,.2f}
+            • 1W period high: ${data_1w.get('high_1w', float('nan')):,.2f}
+            • 1W period low:  ${data_1w.get('low_1w', float('nan')):,.2f}
+            You must not substitute 1W values when discussing 3M, and vice versa.
 
             PRICE VS INDICATORS CONTEXT:
             Current price ${current_price:,.2f} compared to key levels:
@@ -553,8 +576,8 @@ class AIAnalyzer:
             {json.dumps(analysis_data.get('indicators', {}), indent=2)}
 
             PERFORMANCE SUMMARY:
-            • 3-month change: {data_3m.get('price_change_3m', 0):+.2f}%
-            • 1-week change: {data_1w.get('price_change_1w', 0):+.2f}%
+            • 3-month change: {analysis_data.get('data_3m', {}).get('price_change_3m', 0):+.2f}%
+            • 1-week change: {analysis_data.get('data_1w', {}).get('price_change_1w', 0):+.2f}%
 
             Provide analysis in three sections:
 

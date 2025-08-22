@@ -143,7 +143,11 @@ class AIAnalyzer:
             # ENHANCED: Add full chart data for deep analysis
             enhanced_data = self._prepare_enhanced_chart_data(data_3m, data_1w, indicators_3m, indicators_1w)
             
-            return {
+            # DEBUG: Check if data gets corrupted after return
+            st.success(f"📦 RECEIVED FROM FUNCTION: 3M={enhanced_data['3m_data']['period_highs_lows']['period_high']:,.0f}")
+            
+            # Create the analysis_data dictionary
+            analysis_data = {
                 'current_time': current_time.isoformat(),
                 'target_time': prediction_target.isoformat(),
                 'hours_until_target': (prediction_target - current_time).total_seconds() / 3600,
@@ -154,6 +158,11 @@ class AIAnalyzer:
                 'current_price': actual_current_price,
                 'target_datetime_formatted': prediction_target.strftime('%A %B %d, %Y at %I:%M %p ET')
             }
+            
+            # DEBUG: Check data right after storing in analysis_data
+            st.success(f"📋 AFTER STORING: 3M={analysis_data['enhanced_chart_data']['3m_data']['period_highs_lows']['period_high']:,.0f}")
+            
+            return analysis_data
             
         except Exception as e:
             st.error(f"Error preparing analysis data: {str(e)}")

@@ -299,6 +299,10 @@ class AIAnalyzer:
             full_3m_low = float(full_3m["Low"].min())
             full_1w_high = float(full_1w["High"].max())
             full_1w_low = float(full_1w["Low"].min())
+            
+            # Debug: Show the actual calculated values
+            self._dbg("error", f"🚨 CALCULATED BEFORE STORAGE: 3M High=${full_3m_high:,.2f}, 3M Low=${full_3m_low:,.2f}")
+            self._dbg("error", f"🚨 CALCULATED BEFORE STORAGE: 1W High=${full_1w_high:,.2f}, 1W Low=${full_1w_low:,.2f}")
 
             # Optional display trimming for the RECENT arrays only
             display_from_3m = getattr(data_3m, "attrs", {}).get("display_from_index", 0)
@@ -542,6 +546,12 @@ class AIAnalyzer:
                 self._dbg("success", f"🔍 1W FULL PERIOD: High=${claude_1w_high:,.2f}, Low=${claude_1w_low:,.2f}")
 
             self._dbg("success", f"🔍 CURRENT PRICE PARAMETER: ${current_price:,.2f}")
+            
+            # Debug: Show exactly what values are being sent to Claude
+            self._dbg("error", f"🔍 SENDING TO CLAUDE - 3M HIGH: ${data_3m.get('high_3m', float('nan')):,.2f}")
+            self._dbg("error", f"🔍 SENDING TO CLAUDE - 3M LOW: ${data_3m.get('low_3m', float('nan')):,.2f}")
+            self._dbg("error", f"🔍 SENDING TO CLAUDE - 1W HIGH: ${data_1w.get('high_1w', float('nan')):,.2f}")
+            self._dbg("error", f"🔍 SENDING TO CLAUDE - 1W LOW: ${data_1w.get('low_1w', float('nan')):,.2f}")
 
             comprehensive_prompt = f"""
             CRITICAL: Today is {current_date}. The data provided covers ONLY {start_date} through {end_date}.

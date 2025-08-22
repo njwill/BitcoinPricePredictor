@@ -139,8 +139,6 @@ class AIAnalyzer:
                 'end_date': str(analysis_data_1w.index[-1])
             }
             
-            # DEBUG: Check if summary data fix worked
-            st.warning(f"📊 DATA SUMMARY TO CLAUDE: 3M High=${data_3m_summary['high_3m']:,.0f}, 1W High=${data_1w_summary['high_1w']:,.0f}")
             
             # Technical indicators summary (old simple format)
             indicators_summary = self._summarize_indicators(indicators_3m, indicators_1w)
@@ -154,8 +152,6 @@ class AIAnalyzer:
             data_1w_summary['high_1w'] = enhanced_data['1w_data']['period_highs_lows']['period_high']
             data_1w_summary['low_1w'] = enhanced_data['1w_data']['period_highs_lows']['period_low']
             
-            # DEBUG: Verify override worked
-            st.success(f"🎯 OVERRIDE COMPLETE: Summary now shows 3M High=${data_3m_summary['high_3m']:,.0f}")
             
             # Create the analysis_data dictionary
             analysis_data = {

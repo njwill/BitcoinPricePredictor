@@ -92,49 +92,51 @@ class AIAnalyzer:
             actual_current_price = float(current_price)
             
             
-            # 3-month data summary - use display_from_index for accurate start price
+            # 3-month data summary - use CORRECTED display ranges  
             display_from_3m = getattr(data_3m, 'attrs', {}).get('display_from_index', 0)
             
-            if display_from_3m > 0:
-                # Use the price from 3 months ago (not 6 months ago)
-                start_price_3m = float(data_3m['Close'].iloc[display_from_3m])
+            # FIX: Use same corrected data logic as enhanced data
+            if display_from_3m > 0 and display_from_3m < len(data_3m):
+                analysis_data_3m = data_3m.iloc[display_from_3m:]
             else:
-                # Fallback if no display index is set
-                start_price_3m = float(data_3m['Close'].iloc[0])
+                analysis_data_3m = data_3m
+                
+            start_price_3m = float(analysis_data_3m['Close'].iloc[0])
             
             data_3m_summary = {
                 'period': '3 months',
                 'current_price': actual_current_price,
                 'start_price_3m': start_price_3m,
-                'high_3m': float(data_3m['High'].max()),
-                'low_3m': float(data_3m['Low'].min()),
+                'high_3m': float(analysis_data_3m['High'].max()),  # FIX: Use corrected range
+                'low_3m': float(analysis_data_3m['Low'].min()),    # FIX: Use corrected range
                 'price_change_3m': float((actual_current_price - start_price_3m) / start_price_3m * 100),
-                'volatility_3m': float(data_3m['Close'].pct_change().std() * np.sqrt(252) * 100),
-                'avg_volume_3m': float(data_3m['Volume'].mean()),
-                'start_date': str(data_3m.index[0]),
-                'end_date': str(data_3m.index[-1])
+                'volatility_3m': float(analysis_data_3m['Close'].pct_change().std() * np.sqrt(252) * 100),
+                'avg_volume_3m': float(analysis_data_3m['Volume'].mean()),
+                'start_date': str(analysis_data_3m.index[0]),
+                'end_date': str(analysis_data_3m.index[-1])
             }
             
-            # 1-week data summary - use display_from_index for accurate start price
+            # 1-week data summary - use CORRECTED display ranges
             display_from_1w = getattr(data_1w, 'attrs', {}).get('display_from_index', 0)
             
-            if display_from_1w > 0:
-                # Use the price from 1 week ago (not 2 weeks ago)
-                start_price_1w = float(data_1w['Close'].iloc[display_from_1w])
+            # FIX: Use same corrected data logic as enhanced data
+            if display_from_1w > 0 and display_from_1w < len(data_1w):
+                analysis_data_1w = data_1w.iloc[display_from_1w:]
             else:
-                # Fallback if no display index is set
-                start_price_1w = float(data_1w['Close'].iloc[0])
+                analysis_data_1w = data_1w
+                
+            start_price_1w = float(analysis_data_1w['Close'].iloc[0])
             
             data_1w_summary = {
                 'period': '1 week',
                 'start_price_1w': start_price_1w,
-                'high_1w': float(data_1w['High'].max()),
-                'low_1w': float(data_1w['Low'].min()),
+                'high_1w': float(analysis_data_1w['High'].max()),  # FIX: Use corrected range  
+                'low_1w': float(analysis_data_1w['Low'].min()),    # FIX: Use corrected range
                 'price_change_1w': float((actual_current_price - start_price_1w) / start_price_1w * 100),
-                'volatility_1w': float(data_1w['Close'].pct_change().std() * np.sqrt(365) * 100),
-                'avg_volume_1w': float(data_1w['Volume'].mean()),
-                'start_date': str(data_1w.index[0]),
-                'end_date': str(data_1w.index[-1])
+                'volatility_1w': float(analysis_data_1w['Close'].pct_change().std() * np.sqrt(365) * 100),
+                'avg_volume_1w': float(analysis_data_1w['Volume'].mean()),
+                'start_date': str(analysis_data_1w.index[0]),
+                'end_date': str(analysis_data_1w.index[-1])
             }
             
             # Technical indicators summary (old simple format)

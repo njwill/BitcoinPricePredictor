@@ -105,9 +105,25 @@ class AIAnalyzer:
         """Coerce index to datetime if needed and sort ascending."""
         if df.empty:
             return df
+        
+        # If index is numeric (0,1,2...), reset it and try to use a Date column if it exists
+        if df.index.dtype.kind in ['i', 'f']:  # integer or float indices
+            df = df.copy()
+            df = df.reset_index(drop=True)
+            # Try to find a date column to use as index
+            date_cols = [col for col in df.columns if 'date' in col.lower() or 'time' in col.lower()]
+            if date_cols:
+                df.index = pd.to_datetime(df[date_cols[0]])
+                df = df.drop(columns=date_cols[0])
+            else:
+                # No date column found, create a dummy datetime range
+                df.index = pd.date_range(start='2024-01-01', periods=len(df), freq='D')
+        
+        # Ensure it's datetime if it isn't already
         if not hasattr(df.index, "inferred_type") or "date" not in str(df.index.inferred_type):
             df = df.copy()
             df.index = pd.to_datetime(df.index)
+            
         if not df.index.is_monotonic_increasing:
             df = df.sort_index()
         return df
@@ -164,12 +180,15 @@ class AIAnalyzer:
         """Prepare and summarize data for AI analysis."""
         try:
             # Debug: Check data BEFORE any processing
-            self._dbg("error", f"🔍 ORIGINAL 3M Date Range: {data_3m.index[0]} to {data_3m.index[-1]}")
+            self._dbg("error", f"🔍 ORIGINAL 3M Index Type: {type(data_3m.index[0])}, First few: {data_3m.index[:3].tolist()}")
             
-            # Skip the problematic datetime processing that's corrupting the data
-            # Use the data as-is since it's already properly formatted from the caller
-            window_3m = data_3m  # Don't re-process, use directly
-            window_1w = data_1w  # Don't re-process, use directly
+            # FIX: The data is coming in with corrupted indices. We need to restore proper datetime processing
+            data_3m = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_3m))
+            data_1w = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_1w))
+
+            # Constrain to the intended time windows (safety if callers pass extra history)
+            window_3m = self._limit_to_days(data_3m, 92)  # ~3 months
+            window_1w = self._limit_to_days(data_1w, 7)   # 1 week
 
             eastern_tz = pytz.timezone("US/Eastern")
             current_time = datetime.now(eastern_tz)
@@ -287,16 +306,13 @@ class AIAnalyzer:
             full_3m = data_3m
             full_1w = data_1w
 
-            # Debug: Just show what we need to troubleshoot
-            self._dbg("error", f"🔍 3M Date Range: {full_3m.index[0]} to {full_3m.index[-1]}")
-            
             full_3m_high = float(full_3m["High"].max())
             full_3m_low = float(full_3m["Low"].min())
             full_1w_high = float(full_1w["High"].max())
             full_1w_low = float(full_1w["Low"].min())
             
-            # Debug: Show calculated values before any processing
-            self._dbg("error", f"🚨 RAW CALCULATION: 3M Low=${full_3m_low:,.2f} (should be ~98.2K)")
+            # Debug: Show final calculated values
+            self._dbg("error", f"🚨 FINAL VALUES: 3M High=${full_3m_high:,.2f}, 3M Low=${full_3m_low:,.2f}")
 
             # Optional display trimming for the RECENT arrays only
             display_from_3m = getattr(data_3m, "attrs", {}).get("display_from_index", 0)

@@ -247,8 +247,11 @@ class AIAnalyzer:
                 window_3m, window_1w, indicators_3m, indicators_1w
             )
 
-            # DO NOT overwrite highs/lows from summaries with display-trimmed values.
-            # (enhanced_data["*_data"]["period_highs_lows"]["period_high"] is computed on the windowed full range as well.)
+            # FIX: Override summary with CORRECT values from enhanced data to eliminate inconsistency
+            data_3m_summary['high_3m'] = enhanced_data['3m_data']['period_highs_lows']['period_high']
+            data_3m_summary['low_3m'] = enhanced_data['3m_data']['period_highs_lows']['period_low']
+            data_1w_summary['high_1w'] = enhanced_data['1w_data']['period_highs_lows']['period_high']
+            data_1w_summary['low_1w'] = enhanced_data['1w_data']['period_highs_lows']['period_low']
 
             analysis_data = {
                 "current_time": current_time.isoformat(),

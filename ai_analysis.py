@@ -174,20 +174,23 @@ class AIAnalyzer:
             full_1w_high = float(data_1w['High'].max())
             full_1w_low = float(data_1w['Low'].min())
             
-            # Ensure index is datetime to prevent strftime errors
+            # Ensure ALL indexes are datetime to prevent strftime errors
             try:
-                if hasattr(recent_3m.index[0], 'strftime'):
-                    pass  # Already datetime-like
-                else:
-                    recent_3m.index = pd.to_datetime(recent_3m.index)
+                # Convert full dataset indexes
+                if not hasattr(data_3m.index[0], 'strftime'):
+                    data_3m.index = pd.to_datetime(data_3m.index)
+                if not hasattr(data_1w.index[0], 'strftime'):
+                    data_1w.index = pd.to_datetime(data_1w.index)
                     
-                if hasattr(recent_1w.index[0], 'strftime'):
-                    pass  # Already datetime-like
-                else:
+                # Convert recent dataset indexes
+                if not hasattr(recent_3m.index[0], 'strftime'):
+                    recent_3m.index = pd.to_datetime(recent_3m.index)
+                if not hasattr(recent_1w.index[0], 'strftime'):
                     recent_1w.index = pd.to_datetime(recent_1w.index)
-            except (IndexError, AttributeError):
+                    
+            except (IndexError, AttributeError, TypeError) as e:
                 # Handle empty dataframes or other issues
-                st.warning("Issue with date formatting in chart data")
+                st.warning(f"Issue with date formatting in chart data: {str(e)}")
                 return {}
             
             # 3-MONTH ENHANCED DATA

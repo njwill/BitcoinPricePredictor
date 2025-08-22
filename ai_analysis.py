@@ -285,13 +285,16 @@ class AIAnalyzer:
                     values = indicators_1w[indicator].tail(30).dropna()
                     enhanced['1w_data']['indicators'][indicator] = values.round(4).tolist()
             
-            # VOLUME ANALYSIS
+            # VOLUME ANALYSIS - FIX: Use corrected analysis data
             enhanced['volume_analysis'] = {
-                '3m_avg_volume': float(data_3m['Volume'].tail(50).mean()),
-                '3m_volume_trend': 'increasing' if data_3m['Volume'].tail(10).mean() > data_3m['Volume'].tail(50).mean() else 'decreasing',
-                '1w_avg_volume': float(data_1w['Volume'].tail(30).mean()),
-                '1w_volume_trend': 'increasing' if data_1w['Volume'].tail(5).mean() > data_1w['Volume'].tail(30).mean() else 'decreasing'
+                '3m_avg_volume': float(analysis_data_3m['Volume'].tail(50).mean()),
+                '3m_volume_trend': 'increasing' if analysis_data_3m['Volume'].tail(10).mean() > analysis_data_3m['Volume'].tail(50).mean() else 'decreasing',
+                '1w_avg_volume': float(analysis_data_1w['Volume'].tail(30).mean()),
+                '1w_volume_trend': 'increasing' if analysis_data_1w['Volume'].tail(5).mean() > analysis_data_1w['Volume'].tail(30).mean() else 'decreasing'
             }
+            
+            # DEBUG: Final check of what we're returning
+            st.error(f"🚀 ABOUT TO RETURN: 3M={enhanced['3m_data']['period_highs_lows']['period_high']:,.0f}, 1W={enhanced['1w_data']['period_highs_lows']['period_high']:,.0f}")
             
             return enhanced
             

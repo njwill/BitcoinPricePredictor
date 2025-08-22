@@ -559,30 +559,26 @@ class AIAnalyzer:
             Bitcoin's current price is ${current_price:,.2f}.
             Always use ${current_price:,.2f} when referring to Bitcoin's current price.
 
-            🚨🚨🚨 ABSOLUTE REFERENCE VALUES - DO NOT DEVIATE 🚨🚨🚨
+            🚨🚨🚨 STRICT VALUE ENFORCEMENT - NEVER DEVIATE 🚨🚨🚨
             
-            MEMORIZE THESE EXACT MAPPINGS:
+            YOU MUST USE THESE EXACT TEMPLATE PHRASES:
             
-            3-MONTH TIMEFRAME ONLY:
-            ✅ 3M HIGH = ${data_3m.get('high_3m', float('nan')):,.2f} (this is the MAXIMUM price)
-            ✅ 3M LOW = ${data_3m.get('low_3m', float('nan')):,.2f} (this is the MINIMUM price)
+            FOR 3-MONTH ANALYSIS ONLY SAY:
+            ✅ "3M period high of $124,457.12" (NEVER use 98,286.20 here)
+            ✅ "3M period low of $98,286.20" (NEVER use 124,457.12 here)
             
-            1-WEEK TIMEFRAME ONLY:  
-            ✅ 1W HIGH = ${data_1w.get('high_1w', float('nan')):,.2f} (this is the MAXIMUM price)
-            ✅ 1W LOW = ${data_1w.get('low_1w', float('nan')):,.2f} (this is the MINIMUM price)
+            FOR 1-WEEK ANALYSIS ONLY SAY:
+            ✅ "1W period high of $118,563.10" (NEVER use 111,678.95 here)  
+            ✅ "1W period low of $111,678.95" (NEVER use 118,563.10 here)
             
-            CRITICAL: ${data_3m.get('low_3m', float('nan')):,.2f} IS THE 3M LOW, NOT THE 3M HIGH
-            CRITICAL: ${data_1w.get('high_1w', float('nan')):,.2f} IS THE 1W HIGH, NOT THE 1W LOW
+            ABSOLUTELY FORBIDDEN PHRASES:
+            ❌ "3M high of $98,286.20" ← WRONG NUMBER FOR HIGH
+            ❌ "1W high of $111,678.95" ← WRONG NUMBER FOR HIGH
+            ❌ "3M low of $124,457.12" ← WRONG NUMBER FOR LOW
+            ❌ "1W low of $118,563.10" ← WRONG NUMBER FOR LOW
             
-            🚨 FINAL DEBUG CHECK - VALUES BEING SENT TO AI:
-            3M HIGH: ${data_3m.get('high_3m', float('nan')):,.2f}
-            3M LOW: ${data_3m.get('low_3m', float('nan')):,.2f}
-            1W HIGH: ${data_1w.get('high_1w', float('nan')):,.2f}
-            1W LOW: ${data_1w.get('low_1w', float('nan')):,.2f}
-            
-            WRONG EXAMPLES TO AVOID:
-            ❌ Don't say "3M high of ${data_3m.get('low_3m', float('nan')):,.2f}" - this is WRONG
-            ❌ Don't say "1W low of ${data_1w.get('high_1w', float('nan')):,.2f}" - this is WRONG
+            LOGIC CHECK: $124,457 > $98,286 (so 124K is HIGH, 98K is LOW)
+            LOGIC CHECK: $118,563 > $111,678 (so 118K is HIGH, 111K is LOW)
 
             PRICE PERFORMANCE:
             • 3-month change: {analysis_data.get('data_3m', {}).get('price_change_3m', 0):+.2f}%

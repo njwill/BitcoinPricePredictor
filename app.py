@@ -458,9 +458,9 @@ def main():
                 # Display probabilities if available
                 probabilities = analysis.get('probabilities', {}) if isinstance(analysis, dict) else {}
                 if probabilities and isinstance(probabilities, dict):
-                    higher_prob = probabilities.get('higher', 0)
-                    lower_prob = probabilities.get('lower', 0)
-                    confidence = probabilities.get('confidence', 0)
+                    higher_prob = probabilities.get('higher_fraction', 0)
+                    lower_prob = probabilities.get('lower_fraction', 0)
+                    confidence = probabilities.get('confidence_fraction', 0)
                     
                     # Probability gauge with theme colors
                     gauge_colors = {

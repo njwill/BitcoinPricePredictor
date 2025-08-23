@@ -586,16 +586,7 @@ def main():
         with col3:
             clean_low_data = last_7_days['Low'].dropna()
             weekly_low = clean_low_data.min() if not clean_low_data.empty else current_price
-            
-            # Debug info - show the actual low values to understand the issue
             st.metric("Low Last 7 Days", format_currency(weekly_low))
-            with st.expander("🔍 Debug: Low Values"):
-                st.write(f"Data points in last 7 days: {len(last_7_days)}")
-                st.write(f"Clean low data points: {len(clean_low_data)}")
-                st.write("Last 10 low values:")
-                st.write(clean_low_data.tail(10).values)
-                st.write(f"Calculated minimum: {weekly_low}")
-                st.write(f"Expected range: Should be between ~$90k-$120k")
         
         st.divider()
         

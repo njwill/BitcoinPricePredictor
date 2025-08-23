@@ -237,6 +237,10 @@ def load_stored_analysis(analysis_hash: str):
             lower_prob_raw = prediction_data.get('probability_lower', 0) 
             confidence_raw = prediction_data.get('confidence_level', 0)
             
+            # DEBUG: Let's see what we're actually getting
+            st.write(f"DEBUG - Raw values: higher={higher_prob_raw}, lower={lower_prob_raw}, confidence={confidence_raw}")
+            st.write(f"DEBUG - Available keys: {list(prediction_data.keys())}")
+            
             # Convert percentages to fractions for display
             higher_prob = higher_prob_raw / 100.0 if higher_prob_raw is not None else 0
             lower_prob = lower_prob_raw / 100.0 if lower_prob_raw is not None else 0

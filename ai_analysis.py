@@ -148,7 +148,7 @@ class AIAnalyzer:
         if df.empty:
             return df
         df = self._ensure_datetime_index(df)
-        end = df.index.max()
+        end = pd.Timestamp(df.index.max())
         start = end - pd.Timedelta(days=days)
         return df.loc[df.index >= start]
 
@@ -338,8 +338,8 @@ class AIAnalyzer:
             # 3-MONTH ENHANCED DATA
             enhanced["3m_data"] = {
                 "timeframe": "3-month",
-                "full_range": f"{full_3m.index[0].strftime('%B %d')} to {full_3m.index[-1].strftime('%B %d, %Y')}",
-                "data_range": f"{tail_3m.index[0].strftime('%B %d')} to {tail_3m.index[-1].strftime('%B %d, %Y')}"
+                "full_range": f"{pd.Timestamp(full_3m.index[0]).strftime('%B %d')} to {pd.Timestamp(full_3m.index[-1]).strftime('%B %d, %Y')}",
+                "data_range": f"{pd.Timestamp(tail_3m.index[0]).strftime('%B %d')} to {pd.Timestamp(tail_3m.index[-1]).strftime('%B %d, %Y')}"
                 if not tail_3m.empty else "N/A",
                 "period_highs_lows": {
                     "period_high": full_3m_high,
@@ -348,7 +348,7 @@ class AIAnalyzer:
                     "recent_low": float(recent_3m["Low"].min()) if not recent_3m.empty else None,
                 },
                 "recent_prices": {
-                    "dates": [d.strftime("%Y-%m-%d %H:%M") for d in tail_3m.index],
+                    "dates": [pd.Timestamp(d).strftime("%Y-%m-%d %H:%M") for d in tail_3m.index],
                     "open": tail_3m["Open"].round(2).tolist(),
                     "high": tail_3m["High"].round(2).tolist(),
                     "low": tail_3m["Low"].round(2).tolist(),
@@ -379,8 +379,8 @@ class AIAnalyzer:
             # 1-WEEK ENHANCED DATA
             enhanced["1w_data"] = {
                 "timeframe": "1-week",
-                "full_range": f"{full_1w.index[0].strftime('%B %d')} to {full_1w.index[-1].strftime('%B %d, %Y')}",
-                "data_range": f"{tail_1w.index[0].strftime('%B %d')} to {tail_1w.index[-1].strftime('%B %d, %Y')}"
+                "full_range": f"{pd.Timestamp(full_1w.index[0]).strftime('%B %d')} to {pd.Timestamp(full_1w.index[-1]).strftime('%B %d, %Y')}",
+                "data_range": f"{pd.Timestamp(tail_1w.index[0]).strftime('%B %d')} to {pd.Timestamp(tail_1w.index[-1]).strftime('%B %d, %Y')}"
                 if not tail_1w.empty else "N/A",
                 "period_highs_lows": {
                     "period_high": full_1w_high,
@@ -389,7 +389,7 @@ class AIAnalyzer:
                     "recent_low": float(recent_1w["Low"].min()) if not recent_1w.empty else None,
                 },
                 "recent_prices": {
-                    "dates": [d.strftime("%Y-%m-%d %H:%M") for d in tail_1w.index],
+                    "dates": [pd.Timestamp(d).strftime("%Y-%m-%d %H:%M") for d in tail_1w.index],
                     "open": tail_1w["Open"].round(2).tolist(),
                     "high": tail_1w["High"].round(2).tolist(),
                     "low": tail_1w["Low"].round(2).tolist(),

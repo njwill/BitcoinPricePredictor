@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import pytz
-import asyncio
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
@@ -12,7 +11,6 @@ from data_fetcher import BitcoinDataFetcher
 from chart_generator import ChartGenerator
 from technical_analysis import TechnicalAnalyzer
 from ai_analysis import AIAnalyzer
-from scheduler import ScheduleManager
 from utils import format_currency, get_eastern_time, calculate_time_until_update, should_update_analysis, save_analysis_cache, load_analysis_cache, save_prediction, load_predictions_history, update_prediction_accuracy
 
 # Configure page

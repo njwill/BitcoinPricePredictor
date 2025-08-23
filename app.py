@@ -119,7 +119,7 @@ def main():
     ### 📋 Ready to Analyze Bitcoin?
     
     **Instructions:**
-    1. Select your target **date** and **time** below  
+    1. Select your target **date** and **time** below, 3-10 days is best  
     2. Click the **"Analyze Bitcoin"** button
     3. Get comprehensive technical analysis with AI insights
     
@@ -473,7 +473,7 @@ def main():
                 recommendation = "**Hold**"
             
             # Create base message with prediction
-            predicted_price_text = f" Predicted price: ${predicted_price:,.0f}." if predicted_price else ""
+            predicted_price_text = f" **Predicted price:** ${predicted_price:,.0f}." if predicted_price else ""
             analysis_message = f"Based on fresh analysis at {current_time_str} ET, Bitcoin has a {probability:.0%} chance of being {direction} by {target_formatted}.{predicted_price_text} Recommendation: {recommendation}"
             st.info(f"📊 {analysis_message}")
         else:

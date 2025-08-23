@@ -42,7 +42,7 @@ class AIAnalyzer:
 
         # Initialize OpenAI GPT-5 for technical analysis
         self.openai_key = os.getenv("OPENAI_API_KEY", "")
-        self.model_name = os.getenv("GPT5_MODEL", "gpt-5-nano")
+        self.model_name = os.getenv("GPT5_MODEL", "gpt-5")
 
         if not self.openai_key:
             st.error("OpenAI API key not found. Please set OPENAI_API_KEY environment variable.")

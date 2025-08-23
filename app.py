@@ -325,13 +325,47 @@ def main():
             })
         
         if prediction_data:
-            df_predictions = pd.DataFrame(prediction_data)
-            st.dataframe(df_predictions, use_container_width=True, hide_index=True)
-            
-            # Calculate and display accuracy stats for all predictions (not just current page)
+            # Prediction Dashboard Analytics (above the table)
             completed_predictions = [p for p in predictions if p.get('actual_price') is not None]
             if completed_predictions:
-                col1, col2, col3 = st.columns(3)
+                st.subheader("📈 Prediction Performance Dashboard")
+                
+                # Calculate comprehensive metrics
+                errors = []
+                direction_correct = 0
+                very_good_predictions = 0
+                good_predictions = 0
+                fair_predictions = 0
+                poor_predictions = 0
+                
+                for pred in completed_predictions:
+                    if pred.get('predicted_price') and pred.get('actual_price'):
+                        predicted = pred['predicted_price']
+                        actual = pred['actual_price']
+                        current_at_pred = pred.get('current_price_at_prediction', predicted)
+                        
+                        # Calculate error percentage
+                        error_pct = abs(actual - predicted) / predicted * 100
+                        errors.append(error_pct)
+                        
+                        # Check direction accuracy
+                        predicted_direction = "up" if predicted > current_at_pred else "down"
+                        actual_direction = "up" if actual > current_at_pred else "down"
+                        if predicted_direction == actual_direction:
+                            direction_correct += 1
+                        
+                        # Categorize accuracy
+                        if error_pct <= 5:
+                            very_good_predictions += 1
+                        elif error_pct <= 10:
+                            good_predictions += 1
+                        elif error_pct <= 20:
+                            fair_predictions += 1
+                        else:
+                            poor_predictions += 1
+                
+                # Main dashboard metrics
+                col1, col2, col3, col4, col5 = st.columns(5)
                 
                 with col1:
                     st.metric("Total Predictions", len(predictions))
@@ -340,16 +374,79 @@ def main():
                     st.metric("Completed", len(completed_predictions))
                 
                 with col3:
-                    good_predictions = 0
-                    for pred in completed_predictions:
-                        if pred.get('predicted_price') and pred.get('actual_price'):
-                            error_pct = abs(pred['actual_price'] - pred['predicted_price']) / pred['predicted_price'] * 100
-                            if error_pct <= 10:
-                                good_predictions += 1
-                    
-                    accuracy_rate = (good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
-                    st.metric("Accuracy Rate (≤10% error)", f"{accuracy_rate:.0f}%")
+                    accuracy_rate = ((very_good_predictions + good_predictions) / len(completed_predictions)) * 100 if completed_predictions else 0
+                    st.metric("Accuracy Rate (≤10%)", f"{accuracy_rate:.0f}%")
                 
+                with col4:
+                    direction_accuracy = (direction_correct / len(completed_predictions)) * 100 if completed_predictions else 0
+                    st.metric("Direction Accuracy", f"{direction_accuracy:.0f}%")
+                
+                with col5:
+                    avg_error = sum(errors) / len(errors) if errors else 0
+                    st.metric("Avg Error", f"{avg_error:.1f}%")
+                
+                # Detailed accuracy breakdown
+                st.divider()
+                st.subheader("🎯 Accuracy Breakdown")
+                
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    very_good_rate = (very_good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                    st.metric("✅ Very Good (≤5%)", f"{very_good_rate:.0f}%", help=f"{very_good_predictions} predictions")
+                
+                with col2:
+                    good_rate = (good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                    st.metric("✅ Good (5-10%)", f"{good_rate:.0f}%", help=f"{good_predictions} predictions")
+                
+                with col3:
+                    fair_rate = (fair_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                    st.metric("⚠️ Fair (10-20%)", f"{fair_rate:.0f}%", help=f"{fair_predictions} predictions")
+                
+                with col4:
+                    poor_rate = (poor_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                    st.metric("❌ Poor (>20%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
+                
+                # Performance insights
+                if len(completed_predictions) >= 3:
+                    st.divider()
+                    st.subheader("💡 Key Insights")
+                    
+                    insights = []
+                    
+                    # Best performance insight
+                    if very_good_rate >= 50:
+                        insights.append("🎯 **Excellent Performance**: Over half of predictions are within 5% accuracy!")
+                    elif accuracy_rate >= 70:
+                        insights.append("✅ **Strong Performance**: High overall accuracy rate above 70%")
+                    elif direction_accuracy >= 80:
+                        insights.append("📈 **Great Direction Calls**: Correctly predicting price direction 80%+ of the time")
+                    
+                    # Improvement areas
+                    if avg_error > 15:
+                        insights.append("⚠️ **Room for Improvement**: Average error is high - consider shorter prediction timeframes")
+                    elif poor_rate > 30:
+                        insights.append("🔧 **Focus Needed**: Many predictions have large errors - review market conditions")
+                    
+                    # Sample size insights
+                    if len(completed_predictions) < 10:
+                        insights.append("📊 **Building Track Record**: Need more completed predictions for reliable performance metrics")
+                    elif len(completed_predictions) >= 20:
+                        insights.append("📈 **Strong Sample Size**: Sufficient prediction history for reliable accuracy assessment")
+                    
+                    if insights:
+                        for insight in insights:
+                            st.markdown(f"• {insight}")
+                    else:
+                        st.markdown("• 📊 **Steady Performance**: Consistent prediction accuracy across different market conditions")
+                
+                st.divider()
+                st.subheader("📋 Detailed Prediction History")
+            
+            df_predictions = pd.DataFrame(prediction_data)
+            st.dataframe(df_predictions, use_container_width=True, hide_index=True)
+            
+            if completed_predictions:
                 st.caption(f"Showing {len(prediction_data)} of {total_predictions} predictions")
         else:
             st.info("No predictions to display on this page.")

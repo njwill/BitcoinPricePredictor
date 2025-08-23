@@ -232,10 +232,15 @@ def load_stored_analysis(analysis_hash: str):
         with col2:
             st.subheader("📊 Probability Assessment")
             
-            # Display probabilities if available
-            higher_prob = prediction_data.get('probability_higher', 0) / 100.0 if prediction_data.get('probability_higher') else 0
-            lower_prob = prediction_data.get('probability_lower', 0) / 100.0 if prediction_data.get('probability_lower') else 0
-            confidence = prediction_data.get('confidence_level', 0) / 100.0 if prediction_data.get('confidence_level') else 0
+            # Display probabilities if available (stored as 0-100 integers, convert to 0-1 fractions)
+            higher_prob_raw = prediction_data.get('probability_higher', 0)
+            lower_prob_raw = prediction_data.get('probability_lower', 0) 
+            confidence_raw = prediction_data.get('confidence_level', 0)
+            
+            # Convert percentages to fractions for display
+            higher_prob = higher_prob_raw / 100.0 if higher_prob_raw is not None else 0
+            lower_prob = lower_prob_raw / 100.0 if lower_prob_raw is not None else 0
+            confidence = confidence_raw / 100.0 if confidence_raw is not None else 0
             
             # Probability gauge with theme colors - same as main page
             gauge_colors = {

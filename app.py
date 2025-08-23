@@ -74,7 +74,47 @@ def load_stored_analysis(analysis_hash: str):
         except:
             pred_time_str = prediction_data.get('prediction_timestamp', 'Unknown')
         
-        st.success(f"📊 Analysis created at {pred_time_str}")
+        # Format target time for display
+        try:
+            target_time = datetime.fromisoformat(prediction_data.get('target_datetime', ''))
+            if target_time.tzinfo is not None:
+                target_time = target_time.astimezone(eastern_tz)
+            target_formatted = target_time.strftime('%A, %B %d, %Y at %I:%M %p ET')
+        except:
+            target_formatted = prediction_data.get('target_datetime', 'Unknown')
+        
+        # Get probability values
+        higher_prob = prediction_data.get('probability_higher', 0)
+        lower_prob = prediction_data.get('probability_lower', 0)
+        predicted_price = prediction_data.get('predicted_price')
+        
+        # Determine direction and probability
+        if higher_prob > lower_prob:
+            direction = "higher"
+            probability = higher_prob
+        else:
+            direction = "lower"
+            probability = lower_prob
+        
+        # Determine recommendation based on probability and direction
+        if probability >= 70 and direction == "higher":
+            recommendation = "**Buy**"
+        elif probability >= 70 and direction == "lower":
+            recommendation = "**Sell**"
+        else:
+            recommendation = "**HODL!**"
+        
+        # Create detailed analysis message similar to main page
+        predicted_price_text = f" Predicted price: **${predicted_price:,.0f}**." if predicted_price else ""
+        analysis_message = f"Based on historical analysis pulled {pred_time_str}, Bitcoin had a **{probability:.0f}% chance of being {direction}** by {target_formatted}.{predicted_price_text} Recommendation: {recommendation}"
+        st.info(f"📊 {analysis_message}")
+        
+        # Show support message like main page
+        st.markdown("""
+        <div style="padding: 12px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724; margin: 16px 0;">
+            🎯 <strong>Enjoying this tool?</strong> It costs me about $0.05 per analysis and I want to keep it free, so <a href='https://www.thebtccourse.com/support-me/' target='_blank' style='color: #155724;'>showing some support</a> would be awesome!
+        </div>
+        """, unsafe_allow_html=True)
         
         # Display current price metrics in same format as main page
         if not btc_1w.empty:

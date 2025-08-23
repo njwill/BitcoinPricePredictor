@@ -1,0 +1,19 @@
+{
+  "last_updated": "2025-08-22T20:53:12.183188-04:00",
+  "predictions": [
+    {
+      "id": 1,
+      "prediction_timestamp": "2025-08-22T20:53:12.183159-04:00",
+      "target_datetime": "2025-08-29T16:00:00-04:00",
+      "current_price_at_prediction": 116875.4140625,
+      "predicted_price": 118000.0,
+      "probability_higher": 62.0,
+      "probability_lower": 38.0,
+      "confidence_level": 0,
+      "technical_summary": "Technical analysis not available",
+      "prediction_reasoning": "**PRICE PREDICTION for Friday August 29, 2025 at 04:00 PM ET**\n\nBased on the comprehensive technical analysis above:\n\n**PREDICTED PRICE: I predict Bitcoin will be at $118,000 on Friday August 29, 2025 at 04:00 PM ET**\n\n1. **Probability HIGHER than $116,875.41: 62%**\n2. **Probability LOWER than $116,",
+      "actual_price": null,
+      "accuracy_calculated": false
+    }
+  ]
+}

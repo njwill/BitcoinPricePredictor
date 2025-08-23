@@ -1,5 +1,5 @@
 {
-  "last_updated": "2025-08-23T06:26:50.050673-04:00",
+  "last_updated": "2025-08-23T06:34:21.078887-04:00",
   "predictions": [
     {
       "id": 1,
@@ -54,8 +54,8 @@
       "confidence_level": 0,
       "technical_summary": "**COMPREHENSIVE TECHNICAL ANALYSIS**\n\n**Current Price: $115,624.05**\n\n**1. MULTI-TIMEFRAME OVERVIEW**\n- 3-Month Chart Analysis: The 3m EMA20 is bearish at 116,289.77, and price sits just below this short-term moving average, indicating near-term downside pressure. Bollinger bands are wide with price within the bands, implying balanced volatility rather than a squeeze. Recent range shows periodic tests near 115.4k\u2013116.9k, with a higher period high around 124.46k and period low near 98.29k, sugges",
       "prediction_reasoning": "**PRICE PREDICTION for Saturday August 23, 2025 at 06:30 AM ET**\n\nBased on the comprehensive technical analysis above:\n\n**PREDICTED PRICE: I predict Bitcoin will be at $115,900 on Saturday August 23, 2025 at 06:30 AM ET**\n\n1. **Probability HIGHER than $115,624.05: 52%**\n2. **Probability LOWER than $",
-      "actual_price": null,
-      "accuracy_calculated": false
+      "actual_price": 115596.921875,
+      "accuracy_calculated": true
     },
     {
       "id": 5,
@@ -96,6 +96,20 @@
       "confidence_level": 0,
       "technical_summary": "**COMPREHENSIVE TECHNICAL ANALYSIS**\n\n**Current Price: $115,582.52**\n\n**1. MULTI-TIMEFRAME OVERVIEW**\n- 3-Month Chart Analysis: The 3m EMA20 is at 116,285.81 with a bearish trend, price currently sits below the EMA20, indicating near-term weakness. Bollinger Middle at 116,770.94 with price inside bands and not in a squeeze, suggesting orderly range rather than breakout risk. Recent high around 116,970.36 and recent low around 115,439.29 imply a tight 1.5k range in the near term.\n- 1-Week Chart A",
       "prediction_reasoning": "**PRICE PREDICTION for Saturday August 23, 2025 at 06:30 AM ET**\n\nBased on the comprehensive technical analysis above:\n\n**PREDICTED PRICE: I predict Bitcoin will be at $115,900 on Saturday August 23, 2025 at 06:30 AM ET**\n\n1. **Probability HIGHER than $115,582.52: 42%**\n2. **Probability LOWER than $",
+      "actual_price": 115596.921875,
+      "accuracy_calculated": true
+    },
+    {
+      "id": 8,
+      "prediction_timestamp": "2025-08-23T06:34:21.078855-04:00",
+      "target_datetime": "2025-08-29T16:00:00-04:00",
+      "current_price_at_prediction": 115578.359375,
+      "predicted_price": 116100.0,
+      "probability_higher": 62.0,
+      "probability_lower": 38.0,
+      "confidence_level": 0,
+      "technical_summary": "**COMPREHENSIVE TECHNICAL ANALYSIS**\n\n**Current Price: $115,578.36**\n\n**1. MULTI-TIMEFRAME OVERVIEW**\n- 3-Month Chart Analysis: The 3m EMA-20 is at 116,285.41 with a bearish trend. Price currently sits just below the EMA-20 and between the 3m BB bands (middle 116,770.73; upper 121,766.62; lower 111,774.84). Recent highs near 116,970.36 and a period high of 124,457.12 (over the full 3m window) indicate upside potential, but current momentum shows slight decay and resistance near the EMA, suggesti",
+      "prediction_reasoning": "**PRICE PREDICTION for Friday August 29, 2025 at 04:00 PM ET**\n\nBased on the comprehensive technical analysis above:\n\n**PREDICTED PRICE: I predict Bitcoin will be at $116,100.00 on Friday August 29, 2025 at 04:00 PM ET**\n\n1. **Probability HIGHER than $115,578.36: 62%**\n2. **Probability LOWER than $1",
       "actual_price": null,
       "accuracy_calculated": false
     }

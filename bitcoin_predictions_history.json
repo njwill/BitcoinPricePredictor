@@ -1,5 +1,5 @@
 {
-  "last_updated": "2025-08-23T13:13:36.785817-04:00",
+  "last_updated": "2025-08-23T13:17:18.923504-04:00",
   "predictions": [
     {
       "id": 1,
@@ -264,6 +264,20 @@
       "confidence_level": 0,
       "technical_summary": "**COMPREHENSIVE TECHNICAL ANALYSIS**\n\n**Current Price: $115,039.66**\n\n**1. MULTI-TIMEFRAME OVERVIEW**\n- 3-Month Chart Analysis: Sideways-to-soft-bearish near-term within a broader 3M uptrend (+7.23%). Price sits just below the 3M BB middle 116,743.79 and EMA20 116,234.11; recent range 114,596.17\u2013116,970.36. Key 3M levels: resistance 116,743\u2013117,472 (BB mid/EMA cluster), stronger at 121,770.82 (BB upper) and 124,457.12 (period high). Support 114,596.17 (recent low), 111,716.77 (BB lower), and 110",
       "prediction_reasoning": "**PRICE PREDICTION for Friday August 29, 2025 at 04:00 PM ET**\n\nBased on the comprehensive technical analysis above:\n\n**PREDICTED PRICE: I predict Bitcoin will be at $114,600 on Friday August 29, 2025 at 04:00 PM ET**\n\n1. **Probability HIGHER than $115,039.66: 45%**\n2. **Probability LOWER than $115,",
+      "actual_price": null,
+      "accuracy_calculated": false
+    },
+    {
+      "id": 20,
+      "prediction_timestamp": "2025-08-23T13:17:18.923452-04:00",
+      "target_datetime": "2025-08-29T16:00:00-04:00",
+      "current_price_at_prediction": 115068.515625,
+      "predicted_price": 114600.0,
+      "probability_higher": 45.0,
+      "probability_lower": 55.00000000000001,
+      "confidence_level": 0,
+      "technical_summary": "**COMPREHENSIVE TECHNICAL ANALYSIS**\n\n**Current Price: $115,068.52**\n\n**1. MULTI-TIMEFRAME OVERVIEW**\n- 3-Month Chart Analysis: Trend softening; price closed near the 3M BB middle (116,745) and just above the 3M BB lower (111,720). Period high 124,457; period low 98,286. Recent day printed a long upper shadow (high 116,970, low 114,596, close 115,069), signaling supply near 117k. 20-EMA at 116,237 trending bearish; price below it. Structure since late July shows lower highs and a defense of 114,",
+      "prediction_reasoning": "**PRICE PREDICTION for Friday August 29, 2025 at 04:00 PM ET**\n\nBased on the comprehensive technical analysis above:\n\n**PREDICTED PRICE: I predict Bitcoin will be at $114,600 on Friday August 29, 2025 at 04:00 PM ET**\n\n1. **Probability HIGHER than $115,068.52: 45%**\n2. **Probability LOWER than $115,",
       "actual_price": null,
       "accuracy_calculated": false
     }

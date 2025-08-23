@@ -29,6 +29,11 @@ if 'data_cache' not in st.session_state:
 if 'analysis_cache' not in st.session_state:
     st.session_state.analysis_cache = {}
 
+def get_current_domain():
+    """Get the current domain - returns empty string to use relative URLs"""
+    # Use relative URLs so links work on any domain (Replit, production, localhost, etc.)
+    return ""
+
 def load_stored_analysis(analysis_hash: str):
     """Load and display a stored analysis by hash"""
     result = analysis_db.load_analysis_by_hash(analysis_hash)
@@ -108,9 +113,11 @@ def load_stored_analysis(analysis_hash: str):
     # Share link
     st.divider()
     st.subheader("🔗 Share This Analysis")
-    share_url = f"https://predict.thebtccourse.com/?analysis={analysis_hash}"
+    # Use current page URL with analysis parameter
+    share_url = f"?analysis={analysis_hash}"
     st.code(share_url, language="text")
     st.markdown(f"[📋 Open this analysis link]({share_url})")
+    st.caption("💡 Copy the full URL from your browser address bar to share with the exact domain")
     
     # Return to main page
     st.markdown("---")
@@ -560,7 +567,7 @@ def main():
                 # Add hash link for complete analysis view
                 analysis_hash = pred.get('analysis_hash', '')
                 if analysis_hash:
-                    view_link = f"https://predict.thebtccourse.com/?analysis={analysis_hash}"
+                    view_link = f"?analysis={analysis_hash}"
                 else:
                     view_link = ""
                 
@@ -1081,11 +1088,11 @@ def main():
         if 'analysis_hash' in st.session_state and st.session_state.analysis_hash:
             st.divider()
             st.subheader("🔗 Save & Share This Analysis")
-            share_url = f"https://predict.thebtccourse.com/?analysis={st.session_state.analysis_hash}"
+            share_url = f"?analysis={st.session_state.analysis_hash}"
             st.success("Analysis saved! Share this link to recall the complete analysis:")
             st.code(share_url, language="text")
             st.markdown(f"[📋 Open this analysis link]({share_url})")
-            st.caption("This link will recreate the exact charts, indicators, and AI analysis from this session.")
+            st.caption("💡 Copy the full URL from your browser to share with others - works on any domain!")
         
         # Update timestamp
         st.session_state.last_update = current_time
@@ -1185,7 +1192,7 @@ def main():
                 # Add hash link for complete analysis view
                 analysis_hash = pred.get('analysis_hash', '')
                 if analysis_hash:
-                    view_link = f"https://predict.thebtccourse.com/?analysis={analysis_hash}"
+                    view_link = f"?analysis={analysis_hash}"
                 else:
                     view_link = ""
                 

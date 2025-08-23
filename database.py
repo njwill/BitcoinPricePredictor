@@ -81,10 +81,33 @@ class AnalysisDatabase:
         if df.empty:
             return {}
         
-        # Convert to dictionary with proper handling of datetime index
+        # Convert to dictionary with proper handling of datetime index and values
+        # Handle datetime index
+        if hasattr(df.index, 'strftime'):
+            index_list = df.index.strftime('%Y-%m-%d %H:%M:%S').tolist()
+        else:
+            index_list = [str(x) for x in df.index.tolist()]  # Convert to strings
+        
+        # Convert data to records and handle any remaining timestamp issues
+        data_records = []
+        for _, row in df.iterrows():
+            record = {}
+            for col in df.columns:
+                value = row[col]
+                # Convert timestamps and other non-serializable types to strings
+                if pd.isna(value):
+                    record[col] = None
+                elif hasattr(value, 'isoformat'):  # datetime-like objects
+                    record[col] = value.isoformat() if value.isoformat else str(value)
+                elif isinstance(value, (np.integer, np.floating)):
+                    record[col] = float(value)  # Convert numpy types to Python types
+                else:
+                    record[col] = value
+            data_records.append(record)
+        
         result = {
-            'data': df.to_dict('records'),
-            'index': df.index.strftime('%Y-%m-%d %H:%M:%S').tolist() if hasattr(df.index, 'strftime') else df.index.tolist(),
+            'data': data_records,
+            'index': index_list,
             'columns': df.columns.tolist()
         }
         return result

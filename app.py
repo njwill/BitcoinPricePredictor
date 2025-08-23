@@ -202,9 +202,14 @@ def load_stored_analysis(analysis_hash: str):
     </div>
     """, unsafe_allow_html=True)
     
-    # Same title and subtitle as main page
-    st.title("₿itcoin Analysis Dashboard")
+    # Title for stored analysis page
+    st.title("₿itcoin Analysis Dashboard {Stored Analysis}")
     st.markdown("### Advanced Bitcoin Chart Analysis & Probability Assessments")
+    
+    # Add return to main page button at the top
+    if st.button("← Return to Main Page", type="secondary", key="top_return_button"):
+        st.query_params.clear()
+        st.rerun()
     
     # Show analysis details in same format as fresh analysis
     if prediction_data:

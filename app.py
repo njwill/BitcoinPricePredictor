@@ -110,6 +110,15 @@ def main():
     """, unsafe_allow_html=True)
     
 
+    # Navigation links at the top
+    nav_col1, nav_col2, nav_col3 = st.columns([1, 1, 4])
+    
+    with nav_col1:
+        st.markdown('[↩️ Return to theBTCcourse.com](https://www.thebtccourse.com)')
+    
+    with nav_col2:
+        st.markdown('[💝 Support Me!](https://www.thebtccourse.com/support-me/)')
+    
     # Header
     st.title("₿itcoin Analysis Dashboard")
     st.markdown("### Advanced Bitcoin Chart Analysis & Probability Assessments")

@@ -31,131 +31,79 @@ if 'analysis_cache' not in st.session_state:
     st.session_state.analysis_cache = {}
 
 def main():
-    # Apply theme-based styling
-    theme_mode = "dark" if st.session_state.get('dark_mode', False) else "light"
-    
-    # Add custom CSS for consistent fonts but preserve icons
-    st.markdown(f"""
+    # Add custom CSS for consistent fonts and light theme styling
+    st.markdown("""
     <style>
     /* Completely hide Streamlit header to remove whitespace */
-    .stApp > header {{
+    .stApp > header {
         display: none !important;
-    }}
+    }
     
     /* Target the specific header element you found */
-    .stAppHeader {{
+    .stAppHeader {
         display: none !important;
-    }}
+    }
     
-    .stApp {{
+    .stApp {
         padding-top: 0rem !important;
-        {'''
-        background-color: #0E1117 !important;
-        color: #FAFAFA !important;
-        ''' if theme_mode == 'dark' else '''
         background-color: #FFFFFF !important;
         color: #262730 !important;
-        '''}
-    }}
+    }
     
     /* Remove all top padding/margins from main content */
-    .block-container {{
+    .block-container {
         padding-top: 1rem !important;
         margin-top: 0rem !important;
-    }}
+    }
     
-    /* Position dark mode button properly without header interference */
-    [data-testid="column"] {{
+    [data-testid="column"] {
         position: relative;
         z-index: 1000;
-    }}
+    }
     
     /* Target only text elements, leave icons untouched */
     .stMarkdown, .stMarkdown p, .stMarkdown div, .stMarkdown span,
     .stMetric, .stMetric *,
     .stDataFrame, .stDataFrame *,
-    h1, h2, h3, h4, h5, h6, p, span {{
+    h1, h2, h3, h4, h5, h6, p, span {
         font-family: "Source Sans Pro", sans-serif !important;
-        {f'color: #FAFAFA !important;' if theme_mode == 'dark' else 'color: #262730 !important;'}
-    }}
+        color: #262730 !important;
+    }
     
-    /* Theme-based chart backgrounds */
-    .js-plotly-plot .plotly .modebar {{
-        {f'background-color: #262730 !important;' if theme_mode == 'dark' else 'background-color: #FFFFFF !important;'}
-    }}
+    /* Chart backgrounds */
+    .js-plotly-plot .plotly .modebar {
+        background-color: #FFFFFF !important;
+    }
     
     /* Disable KaTeX rendering for certain symbols */
-    .katex {{
+    .katex {
         display: none !important;
-    }}
+    }
     
     /* Hide the entire sidebar */
-    [data-testid="stSidebar"] {{
+    [data-testid="stSidebar"] {
         display: none !important;
-    }}
+    }
     
     /* Hide sidebar toggle controls */
-    [data-testid="collapsedControl"] {{
+    [data-testid="collapsedControl"] {
         display: none !important;
-    }}
+    }
     
     /* Hide the entire Streamlit menu completely */
-    [data-testid="stMainMenu"] {{
+    [data-testid="stMainMenu"] {
         display: none !important;
-    }}
+    }
     
-    [data-testid="stToolbar"] {{
+    [data-testid="stToolbar"] {
         display: none !important;
-    }}
-    
-    /* Position theme toggle in top right */
-    [data-testid="column"]:last-child button[kind="secondary"] {{
-        position: fixed;
-        top: 1rem;
-        right: 1rem;
-        z-index: 999;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }}
-    
-    /* Theme-aware button styling */
-    button[kind="secondary"] {{
-        {f'''
-        background-color: #262730 !important;
-        color: #FAFAFA !important;
-        border: 1px solid #4A4A4A !important;
-        ''' if theme_mode == 'dark' else '''
-        background-color: #FFFFFF !important;
-        color: #262730 !important;
-        border: 1px solid #D0D0D0 !important;
-        '''}
-    }}
-    
-    button[kind="secondary"]:hover {{
-        {f'''
-        background-color: #3A3A3A !important;
-        border: 1px solid #6A6A6A !important;
-        ''' if theme_mode == 'dark' else '''
-        background-color: #F8F8F8 !important;
-        border: 1px solid #B0B0B0 !important;
-        '''}
-    }}
+    }
     
     </style>
     
 
     """, unsafe_allow_html=True)
     
-    # Custom theme toggle using Streamlit button
-    col_spacer, col_theme = st.columns([6, 1])
-    with col_theme:
-        # Initialize theme state
-        if 'dark_mode' not in st.session_state:
-            st.session_state.dark_mode = False
-        
-        theme_label = "Dark" if not st.session_state.dark_mode else "Light"
-        if st.button(f"Mode: {theme_label}", type="secondary", help="Toggle between light and dark theme"):
-            st.session_state.dark_mode = not st.session_state.dark_mode
-            st.rerun()
 
     # Header
     st.title("₿itcoin Analysis Dashboard")
@@ -631,7 +579,7 @@ def main():
                     title="Bitcoin - 3 Month Analysis",
                     show_indicators=show_indicators,
                     show_volume=show_volume,
-                    theme=theme_mode,
+                    theme="light",
                     display_from_index=display_from_3m
                 )
                 st.plotly_chart(fig_3m, use_container_width=True)
@@ -649,7 +597,7 @@ def main():
                     title="Bitcoin - 1 Week Analysis",
                     show_indicators=show_indicators,
                     show_volume=show_volume,
-                    theme=theme_mode,
+                    theme="light",
                     display_from_index=display_from_1w
                 )
                 st.plotly_chart(fig_1w, use_container_width=True)
@@ -702,9 +650,9 @@ def main():
                     
                     # Probability gauge with theme colors
                     gauge_colors = {
-                        'bgcolor': '#0E1117' if theme_mode == 'dark' else '#FFFFFF',
-                        'bordercolor': '#FAFAFA' if theme_mode == 'dark' else '#262730',
-                        'font_color': '#FAFAFA' if theme_mode == 'dark' else '#262730'
+                        'bgcolor': '#FFFFFF',
+                        'bordercolor': '#262730',
+                        'font_color': '#262730'
                     }
                     
                     fig_gauge = go.Figure(go.Indicator(

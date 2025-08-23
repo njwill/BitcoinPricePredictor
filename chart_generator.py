@@ -22,7 +22,7 @@ class ChartGenerator:
         }
     
     def create_comprehensive_chart(self, data, indicators, title="Bitcoin Analysis", 
-                                 show_indicators=True, show_volume=True, theme="dark", 
+                                 show_indicators=True, show_volume=True, theme="light", 
                                  display_from_index=None):
         """
         Create a comprehensive chart with price, volume, and technical indicators
@@ -223,10 +223,10 @@ class ChartGenerator:
                 
                 fig.add_hline(y=0, line_color="gray", row=current_row, col=1)
             
-            # Theme-based colors
-            bg_color = '#0E1117' if theme == 'dark' else '#FFFFFF'
-            text_color = '#FAFAFA' if theme == 'dark' else '#262730'
-            grid_color = '#262730' if theme == 'dark' else '#E0E0E0'
+            # Light theme colors
+            bg_color = '#FFFFFF'
+            text_color = '#262730'
+            grid_color = '#E0E0E0'
             
             # Update layout with theme colors
             fig.update_layout(

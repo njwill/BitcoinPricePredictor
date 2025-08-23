@@ -204,8 +204,8 @@ def load_stored_analysis(analysis_hash: str):
                 # Remove any problematic characters and ensure proper formatting
                 cleaned_summary = technical_summary.replace('\\n', '\n').strip()
                 
-                # Display the full content using st.write which handles long content better
-                st.write(cleaned_summary)
+                # Use st.text to avoid LaTeX/KaTeX rendering issues
+                st.text(cleaned_summary)
             else:
                 st.write("Analysis not available")
             
@@ -225,7 +225,7 @@ def load_stored_analysis(analysis_hash: str):
             st.subheader(f"🎯 {target_formatted} Price Prediction")
             if isinstance(price_prediction, str) and price_prediction.strip():
                 cleaned_prediction = price_prediction.replace('\\n', '\n').strip()
-                st.write(cleaned_prediction)
+                st.text(cleaned_prediction)
             else:
                 st.write("Prediction not available")
         

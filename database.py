@@ -84,7 +84,13 @@ class AnalysisDatabase:
         # Convert to dictionary with proper handling of datetime index and values
         # Handle datetime index
         if hasattr(df.index, 'strftime'):
-            index_list = df.index.strftime('%Y-%m-%d %H:%M:%S').tolist()
+            # Ensure timezone-aware datetime index and consistent format
+            if df.index.tz is None:
+                # If naive, assume UTC for consistency
+                df_index = df.index.tz_localize('UTC')
+            else:
+                df_index = df.index
+            index_list = df_index.strftime('%Y-%m-%d %H:%M:%S%z').tolist()
         else:
             index_list = [str(x) for x in df.index.tolist()]  # Convert to strings
         
@@ -134,7 +140,16 @@ class AnalysisDatabase:
         
         df = pd.DataFrame(data['data'])
         if 'index' in data and data['index']:
-            df.index = pd.to_datetime(data['index'])
+            try:
+                # Try to parse dates with explicit format, fallback to automatic parsing
+                df.index = pd.to_datetime(data['index'], format='%Y-%m-%d %H:%M:%S%z', errors='coerce')
+                # If that fails, try without timezone
+                if df.index.isna().any():
+                    df.index = pd.to_datetime(data['index'], errors='coerce')
+            except Exception as e:
+                print(f"Date parsing error: {e}")
+                # Fallback: create a simple numeric index
+                df.index = range(len(df))
         return df
     
     def deserialize_indicators(self, data: dict, df_index) -> Dict:

@@ -166,16 +166,33 @@ def load_stored_analysis(analysis_hash: str):
     
     # Display AI Analysis Results - same format as main page
     if prediction_data.get('full_ai_analysis'):
-        # Parse the stored analysis - it should be a string, not a dict
+        # Parse the stored analysis 
         full_analysis = prediction_data['full_ai_analysis']
         
-        # If it's stored as a dict representation, extract the content
+        # Handle different storage formats
         if isinstance(full_analysis, dict):
+            # Extract clean content from dictionary
             technical_summary = full_analysis.get('technical_summary', 'Analysis not available')
             price_prediction = full_analysis.get('price_prediction', 'Prediction not available')
+        elif isinstance(full_analysis, str):
+            # Check if it's a string representation of a dict
+            if full_analysis.startswith("{'technical_summary'"):
+                # Try to parse the dictionary string
+                try:
+                    import ast
+                    parsed_dict = ast.literal_eval(full_analysis)
+                    technical_summary = parsed_dict.get('technical_summary', 'Analysis not available')
+                    price_prediction = parsed_dict.get('price_prediction', 'Prediction not available')
+                except:
+                    # If parsing fails, treat as plain text
+                    technical_summary = full_analysis
+                    price_prediction = 'Prediction not available'
+            else:
+                # Plain text format
+                technical_summary = full_analysis
+                price_prediction = 'Prediction not available'
         else:
-            # If it's a string, treat it as the technical summary
-            technical_summary = full_analysis
+            technical_summary = 'Analysis not available'
             price_prediction = 'Prediction not available'
         
         col1, col2 = st.columns([2, 1], gap="medium")

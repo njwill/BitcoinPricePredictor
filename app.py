@@ -118,12 +118,28 @@ def main():
     
     .nav-container {
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
         align-items: center;
         max-width: 1200px;
         margin: 0 auto;
         padding: 0 2rem;
         gap: 2rem;
+    }
+    
+    .nav-logo {
+        height: 35px;
+        width: auto;
+        transition: opacity 0.2s ease;
+    }
+    
+    .nav-logo:hover {
+        opacity: 0.8;
+    }
+    
+    .nav-links {
+        display: flex;
+        gap: 2rem;
+        align-items: center;
     }
     
     .nav-link {
@@ -154,8 +170,13 @@ def main():
     st.markdown("""
     <div class="header-nav">
         <div class="nav-container">
-            <a href="https://www.thebtccourse.com" target="_blank" class="nav-link">↩️ Return Home</a>
-            <a href="https://www.thebtccourse.com/support-me/" target="_blank" class="nav-link">💝 Support Me!</a>
+            <a href="https://www.thebtccourse.com" target="_blank">
+                <img src="https://www.thebtccourse.com/wp-content/uploads/2023/02/theBTCcourse-logo.png" alt="theBTCcourse Logo" class="nav-logo">
+            </a>
+            <div class="nav-links">
+                <a href="https://www.thebtccourse.com" target="_blank" class="nav-link">↩️ Return Home</a>
+                <a href="https://www.thebtccourse.com/support-me/" target="_blank" class="nav-link">💝 Support Me!</a>
+            </div>
         </div>
     </div>
     """, unsafe_allow_html=True)

@@ -37,4 +37,4 @@ localPort = 5000
 externalPort = 80
 
 [agent]
-integrations = ["python_anthropic==1.0.0", "python_xai==1.0.0", "python_openai==1.0.0"]
+integrations = ["flask_supabase==1.0.0", "python_openai==1.0.0", "python_xai==1.0.0", "python_anthropic==1.0.0"]

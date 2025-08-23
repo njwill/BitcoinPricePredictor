@@ -407,6 +407,127 @@ def load_analysis_cache() -> tuple[Optional[dict], Optional[datetime]]:
         st.warning(f"Error loading cache: {str(e)}")
         return None, None
 
+def get_predictions_file_path() -> str:
+    """Get path for predictions history file"""
+    return "bitcoin_predictions_history.json"
+
+def save_prediction(prediction_data: dict) -> None:
+    """
+    Save a new prediction to the predictions history file
+    
+    Args:
+        prediction_data: Dictionary containing prediction data
+    """
+    try:
+        import json
+        import os
+        
+        predictions_file = get_predictions_file_path()
+        
+        # Load existing predictions or create empty list
+        predictions = []
+        if os.path.exists(predictions_file):
+            with open(predictions_file, 'r') as f:
+                data = json.load(f)
+                predictions = data.get('predictions', [])
+        
+        # Add new prediction with unique ID
+        prediction_entry = {
+            'id': len(predictions) + 1,
+            'prediction_timestamp': get_eastern_time().isoformat(),
+            'target_datetime': prediction_data.get('target_datetime'),
+            'current_price_at_prediction': prediction_data.get('current_price'),
+            'predicted_price': prediction_data.get('predicted_price'),
+            'probability_higher': prediction_data.get('probability_higher'),
+            'probability_lower': prediction_data.get('probability_lower'),
+            'confidence_level': prediction_data.get('confidence_level'),
+            'technical_summary': prediction_data.get('technical_summary', '')[:500],  # Truncate for storage
+            'prediction_reasoning': prediction_data.get('prediction_reasoning', '')[:300],
+            'actual_price': None,  # To be filled later
+            'accuracy_calculated': False
+        }
+        
+        predictions.append(prediction_entry)
+        
+        # Keep only last 50 predictions to avoid file growing too large
+        predictions = predictions[-50:]
+        
+        # Save updated predictions
+        predictions_data = {
+            'last_updated': get_eastern_time().isoformat(),
+            'predictions': predictions
+        }
+        
+        with open(predictions_file, 'w') as f:
+            json.dump(predictions_data, f, indent=2, default=str)
+            
+    except Exception as e:
+        st.warning(f"Error saving prediction: {str(e)}")
+
+def load_predictions_history() -> list:
+    """
+    Load predictions history from file
+    
+    Returns:
+        list: List of prediction dictionaries
+    """
+    try:
+        import json
+        import os
+        
+        predictions_file = get_predictions_file_path()
+        
+        if not os.path.exists(predictions_file):
+            return []
+            
+        with open(predictions_file, 'r') as f:
+            data = json.load(f)
+            
+        return data.get('predictions', [])
+        
+    except Exception as e:
+        st.warning(f"Error loading predictions history: {str(e)}")
+        return []
+
+def update_prediction_accuracy(current_price: float) -> None:
+    """
+    Update predictions with actual prices when target time has passed
+    
+    Args:
+        current_price: Current Bitcoin price
+    """
+    try:
+        import json
+        from datetime import datetime
+        
+        predictions = load_predictions_history()
+        current_time = get_eastern_time()
+        updated = False
+        
+        for prediction in predictions:
+            if prediction.get('accuracy_calculated'):
+                continue
+                
+            target_time = datetime.fromisoformat(prediction.get('target_datetime', ''))
+            
+            # If target time has passed, update with actual price
+            if current_time >= target_time:
+                prediction['actual_price'] = current_price
+                prediction['accuracy_calculated'] = True
+                updated = True
+        
+        if updated:
+            predictions_data = {
+                'last_updated': get_eastern_time().isoformat(),
+                'predictions': predictions
+            }
+            
+            with open(get_predictions_file_path(), 'w') as f:
+                json.dump(predictions_data, f, indent=2, default=str)
+                
+    except Exception as e:
+        st.warning(f"Error updating prediction accuracy: {str(e)}")
+
 def create_error_message(error: Exception, context: str = "operation") -> str:
     """
     Create user-friendly error messages

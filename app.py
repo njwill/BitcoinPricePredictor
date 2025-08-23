@@ -13,7 +13,7 @@ from chart_generator import ChartGenerator
 from technical_analysis import TechnicalAnalyzer
 from ai_analysis import AIAnalyzer
 from scheduler import ScheduleManager
-from utils import format_currency, get_eastern_time, calculate_time_until_update, should_update_analysis, save_analysis_cache, load_analysis_cache
+from utils import format_currency, get_eastern_time, calculate_time_until_update, should_update_analysis, save_analysis_cache, load_analysis_cache, save_prediction, load_predictions_history, update_prediction_accuracy
 
 # Configure page
 st.set_page_config(
@@ -265,6 +265,28 @@ def main():
         # Update session state timestamp
         current_time = get_eastern_time()
         st.session_state.last_update = current_time
+        
+        # Save prediction to history (if analysis contains prediction data)
+        if analysis and isinstance(analysis, dict) and 'probabilities' in analysis:
+            try:
+                probabilities = analysis['probabilities']
+                if isinstance(probabilities, dict):
+                    prediction_data = {
+                        'target_datetime': target_datetime.isoformat(),
+                        'current_price': float(current_price),
+                        'predicted_price': probabilities.get('predicted_price'),
+                        'probability_higher': probabilities.get('higher_fraction', 0) * 100,
+                        'probability_lower': probabilities.get('lower_fraction', 0) * 100,
+                        'confidence_level': probabilities.get('confidence_level', 0),
+                        'technical_summary': analysis.get('technical_summary', ''),
+                        'prediction_reasoning': analysis.get('price_prediction', '')
+                    }
+                    save_prediction(prediction_data)
+            except Exception as e:
+                st.warning(f"Note: Could not save prediction to history: {str(e)}")
+        
+        # Update any past predictions with current price if their target time has passed
+        update_prediction_accuracy(float(current_price))
         
         # Display fresh analysis message
         current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
@@ -564,6 +586,90 @@ def main():
         if indicators_summary:
             df_indicators = pd.DataFrame(indicators_summary)
             st.dataframe(df_indicators, use_container_width=True, hide_index=True)
+        
+        # Prediction History Section
+        st.divider()
+        st.subheader("📊 Prediction History")
+        
+        predictions = load_predictions_history()
+        if predictions:
+            # Show only the 10 most recent predictions
+            recent_predictions = predictions[-10:]
+            
+            prediction_data = []
+            for pred in reversed(recent_predictions):  # Show newest first
+                prediction_time = pred.get('prediction_timestamp', '')
+                target_time = pred.get('target_datetime', '')
+                predicted_price = pred.get('predicted_price')
+                current_price_at_pred = pred.get('current_price_at_prediction')
+                actual_price = pred.get('actual_price')
+                prob_higher = pred.get('probability_higher', 0)
+                prob_lower = pred.get('probability_lower', 0)
+                
+                try:
+                    pred_time_formatted = datetime.fromisoformat(prediction_time).strftime('%Y-%m-%d %H:%M')
+                    target_time_formatted = datetime.fromisoformat(target_time).strftime('%Y-%m-%d %H:%M')
+                except:
+                    pred_time_formatted = prediction_time
+                    target_time_formatted = target_time
+                
+                # Calculate accuracy if we have actual price
+                accuracy_text = "Pending"
+                accuracy_color = "🟡"
+                if actual_price is not None and predicted_price is not None:
+                    error_pct = abs(actual_price - predicted_price) / predicted_price * 100
+                    if error_pct <= 5:
+                        accuracy_text = f"✅ Very Good ({error_pct:.1f}% error)"
+                        accuracy_color = "🟢"
+                    elif error_pct <= 10:
+                        accuracy_text = f"✅ Good ({error_pct:.1f}% error)"
+                        accuracy_color = "🟢"
+                    elif error_pct <= 20:
+                        accuracy_text = f"⚠️ Fair ({error_pct:.1f}% error)"
+                        accuracy_color = "🟡"
+                    else:
+                        accuracy_text = f"❌ Poor ({error_pct:.1f}% error)"
+                        accuracy_color = "🔴"
+                
+                prediction_data.append({
+                    'Prediction Made': pred_time_formatted,
+                    'Target Time': target_time_formatted,
+                    'Price at Prediction': f"${current_price_at_pred:,.0f}" if current_price_at_pred else "N/A",
+                    'Predicted Price': f"${predicted_price:,.0f}" if predicted_price else "N/A",
+                    'Actual Price': f"${actual_price:,.0f}" if actual_price else "Pending",
+                    'Direction': f"↗️ {prob_higher:.0f}% higher / ↘️ {prob_lower:.0f}% lower",
+                    'Accuracy': accuracy_text
+                })
+            
+            if prediction_data:
+                df_predictions = pd.DataFrame(prediction_data)
+                st.dataframe(df_predictions, use_container_width=True, hide_index=True)
+                
+                # Calculate and display accuracy stats
+                completed_predictions = [p for p in recent_predictions if p.get('actual_price') is not None]
+                if completed_predictions:
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric("Total Predictions", len(recent_predictions))
+                    
+                    with col2:
+                        st.metric("Completed", len(completed_predictions))
+                    
+                    with col3:
+                        good_predictions = 0
+                        for pred in completed_predictions:
+                            if pred.get('predicted_price') and pred.get('actual_price'):
+                                error_pct = abs(pred['actual_price'] - pred['predicted_price']) / pred['predicted_price'] * 100
+                                if error_pct <= 10:
+                                    good_predictions += 1
+                        
+                        accuracy_rate = (good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                        st.metric("Accuracy Rate (≤10% error)", f"{accuracy_rate:.0f}%")
+            else:
+                st.info("No predictions to display yet.")
+        else:
+            st.info("No prediction history available. Make your first prediction above!")
         
         # Update timestamp
         st.session_state.last_update = current_time

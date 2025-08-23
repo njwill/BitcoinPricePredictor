@@ -658,7 +658,7 @@ def main():
             elif probability >= 0.7 and direction == "lower":
                 recommendation = "**Sell**"
             else:
-                recommendation = "**Hold**"
+                recommendation = "**HODL!**"
             
             # Create base message with prediction
             predicted_price_text = f" Predicted price: **${predicted_price:,.0f}**." if predicted_price else ""

@@ -365,16 +365,12 @@ def main():
     st.markdown("*By clicking \"Analyze Bitcoin\" you're agreeing this is not financial advice, pure entertainment purposes only*")
     analyze_button = st.button("🚀 **Analyze Bitcoin**", type="primary", use_container_width=True)
     
-    # Check if we should show support message after analysis
-    if 'analysis_completed_time' in st.session_state and st.session_state.analysis_completed_time:
-        import time
-        time_since_analysis = time.time() - st.session_state.analysis_completed_time
-        if time_since_analysis >= 7 and time_since_analysis <= 60:  # Show for up to 60 seconds
-            st.info("🎯 **Enjoying this tool?** It costs me about $0.05 per analysis and I want to keep it free, so [showing some support](https://www.thebtccourse.com/support-me/) would be awesome!")
-            # Clear the flag after showing once
-            if st.button("✕ Close", key="close_support"):
-                st.session_state.analysis_completed_time = None
-                st.rerun()
+    # Show support message if flag is set
+    if 'show_support_message' in st.session_state and st.session_state.show_support_message:
+        st.info("🎯 **Enjoying this tool?** It costs me about $0.05 per analysis and I want to keep it free, so [showing some support](https://www.thebtccourse.com/support-me/) would be awesome!")
+        if st.button("✕ Close", key="close_support"):
+            st.session_state.show_support_message = False
+            st.rerun()
     
     # Show Prediction History ONLY on front page (when not analyzing)
     if not analyze_button:
@@ -680,18 +676,27 @@ def main():
         else:
             st.success(f"📊 Fresh analysis completed at {current_time_str} ET")
             
-            # Set flag to trigger support message
-            if 'analysis_completed_time' not in st.session_state:
-                st.session_state.analysis_completed_time = None
-                
-            # Record when analysis completed
-            st.session_state.analysis_completed_time = time.time()
+            # Create empty placeholder for support message
+            support_placeholder = st.empty()
             
-            # Auto-refresh after 7 seconds to show support message
+            # Show support message after a delay using simple HTML insertion
             st.markdown("""
+            <div id="supportMessageContainer"></div>
             <script>
             setTimeout(function() {
-                window.location.reload();
+                var container = document.getElementById('supportMessageContainer');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="padding: 12px; background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 4px; color: #0c5460; margin: 16px 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    🎯 <strong>Enjoying this tool?</strong> It costs me about $0.05 per analysis and I want to keep it free, so <a href="https://www.thebtccourse.com/support-me/" target="_blank" style="color: #0c5460;">showing some support</a> would be awesome!
+                                </div>
+                                <button onclick="this.parentElement.parentElement.style.display='none'" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #0c5460; margin-left: 10px;">✕</button>
+                            </div>
+                        </div>
+                    `;
+                }
             }, 7000);
             </script>
             """, unsafe_allow_html=True)

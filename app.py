@@ -104,6 +104,26 @@ def main():
         color: #F7931A !important;
     }
     
+    /* Navigation links styling */
+    .nav-link {
+        color: #F7931A !important;
+        text-decoration: none !important;
+        font-weight: 500 !important;
+        white-space: nowrap !important;
+        display: inline-block !important;
+        margin-bottom: 0 !important;
+    }
+    
+    .nav-link:hover {
+        color: #D66A00 !important;
+        text-decoration: none !important;
+    }
+    
+    /* Remove underlines from emoji links */
+    .nav-link span {
+        text-decoration: none !important;
+    }
+    
     </style>
     
 
@@ -111,13 +131,13 @@ def main():
     
 
     # Navigation links at the top
-    nav_col1, nav_col2, nav_col3 = st.columns([1, 1, 4])
-    
-    with nav_col1:
-        st.markdown('[↩️ Return to theBTCcourse.com](https://www.thebtccourse.com)')
+    nav_col1, nav_col2, nav_col3 = st.columns([3, 1, 1])
     
     with nav_col2:
-        st.markdown('[💝 Support Me!](https://www.thebtccourse.com/support-me/)')
+        st.markdown('<a href="https://www.thebtccourse.com" target="_blank" class="nav-link">↩️ Return to theBTCcourse.com</a>', unsafe_allow_html=True)
+    
+    with nav_col3:
+        st.markdown('<a href="https://www.thebtccourse.com/support-me/" target="_blank" class="nav-link">💝 Support Me!</a>', unsafe_allow_html=True)
     
     # Header
     st.title("₿itcoin Analysis Dashboard")

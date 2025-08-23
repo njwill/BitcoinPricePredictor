@@ -187,10 +187,10 @@ class AnalysisDatabase:
                         prediction_data.get('technical_summary', '')[:1000],  # Store more than before
                         prediction_data.get('prediction_reasoning', '')[:1000],
                         full_ai_analysis,  # Store complete AI analysis
-                        btc_3m_serialized,  # PostgreSQL JSONB handles the JSON conversion
-                        btc_1w_serialized,
-                        indicators_3m_serialized,
-                        indicators_1w_serialized
+                        json.dumps(btc_3m_serialized),  # Need json.dumps() for saving
+                        json.dumps(btc_1w_serialized),
+                        json.dumps(indicators_3m_serialized),
+                        json.dumps(indicators_1w_serialized)
                     ))
                     conn.commit()
             

@@ -204,8 +204,10 @@ def load_stored_analysis(analysis_hash: str):
                 # Remove any problematic characters and ensure proper formatting
                 cleaned_summary = technical_summary.replace('\\n', '\n').strip()
                 
-                # Use st.text to avoid LaTeX/KaTeX rendering issues
-                st.text(cleaned_summary)
+                # Use st.markdown but escape potential math symbols to avoid KaTeX rendering
+                # Replace common math triggers while preserving markdown formatting
+                escaped_summary = cleaned_summary.replace('$', '\\$').replace('_', '\\_')
+                st.markdown(escaped_summary)
             else:
                 st.write("Analysis not available")
             
@@ -225,7 +227,9 @@ def load_stored_analysis(analysis_hash: str):
             st.subheader(f"🎯 {target_formatted} Price Prediction")
             if isinstance(price_prediction, str) and price_prediction.strip():
                 cleaned_prediction = price_prediction.replace('\\n', '\n').strip()
-                st.text(cleaned_prediction)
+                # Escape potential math symbols while preserving markdown formatting
+                escaped_prediction = cleaned_prediction.replace('$', '\\$').replace('_', '\\_')
+                st.markdown(escaped_prediction)
             else:
                 st.write("Prediction not available")
         

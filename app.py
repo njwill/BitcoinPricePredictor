@@ -676,30 +676,8 @@ def main():
         else:
             st.success(f"📊 Fresh analysis completed at {current_time_str} ET")
             
-            # Create empty placeholder for support message
-            support_placeholder = st.empty()
-            
-            # Show support message after a delay using simple HTML insertion
-            st.markdown("""
-            <div id="supportMessageContainer"></div>
-            <script>
-            setTimeout(function() {
-                var container = document.getElementById('supportMessageContainer');
-                if (container) {
-                    container.innerHTML = `
-                        <div style="padding: 12px; background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 4px; color: #0c5460; margin: 16px 0;">
-                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                                <div>
-                                    🎯 <strong>Enjoying this tool?</strong> It costs me about $0.05 per analysis and I want to keep it free, so <a href="https://www.thebtccourse.com/support-me/" target="_blank" style="color: #0c5460;">showing some support</a> would be awesome!
-                                </div>
-                                <button onclick="this.parentElement.parentElement.style.display='none'" style="background: none; border: none; font-size: 18px; cursor: pointer; color: #0c5460; margin-left: 10px;">✕</button>
-                            </div>
-                        </div>
-                    `;
-                }
-            }, 7000);
-            </script>
-            """, unsafe_allow_html=True)
+            # Show support message immediately after analysis (skip the delay for now)
+            st.info("🎯 **Enjoying this tool?** It costs me about $0.05 per analysis and I want to keep it free, so [showing some support](https://www.thebtccourse.com/support-me/) would be awesome!")
         
         # Current price and basic stats
         current_price = btc_1w['Close'].iloc[-1]

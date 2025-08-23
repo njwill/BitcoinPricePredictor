@@ -199,7 +199,7 @@ def load_stored_analysis(analysis_hash: str):
     
     try:
         # Load the stored analysis data
-        result = analysis_db.load_complete_analysis(analysis_hash)
+        result = analysis_db.load_analysis_by_hash(analysis_hash)
         if not result:
             st.error(f"Analysis with hash '{analysis_hash}' not found.")
             st.markdown("---")

@@ -10,6 +10,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### 2025-08-23 GPT-5 Integration & Prediction History
+- Successfully migrated from Anthropic Claude to OpenAI GPT-5 integration
+- Implemented comprehensive prediction history system with JSON-based storage
+- Added prediction history UI always visible on front page (not behind analyze button)
+- Implemented pagination for 50 predictions per page with navigation controls
+- Added automatic accuracy tracking when target times pass
+- Color-coded accuracy results (Very Good/Good/Fair/Poor) based on prediction error
+- Currently using GPT-5-nano for fast testing (to be switched to GPT-5 before deployment)
+- Real-time accuracy updates by fetching current Bitcoin price on page load
+- Complete statistics showing total predictions, completed predictions, and accuracy rate
+
 ### 2025-08-18 UI/UX Improvements
 - Added "Last Analysis" time display in sidebar alongside "Next Update"
 - Removed AI Confidence Threshold slider (fixed at 75%)

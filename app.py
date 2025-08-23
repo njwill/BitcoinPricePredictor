@@ -206,6 +206,140 @@ def main():
     target_formatted = target_datetime.strftime('%A, %B %d, %Y at %I:%M %p ET')
     st.info(f"📊 Prediction target: **{target_formatted}**")
     
+    # Prediction History Section (always visible on front page)
+    st.divider()
+    st.subheader("📊 Prediction History")
+    
+    predictions = load_predictions_history()
+    if predictions:
+        # Update any past predictions with current price if their target time has passed
+        try:
+            # Get current Bitcoin price for accuracy updates
+            data_fetcher = BitcoinDataFetcher()
+            btc_data = data_fetcher.get_bitcoin_data(period='1d')
+            if not btc_data.empty:
+                current_btc_price = btc_data['Close'].iloc[-1]
+                update_prediction_accuracy(float(current_btc_price))
+                # Reload predictions after potential updates
+                predictions = load_predictions_history()
+        except:
+            pass  # Continue even if we can't update accuracy
+        
+        # Pagination setup
+        predictions_per_page = 50
+        total_predictions = len(predictions)
+        total_pages = max(1, (total_predictions + predictions_per_page - 1) // predictions_per_page)
+        
+        # Initialize page number in session state
+        if 'prediction_page' not in st.session_state:
+            st.session_state.prediction_page = 1
+        
+        # Page navigation
+        if total_pages > 1:
+            col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
+            
+            with col1:
+                if st.button("⬅️ Previous", disabled=(st.session_state.prediction_page <= 1)):
+                    st.session_state.prediction_page = max(1, st.session_state.prediction_page - 1)
+                    st.rerun()
+            
+            with col2:
+                if st.button("⏮️ First", disabled=(st.session_state.prediction_page <= 1)):
+                    st.session_state.prediction_page = 1
+                    st.rerun()
+            
+            with col3:
+                st.write(f"**Page {st.session_state.prediction_page} of {total_pages}**")
+            
+            with col4:
+                if st.button("⏭️ Last", disabled=(st.session_state.prediction_page >= total_pages)):
+                    st.session_state.prediction_page = total_pages
+                    st.rerun()
+            
+            with col5:
+                if st.button("Next ➡️", disabled=(st.session_state.prediction_page >= total_pages)):
+                    st.session_state.prediction_page = min(total_pages, st.session_state.prediction_page + 1)
+                    st.rerun()
+        
+        # Calculate which predictions to show
+        start_idx = (st.session_state.prediction_page - 1) * predictions_per_page
+        end_idx = min(start_idx + predictions_per_page, total_predictions)
+        
+        # Get predictions for current page (newest first)
+        page_predictions = list(reversed(predictions))[start_idx:end_idx]
+        
+        prediction_data = []
+        for pred in page_predictions:
+            prediction_time = pred.get('prediction_timestamp', '')
+            target_time = pred.get('target_datetime', '')
+            predicted_price = pred.get('predicted_price')
+            current_price_at_pred = pred.get('current_price_at_prediction')
+            actual_price = pred.get('actual_price')
+            prob_higher = pred.get('probability_higher', 0)
+            prob_lower = pred.get('probability_lower', 0)
+            
+            try:
+                pred_time_formatted = datetime.fromisoformat(prediction_time).strftime('%Y-%m-%d %H:%M')
+                target_time_formatted = datetime.fromisoformat(target_time).strftime('%Y-%m-%d %H:%M')
+            except:
+                pred_time_formatted = prediction_time
+                target_time_formatted = target_time
+            
+            # Calculate accuracy if we have actual price
+            accuracy_text = "Pending"
+            if actual_price is not None and predicted_price is not None:
+                error_pct = abs(actual_price - predicted_price) / predicted_price * 100
+                if error_pct <= 5:
+                    accuracy_text = f"✅ Very Good ({error_pct:.1f}% error)"
+                elif error_pct <= 10:
+                    accuracy_text = f"✅ Good ({error_pct:.1f}% error)"
+                elif error_pct <= 20:
+                    accuracy_text = f"⚠️ Fair ({error_pct:.1f}% error)"
+                else:
+                    accuracy_text = f"❌ Poor ({error_pct:.1f}% error)"
+            
+            prediction_data.append({
+                'Prediction Made': pred_time_formatted,
+                'Target Time': target_time_formatted,
+                'Price at Prediction': f"${current_price_at_pred:,.0f}" if current_price_at_pred else "N/A",
+                'Predicted Price': f"${predicted_price:,.0f}" if predicted_price else "N/A",
+                'Actual Price': f"${actual_price:,.0f}" if actual_price else "Pending",
+                'Direction': f"↗️ {prob_higher:.0f}% higher / ↘️ {prob_lower:.0f}% lower",
+                'Accuracy': accuracy_text
+            })
+        
+        if prediction_data:
+            df_predictions = pd.DataFrame(prediction_data)
+            st.dataframe(df_predictions, use_container_width=True, hide_index=True)
+            
+            # Calculate and display accuracy stats for all predictions (not just current page)
+            completed_predictions = [p for p in predictions if p.get('actual_price') is not None]
+            if completed_predictions:
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric("Total Predictions", len(predictions))
+                
+                with col2:
+                    st.metric("Completed", len(completed_predictions))
+                
+                with col3:
+                    good_predictions = 0
+                    for pred in completed_predictions:
+                        if pred.get('predicted_price') and pred.get('actual_price'):
+                            error_pct = abs(pred['actual_price'] - pred['predicted_price']) / pred['predicted_price'] * 100
+                            if error_pct <= 10:
+                                good_predictions += 1
+                    
+                    accuracy_rate = (good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                    st.metric("Accuracy Rate (≤10% error)", f"{accuracy_rate:.0f}%")
+                
+                st.caption(f"Showing {len(prediction_data)} of {total_predictions} predictions")
+        else:
+            st.info("No predictions to display on this page.")
+    else:
+        st.info("No prediction history available. Make your first prediction below!")
+    
     # Analyze button
     st.write("")  # Add some space
     analyze_button = st.button("🚀 **Analyze Bitcoin**", type="primary", use_container_width=True)
@@ -587,96 +721,13 @@ def main():
             df_indicators = pd.DataFrame(indicators_summary)
             st.dataframe(df_indicators, use_container_width=True, hide_index=True)
         
-        # Prediction History Section
-        st.divider()
-        st.subheader("📊 Prediction History")
-        
-        predictions = load_predictions_history()
-        if predictions:
-            # Show only the 10 most recent predictions
-            recent_predictions = predictions[-10:]
-            
-            prediction_data = []
-            for pred in reversed(recent_predictions):  # Show newest first
-                prediction_time = pred.get('prediction_timestamp', '')
-                target_time = pred.get('target_datetime', '')
-                predicted_price = pred.get('predicted_price')
-                current_price_at_pred = pred.get('current_price_at_prediction')
-                actual_price = pred.get('actual_price')
-                prob_higher = pred.get('probability_higher', 0)
-                prob_lower = pred.get('probability_lower', 0)
-                
-                try:
-                    pred_time_formatted = datetime.fromisoformat(prediction_time).strftime('%Y-%m-%d %H:%M')
-                    target_time_formatted = datetime.fromisoformat(target_time).strftime('%Y-%m-%d %H:%M')
-                except:
-                    pred_time_formatted = prediction_time
-                    target_time_formatted = target_time
-                
-                # Calculate accuracy if we have actual price
-                accuracy_text = "Pending"
-                accuracy_color = "🟡"
-                if actual_price is not None and predicted_price is not None:
-                    error_pct = abs(actual_price - predicted_price) / predicted_price * 100
-                    if error_pct <= 5:
-                        accuracy_text = f"✅ Very Good ({error_pct:.1f}% error)"
-                        accuracy_color = "🟢"
-                    elif error_pct <= 10:
-                        accuracy_text = f"✅ Good ({error_pct:.1f}% error)"
-                        accuracy_color = "🟢"
-                    elif error_pct <= 20:
-                        accuracy_text = f"⚠️ Fair ({error_pct:.1f}% error)"
-                        accuracy_color = "🟡"
-                    else:
-                        accuracy_text = f"❌ Poor ({error_pct:.1f}% error)"
-                        accuracy_color = "🔴"
-                
-                prediction_data.append({
-                    'Prediction Made': pred_time_formatted,
-                    'Target Time': target_time_formatted,
-                    'Price at Prediction': f"${current_price_at_pred:,.0f}" if current_price_at_pred else "N/A",
-                    'Predicted Price': f"${predicted_price:,.0f}" if predicted_price else "N/A",
-                    'Actual Price': f"${actual_price:,.0f}" if actual_price else "Pending",
-                    'Direction': f"↗️ {prob_higher:.0f}% higher / ↘️ {prob_lower:.0f}% lower",
-                    'Accuracy': accuracy_text
-                })
-            
-            if prediction_data:
-                df_predictions = pd.DataFrame(prediction_data)
-                st.dataframe(df_predictions, use_container_width=True, hide_index=True)
-                
-                # Calculate and display accuracy stats
-                completed_predictions = [p for p in recent_predictions if p.get('actual_price') is not None]
-                if completed_predictions:
-                    col1, col2, col3 = st.columns(3)
-                    
-                    with col1:
-                        st.metric("Total Predictions", len(recent_predictions))
-                    
-                    with col2:
-                        st.metric("Completed", len(completed_predictions))
-                    
-                    with col3:
-                        good_predictions = 0
-                        for pred in completed_predictions:
-                            if pred.get('predicted_price') and pred.get('actual_price'):
-                                error_pct = abs(pred['actual_price'] - pred['predicted_price']) / pred['predicted_price'] * 100
-                                if error_pct <= 10:
-                                    good_predictions += 1
-                        
-                        accuracy_rate = (good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
-                        st.metric("Accuracy Rate (≤10% error)", f"{accuracy_rate:.0f}%")
-            else:
-                st.info("No predictions to display yet.")
-        else:
-            st.info("No prediction history available. Make your first prediction above!")
         
         # Update timestamp
         st.session_state.last_update = current_time
         
         # Footer with last update info
         st.divider()
-        st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: GPT-5")
+        st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: GPT-5 Nano")
         
     except Exception as e:
         st.error(f"❌ An error occurred: {str(e)}")

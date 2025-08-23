@@ -200,6 +200,7 @@ def main():
     
     # Analyze button (directly under target selection)
     st.write("")  # Add some space
+    st.markdown("*By clicking \"Analyze Bitcoin\" you're agreeing this is not financial advice, pure entertainment purposes only*")
     analyze_button = st.button("🚀 **Analyze Bitcoin**", type="primary", use_container_width=True)
     
     # Show Prediction History ONLY on front page (when not analyzing)

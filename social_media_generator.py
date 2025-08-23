@@ -90,26 +90,26 @@ class SocialMediaImageGenerator:
             direction = "HIGHER"
             probability = higher_prob
             prob_color = self.success_color
-            arrow = "📈"
+            arrow = "↗"  # Up arrow that will render
         else:
             direction = "LOWER"
             probability = lower_prob
             prob_color = self.danger_color
-            arrow = "📉"
+            arrow = "↘"  # Down arrow that will render
         
         # Determine recommendation based on probability and direction
         if probability >= 70 and direction == "HIGHER":
             recommendation = "BUY"
             rec_color = self.success_color
-            rec_emoji = "🟢"
+            rec_emoji = "●"  # Green circle symbol
         elif probability >= 70 and direction == "LOWER":
             recommendation = "SELL"
             rec_color = self.danger_color
-            rec_emoji = "🔴"
+            rec_emoji = "●"  # Red circle symbol
         else:
             recommendation = "HODL"
             rec_color = self.bitcoin_orange
-            rec_emoji = "🟡"
+            rec_emoji = "●"  # Orange circle symbol
         
         # Target date
         eastern_tz = pytz.timezone('US/Eastern')

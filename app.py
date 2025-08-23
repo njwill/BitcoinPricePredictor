@@ -142,6 +142,47 @@ def main():
         align-items: center;
     }
     
+    /* Mobile responsive styling */
+    @media (max-width: 768px) {
+        .nav-container {
+            padding: 0 1rem;
+            gap: 1rem;
+        }
+        
+        .nav-logo {
+            height: 28px;
+        }
+        
+        .nav-links {
+            gap: 1rem;
+        }
+        
+        .nav-link {
+            font-size: 0.8rem !important;
+            padding: 4px 8px !important;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .nav-container {
+            padding: 0 0.5rem;
+            gap: 0.5rem;
+        }
+        
+        .nav-logo {
+            height: 25px;
+        }
+        
+        .nav-links {
+            gap: 0.5rem;
+        }
+        
+        .nav-link {
+            font-size: 0.75rem !important;
+            padding: 3px 6px !important;
+        }
+    }
+    
     .nav-link {
         color: #F7931A !important;
         text-decoration: none !important;

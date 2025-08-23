@@ -35,52 +35,244 @@ def get_current_domain():
     return ""
 
 def load_stored_analysis(analysis_hash: str):
-    """Load and display a stored analysis by hash"""
-    result = analysis_db.load_analysis_by_hash(analysis_hash)
-    if not result:
-        st.error(f"Analysis with hash '{analysis_hash}' not found.")
-        st.markdown("[← Return to main page](/)", unsafe_allow_html=True)
+    """Load and display a stored analysis by hash - use same format as main page"""
+    
+    # Add the same CSS styling as main page
+    st.markdown("""
+    <style>
+    /* Completely hide Streamlit header to remove whitespace */
+    .stApp > header {
+        display: none !important;
+    }
+    
+    /* Target the specific header element you found */
+    .stAppHeader {
+        display: none !important;
+    }
+    
+    .stApp {
+        padding-top: 0rem !important;
+        background-color: #FFFFFF !important;
+        color: #262730 !important;
+    }
+    
+    /* Remove all top padding/margins from main content */
+    .block-container {
+        padding-top: 1rem !important;
+        margin-top: 0rem !important;
+    }
+    
+    [data-testid="column"] {
+        position: relative;
+        z-index: 1000;
+    }
+    
+    /* Target only text elements, leave icons untouched */
+    .stMarkdown, .stMarkdown p, .stMarkdown div, .stMarkdown span,
+    .stMetric, .stMetric *,
+    .stDataFrame, .stDataFrame *,
+    h1, h2, h3, h4, h5, h6, p, span {
+        font-family: "Source Sans Pro", sans-serif !important;
+        color: #262730 !important;
+    }
+    
+    /* Navigation header styling */
+    .header-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(135deg, #F7931A, #FF8C00);
+        padding: 10px 0;
+        z-index: 1000;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .nav-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+    }
+    
+    .nav-logo {
+        height: 40px;
+        width: auto;
+    }
+    
+    .nav-links {
+        display: flex;
+        gap: 20px;
+    }
+    
+    .nav-link {
+        color: white !important;
+        text-decoration: none !important;
+        font-weight: 500;
+        padding: 8px 16px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+        font-family: "Source Sans Pro", sans-serif !important;
+    }
+    
+    .nav-link:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: white !important;
+        text-decoration: none !important;
+    }
+    
+    /* Mobile responsive navigation */
+    @media (max-width: 768px) {
+        .nav-container {
+            padding: 0 15px;
+        }
+        
+        .nav-logo {
+            height: 35px;
+        }
+        
+        .nav-links {
+            gap: 10px;
+        }
+        
+        .nav-link {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+    }
+    
+    /* Push main content below fixed header */
+    .main .block-container {
+        margin-top: 70px !important;
+        padding-top: 2rem !important;
+    }
+    
+    /* Light theme for charts and content */
+    .js-plotly-plot .plotly .modebar {
+        background: #f8f9fa !important;
+    }
+    
+    .stPlotlyChart {
+        background-color: #ffffff !important;
+        border-radius: 8px;
+        margin: 20px 0;
+    }
+    
+    /* General improvements */
+    .stButton > button {
+        background-color: #f8f9fa;
+        color: #262730;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        font-family: "Source Sans Pro", sans-serif !important;
+    }
+    
+    .stButton > button:hover {
+        background-color: #e9ecef;
+        border-color: #adb5bd;
+    }
+    
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Same header navigation as main page
+    st.markdown("""
+    <div class="header-nav">
+        <div class="nav-container">
+            <a href="https://www.thebtccourse.com" target="_blank">
+                <img src="https://www.thebtccourse.com/wp-content/uploads/2023/02/theBTCcourse-logo.png" alt="theBTCcourse Logo" class="nav-logo">
+            </a>
+            <div class="nav-links">
+                <a href="https://www.thebtccourse.com" target="_blank" class="nav-link">↩️ Return Home</a>
+                <a href="https://www.thebtccourse.com/support-me/" target="_blank" class="nav-link">💝 Support Me!</a>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Same title and subtitle as main page
+    st.title("₿itcoin Analysis Dashboard")
+    st.markdown("### Advanced Bitcoin Chart Analysis & Probability Assessments")
+    
+    try:
+        # Load the stored analysis data
+        result = db.load_complete_analysis(analysis_hash)
+        if not result:
+            st.error(f"Analysis with hash '{analysis_hash}' not found.")
+            st.markdown("---")
+            if st.button("← Return to main page", type="secondary"):
+                st.query_params.clear()
+                st.rerun()
+            return
+        
+        prediction_data, btc_3m, btc_1w, indicators_3m, indicators_1w = result
+        
+    except Exception as e:
+        st.error(f"Error loading analysis: {str(e)}")
+        st.markdown(f"Analysis with hash '{analysis_hash}' not found.")
+        st.markdown("---")
+        if st.button("← Return to main page", type="secondary"):
+            st.query_params.clear()
+            st.rerun()
         return
     
-    prediction_data, btc_3m, btc_1w, indicators_3m, indicators_1w = result
+    # Show analysis details in same format as fresh analysis
+    if prediction_data:
+        eastern_tz = pytz.timezone('US/Eastern')
+        try:
+            pred_time = datetime.fromisoformat(prediction_data.get('prediction_timestamp', ''))
+            if pred_time.tzinfo is not None:
+                pred_time = pred_time.astimezone(eastern_tz)
+            pred_time_str = pred_time.strftime('%Y-%m-%d %H:%M:%S ET')
+        except:
+            pred_time_str = prediction_data.get('prediction_timestamp', 'Unknown')
+        
+        st.success(f"📊 Analysis created at {pred_time_str}")
+        
+        # Display current price metrics in same format as main page
+        if not btc_1w.empty:
+            current_price = btc_1w['Close'].iloc[-1]
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric(
+                    "Price at Analysis Time",
+                    f"${current_price:,.0f}"
+                )
+            
+            with col2:
+                available_data_points = min(168, len(btc_1w))
+                last_7_days = btc_1w.tail(available_data_points)
+                clean_high_data = last_7_days['High'].dropna()
+                weekly_high = clean_high_data.max() if not clean_high_data.empty else current_price
+                st.metric("High Last 7 Days", f"${weekly_high:,.0f}")
+            
+            with col3:
+                clean_low_data = last_7_days['Low'].dropna()
+                weekly_low = clean_low_data.min() if not clean_low_data.empty else current_price
+                st.metric("Low Last 7 Days", f"${weekly_low:,.0f}")
+        
+        st.divider()
     
-    # Display stored analysis
-    st.title("₿itcoin Analysis Dashboard - Stored Analysis")
-    st.markdown(f"### 📂 Analysis from {prediction_data['prediction_timestamp'][:19].replace('T', ' ')}")
-    
-    # Show analysis details
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Current Price (at prediction)", f"${prediction_data['current_price']:,.0f}")
-    with col2:
-        st.metric("Predicted Price", f"${prediction_data['predicted_price']:,.0f}" if prediction_data['predicted_price'] else "N/A")
-    with col3:
-        if prediction_data['actual_price']:
-            error_pct = abs(prediction_data['actual_price'] - prediction_data['predicted_price']) / prediction_data['predicted_price'] * 100
-            st.metric("Actual Price", f"${prediction_data['actual_price']:,.0f}", f"{error_pct:.1f}% error")
-        else:
-            st.metric("Actual Price", "Pending")
-    
-    # Show probability assessment
-    st.markdown(f"**Direction Probability:** ↗️ {prediction_data['probability_higher']}% higher / ↘️ {prediction_data['probability_lower']}% lower")
-    
-    # Display charts (recreated from stored data)
-    chart_generator = ChartGenerator()
-    
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.subheader("📊 Chart Display Options")
-    with col2:
+    # Display controls same as main page
+    with st.expander("📊 Display Options", expanded=False):
         show_indicators = st.toggle("Show Technical Indicators", value=True, key="stored_indicators")
         show_volume = st.toggle("Show Volume", value=True, key="stored_volume")
     
-    # 3-Month Chart
-    st.subheader("📈 3-Month Bitcoin Chart (Stored Data)")
+    # Initialize chart generator
+    chart_generator = ChartGenerator()
+    
+    # Charts with same titles as main page
+    st.subheader("📈 3-Month Bitcoin Chart")
     try:
         fig_3m = chart_generator.create_comprehensive_chart(
             btc_3m, 
             indicators_3m, 
-            title="Bitcoin - 3 Month Analysis (Stored)",
+            title="Bitcoin Price Analysis - 3 Month View",
             show_indicators=show_indicators,
             show_volume=show_volume,
             theme="light"
@@ -89,13 +281,12 @@ def load_stored_analysis(analysis_hash: str):
     except Exception as e:
         st.error(f"Error displaying 3-month chart: {str(e)}")
     
-    # 1-Week Chart
-    st.subheader("📊 1-Week Bitcoin Chart (Stored Data)")
+    st.subheader("📊 1-Week Bitcoin Chart")
     try:
         fig_1w = chart_generator.create_comprehensive_chart(
             btc_1w, 
             indicators_1w, 
-            title="Bitcoin - 1 Week Analysis (Stored)",
+            title="Bitcoin Price Analysis - 1 Week View",
             show_indicators=show_indicators,
             show_volume=show_volume,
             theme="light"
@@ -104,22 +295,25 @@ def load_stored_analysis(analysis_hash: str):
     except Exception as e:
         st.error(f"Error displaying 1-week chart: {str(e)}")
     
-    # Display full AI analysis if available
+    # AI analysis in same format as main page
     if prediction_data.get('full_ai_analysis'):
         st.divider()
         st.subheader("🤖 Complete AI Analysis")
-        st.markdown(prediction_data['full_ai_analysis'])
+        
+        # Apply same text formatting as main page
+        ai_text = prediction_data['full_ai_analysis']
+        formatted_text = f'<div style="font-family: \'Source Sans Pro\', sans-serif; line-height: 1.6; color: #262730;">{ai_text}</div>'
+        st.markdown(formatted_text, unsafe_allow_html=True)
     
-    # Share link
+    # Share link same as main page
     st.divider()
     st.subheader("🔗 Share This Analysis")
-    # Use current page URL with analysis parameter
     share_url = f"?analysis={analysis_hash}"
     st.code(share_url, language="text")
     st.markdown(f"[📋 Open this analysis link]({share_url})")
     st.caption("💡 Copy the full URL from your browser address bar to share with the exact domain")
     
-    # Return to main page
+    # Return to main page same as main page
     st.markdown("---")
     if st.button("← Return to Main Page", type="secondary"):
         st.query_params.clear()

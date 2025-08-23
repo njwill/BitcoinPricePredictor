@@ -670,7 +670,11 @@ def main():
             st.success(f"📊 Fresh analysis completed at {current_time_str} ET")
         
         # Show support message immediately after analysis
-        st.success("🎯 **Enjoying this tool?** It costs me about $0.05 per analysis and I want to keep it free, so <a href='https://www.thebtccourse.com/support-me/' target='_blank' style='color: inherit;'>showing some support</a> would be awesome!", unsafe_allow_html=True)
+        st.markdown("""
+        <div style="padding: 12px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; color: #155724; margin: 16px 0;">
+            🎯 <strong>Enjoying this tool?</strong> It costs me about $0.05 per analysis and I want to keep it free, so <a href='https://www.thebtccourse.com/support-me/' target='_blank' style='color: #155724;'>showing some support</a> would be awesome!
+        </div>
+        """, unsafe_allow_html=True)
         
         # Current price and basic stats
         current_price = btc_1w['Close'].iloc[-1]

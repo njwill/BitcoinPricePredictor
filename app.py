@@ -11,6 +11,7 @@ from data_fetcher import BitcoinDataFetcher
 from chart_generator import ChartGenerator
 from technical_analysis import TechnicalAnalyzer
 from ai_analysis import AIAnalyzer
+from database import analysis_db
 from utils import format_currency, get_eastern_time, calculate_time_until_update, should_update_analysis, save_analysis_cache, load_analysis_cache, save_prediction, load_predictions_history, update_prediction_accuracy
 
 # Configure page
@@ -28,7 +29,103 @@ if 'data_cache' not in st.session_state:
 if 'analysis_cache' not in st.session_state:
     st.session_state.analysis_cache = {}
 
+def load_stored_analysis(analysis_hash: str):
+    """Load and display a stored analysis by hash"""
+    result = analysis_db.load_analysis_by_hash(analysis_hash)
+    if not result:
+        st.error(f"Analysis with hash '{analysis_hash}' not found.")
+        st.markdown("[← Return to main page](/)", unsafe_allow_html=True)
+        return
+    
+    prediction_data, btc_3m, btc_1w, indicators_3m, indicators_1w = result
+    
+    # Display stored analysis
+    st.title("₿itcoin Analysis Dashboard - Stored Analysis")
+    st.markdown(f"### 📂 Analysis from {prediction_data['prediction_timestamp'][:19].replace('T', ' ')}")
+    
+    # Show analysis details
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Current Price (at prediction)", f"${prediction_data['current_price']:,.0f}")
+    with col2:
+        st.metric("Predicted Price", f"${prediction_data['predicted_price']:,.0f}" if prediction_data['predicted_price'] else "N/A")
+    with col3:
+        if prediction_data['actual_price']:
+            error_pct = abs(prediction_data['actual_price'] - prediction_data['predicted_price']) / prediction_data['predicted_price'] * 100
+            st.metric("Actual Price", f"${prediction_data['actual_price']:,.0f}", f"{error_pct:.1f}% error")
+        else:
+            st.metric("Actual Price", "Pending")
+    
+    # Show probability assessment
+    st.markdown(f"**Direction Probability:** ↗️ {prediction_data['probability_higher']}% higher / ↘️ {prediction_data['probability_lower']}% lower")
+    
+    # Display charts (recreated from stored data)
+    chart_generator = ChartGenerator()
+    
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.subheader("📊 Chart Display Options")
+    with col2:
+        show_indicators = st.toggle("Show Technical Indicators", value=True, key="stored_indicators")
+        show_volume = st.toggle("Show Volume", value=True, key="stored_volume")
+    
+    # 3-Month Chart
+    st.subheader("📈 3-Month Bitcoin Chart (Stored Data)")
+    try:
+        fig_3m = chart_generator.create_comprehensive_chart(
+            btc_3m, 
+            indicators_3m, 
+            title="Bitcoin - 3 Month Analysis (Stored)",
+            show_indicators=show_indicators,
+            show_volume=show_volume,
+            theme="light"
+        )
+        st.plotly_chart(fig_3m, use_container_width=True)
+    except Exception as e:
+        st.error(f"Error displaying 3-month chart: {str(e)}")
+    
+    # 1-Week Chart
+    st.subheader("📊 1-Week Bitcoin Chart (Stored Data)")
+    try:
+        fig_1w = chart_generator.create_comprehensive_chart(
+            btc_1w, 
+            indicators_1w, 
+            title="Bitcoin - 1 Week Analysis (Stored)",
+            show_indicators=show_indicators,
+            show_volume=show_volume,
+            theme="light"
+        )
+        st.plotly_chart(fig_1w, use_container_width=True)
+    except Exception as e:
+        st.error(f"Error displaying 1-week chart: {str(e)}")
+    
+    # Display full AI analysis if available
+    if prediction_data.get('full_ai_analysis'):
+        st.divider()
+        st.subheader("🤖 Complete AI Analysis")
+        st.markdown(prediction_data['full_ai_analysis'])
+    
+    # Share link
+    st.divider()
+    st.subheader("🔗 Share This Analysis")
+    share_url = f"https://predict.thebtccourse.com/?analysis={analysis_hash}"
+    st.code(share_url, language="text")
+    st.markdown(f"[📋 Open this analysis link]({share_url})")
+    
+    # Return to main page
+    st.markdown("---")
+    if st.button("← Return to Main Page", type="secondary"):
+        st.query_params.clear()
+        st.rerun()
+
 def main():
+    # Check for analysis hash in URL parameters
+    query_params = st.query_params
+    if 'analysis' in query_params:
+        analysis_hash = query_params['analysis']
+        load_stored_analysis(analysis_hash)
+        return
+    
     # Add custom CSS for consistent fonts and light theme styling
     st.markdown("""
     <style>
@@ -422,13 +519,16 @@ def main():
             
             # Calculate which predictions to show
             start_idx = (st.session_state.prediction_page - 1) * predictions_per_page
-            end_idx = min(start_idx + predictions_per_page, total_predictions)
             
-            # Get predictions for current page (newest first)
-            page_predictions = list(reversed(predictions))[start_idx:end_idx]
+            # Get predictions for current page from database
+            try:
+                predictions = analysis_db.get_recent_analyses(limit=predictions_per_page, offset=start_idx)
+            except Exception as e:
+                st.error(f"Error loading predictions: {str(e)}")
+                predictions = []
             
             prediction_data = []
-            for pred in page_predictions:
+            for pred in predictions:
                 prediction_time = pred.get('prediction_timestamp', '')
                 target_time = pred.get('target_datetime', '')
                 predicted_price = pred.get('predicted_price')
@@ -457,6 +557,13 @@ def main():
                     else:
                         accuracy_text = f"❌ Poor ({error_pct:.1f}% error)"
                 
+                # Add hash link for complete analysis view
+                analysis_hash = pred.get('analysis_hash', '')
+                if analysis_hash:
+                    view_link = f"https://predict.thebtccourse.com/?analysis={analysis_hash}"
+                else:
+                    view_link = ""
+                
                 prediction_data.append({
                     'Prediction Made': pred_time_formatted,
                     'Target Time': target_time_formatted,
@@ -464,7 +571,8 @@ def main():
                     'Predicted Price': f"${predicted_price:,.0f}" if predicted_price else "N/A",
                     'Actual Price': f"${actual_price:,.0f}" if actual_price else "Pending",
                     'Direction': f"↗️ {prob_higher:.0f}% higher / ↘️ {prob_lower:.0f}% lower",
-                    'Accuracy': accuracy_text
+                    'Accuracy': accuracy_text,
+                    'Full Analysis': view_link
                 })
             
             if prediction_data:
@@ -556,7 +664,16 @@ def main():
                     st.subheader("📋 Detailed Prediction History")
                 
                 df_predictions = pd.DataFrame(prediction_data)
-                st.dataframe(df_predictions, use_container_width=True, hide_index=True)
+                st.dataframe(df_predictions, use_container_width=True, hide_index=True, 
+                           column_config={
+                               "Full Analysis": st.column_config.LinkColumn(
+                                   "Full Analysis",
+                                   help="Click to view the complete analysis with charts and indicators",
+                                   validate="^https://.*",
+                                   max_chars=100,
+                                   display_text="📊 View Full Analysis"
+                               )
+                           })
                 
                 if completed_predictions:
                     st.caption(f"Showing {len(prediction_data)} of {total_predictions} predictions")
@@ -616,6 +733,7 @@ def main():
                 probabilities = analysis['probabilities']
                 if isinstance(probabilities, dict):
                     prediction_data = {
+                        'prediction_timestamp': get_eastern_time().isoformat(),
                         'target_datetime': target_datetime.isoformat(),
                         'current_price': float(current_price),
                         'predicted_price': probabilities.get('predicted_price'),
@@ -625,7 +743,18 @@ def main():
                         'technical_summary': analysis.get('technical_summary', ''),
                         'prediction_reasoning': analysis.get('price_prediction', '')
                     }
+                    
+                    # Save complete analysis to database and get hash
+                    full_ai_text = str(analysis)  # Convert entire analysis to string
+                    analysis_hash = analysis_db.save_complete_analysis(
+                        prediction_data, btc_3m, btc_1w, indicators_3m, indicators_1w, full_ai_text
+                    )
+                    
+                    # Also save to legacy JSON system for backward compatibility
                     save_prediction(prediction_data)
+                    
+                    # Store hash in session state for later display
+                    st.session_state.analysis_hash = analysis_hash
             except Exception as e:
                 st.warning(f"Note: Could not save prediction to history: {str(e)}")
         
@@ -948,26 +1077,38 @@ def main():
             st.dataframe(df_indicators, use_container_width=True, hide_index=True)
         
         
+        # Display share link if analysis was saved
+        if 'analysis_hash' in st.session_state and st.session_state.analysis_hash:
+            st.divider()
+            st.subheader("🔗 Save & Share This Analysis")
+            share_url = f"https://predict.thebtccourse.com/?analysis={st.session_state.analysis_hash}"
+            st.success("Analysis saved! Share this link to recall the complete analysis:")
+            st.code(share_url, language="text")
+            st.markdown(f"[📋 Open this analysis link]({share_url})")
+            st.caption("This link will recreate the exact charts, indicators, and AI analysis from this session.")
+        
         # Update timestamp
         st.session_state.last_update = current_time
         
         # Prediction History Section (moved to bottom after analysis)
         st.divider()
         
-        predictions = load_predictions_history()
-        if predictions:
+        # Get predictions from database
+        try:
             # Update any past predictions with current price if their target time has passed
-            try:
-                current_btc_price = btc_1w['Close'].iloc[-1]  # Use already fetched data
-                update_prediction_accuracy(float(current_btc_price))
-                # Reload predictions after potential updates
-                predictions = load_predictions_history()
-            except:
-                pass  # Continue even if we can't update accuracy
+            current_btc_price = btc_1w['Close'].iloc[-1]  # Use already fetched data
+            analysis_db.update_analysis_accuracy(float(current_btc_price))
+            
+            # Get total count for pagination
+            total_predictions = analysis_db.get_total_analyses_count()
+        except Exception as e:
+            st.warning(f"Database connection issue: {str(e)}")
+            total_predictions = 0
+        
+        if total_predictions > 0:
             
             # Pagination setup
             predictions_per_page = 50
-            total_predictions = len(predictions)
             total_pages = max(1, (total_predictions + predictions_per_page - 1) // predictions_per_page)
             
             # Initialize page number in session state
@@ -1003,13 +1144,16 @@ def main():
             
             # Calculate which predictions to show
             start_idx = (st.session_state.prediction_page - 1) * predictions_per_page
-            end_idx = min(start_idx + predictions_per_page, total_predictions)
             
-            # Get predictions for current page (newest first)
-            page_predictions = list(reversed(predictions))[start_idx:end_idx]
+            # Get predictions for current page from database
+            try:
+                predictions = analysis_db.get_recent_analyses(limit=predictions_per_page, offset=start_idx)
+            except Exception as e:
+                st.error(f"Error loading predictions: {str(e)}")
+                predictions = []
             
             prediction_data = []
-            for pred in page_predictions:
+            for pred in predictions:
                 prediction_time = pred.get('prediction_timestamp', '')
                 target_time = pred.get('target_datetime', '')
                 predicted_price = pred.get('predicted_price')
@@ -1038,6 +1182,13 @@ def main():
                     else:
                         accuracy_text = f"❌ Poor ({error_pct:.1f}% error)"
                 
+                # Add hash link for complete analysis view
+                analysis_hash = pred.get('analysis_hash', '')
+                if analysis_hash:
+                    view_link = f"https://predict.thebtccourse.com/?analysis={analysis_hash}"
+                else:
+                    view_link = ""
+                
                 prediction_data.append({
                     'Prediction Made': pred_time_formatted,
                     'Target Time': target_time_formatted,
@@ -1045,7 +1196,8 @@ def main():
                     'Predicted Price': f"${predicted_price:,.0f}" if predicted_price else "N/A",
                     'Actual Price': f"${actual_price:,.0f}" if actual_price else "Pending",
                     'Direction': f"↗️ {prob_higher:.0f}% higher / ↘️ {prob_lower:.0f}% lower",
-                    'Accuracy': accuracy_text
+                    'Accuracy': accuracy_text,
+                    'Full Analysis': view_link
                 })
             
             if prediction_data:
@@ -1137,7 +1289,16 @@ def main():
                     st.subheader("📋 Detailed Prediction History")
                 
                 df_predictions = pd.DataFrame(prediction_data)
-                st.dataframe(df_predictions, use_container_width=True, hide_index=True)
+                st.dataframe(df_predictions, use_container_width=True, hide_index=True, 
+                           column_config={
+                               "Full Analysis": st.column_config.LinkColumn(
+                                   "Full Analysis",
+                                   help="Click to view the complete analysis with charts and indicators",
+                                   validate="^https://.*",
+                                   max_chars=100,
+                                   display_text="📊 View Full Analysis"
+                               )
+                           })
                 
                 if completed_predictions:
                     st.caption(f"Showing {len(prediction_data)} of {total_predictions} predictions")

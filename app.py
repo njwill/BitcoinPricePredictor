@@ -59,6 +59,128 @@ def load_stored_analysis(analysis_hash: str):
             st.rerun()
         return
     
+    # Add same header styling and navigation as main page
+    st.markdown("""
+    <style>
+    /* Header navigation bar */
+    .header-nav {
+        background-color: #FFFFFF;
+        border-bottom: 2px solid #F7931A;
+        padding: 8px 0;
+        margin: -1rem -1rem 1rem -1rem;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 2px 4px rgba(247, 147, 26, 0.1);
+    }
+    
+    .nav-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        gap: 2rem;
+    }
+    
+    .nav-logo {
+        height: 35px;
+        width: auto;
+        transition: opacity 0.2s ease;
+    }
+    
+    .nav-logo:hover {
+        opacity: 0.8;
+    }
+    
+    .nav-links {
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+    }
+    
+    .nav-link {
+        color: #F7931A !important;
+        text-decoration: none !important;
+        font-weight: normal !important;
+        font-size: 0.9rem;
+        padding: 6px 12px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        white-space: nowrap !important;
+    }
+    
+    .nav-link:hover {
+        background-color: #F7931A;
+        color: #FFFFFF !important;
+        text-decoration: none !important;
+        transform: translateY(-1px);
+    }
+    
+    /* Bitcoin symbol styling - official Bitcoin orange */
+    h1:first-letter {
+        color: #F7931A !important;
+    }
+    
+    /* Mobile responsive styling */
+    @media (max-width: 768px) {
+        .nav-container {
+            padding: 0 1rem;
+            gap: 1rem;
+        }
+        
+        .nav-logo {
+            height: 28px;
+        }
+        
+        .nav-links {
+            gap: 1rem;
+        }
+        
+        .nav-link {
+            font-size: 0.8rem !important;
+            padding: 4px 8px !important;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .nav-container {
+            padding: 0 0.5rem;
+            gap: 0.5rem;
+        }
+        
+        .nav-logo {
+            height: 25px;
+        }
+        
+        .nav-links {
+            gap: 0.5rem;
+        }
+        
+        .nav-link {
+            font-size: 0.75rem !important;
+            padding: 3px 6px !important;
+        }
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Header navigation bar
+    st.markdown("""
+    <div class="header-nav">
+        <div class="nav-container">
+            <a href="https://www.thebtccourse.com" target="_blank">
+                <img src="https://www.thebtccourse.com/wp-content/uploads/2023/02/theBTCcourse-logo.png" alt="theBTCcourse Logo" class="nav-logo">
+            </a>
+            <div class="nav-links">
+                <a href="https://www.thebtccourse.com" target="_blank" class="nav-link">↩️ Return Home</a>
+                <a href="https://www.thebtccourse.com/support-me/" target="_blank" class="nav-link">💝 Support Me!</a>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     # Same title and subtitle as main page
     st.title("₿itcoin Analysis Dashboard")
     st.markdown("### Advanced Bitcoin Chart Analysis & Probability Assessments")

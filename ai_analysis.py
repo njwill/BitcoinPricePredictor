@@ -42,7 +42,7 @@ class AIAnalyzer:
 
         # Initialize OpenAI GPT-5 for technical analysis
         self.openai_key = os.getenv("OPENAI_API_KEY", "")
-        self.model_name = os.getenv("GPT5_MODEL", "gpt-5-mini")
+        self.model_name = os.getenv("GPT5_MODEL", "gpt-5-nano")
 
         if not self.openai_key:
             st.error("OpenAI API key not found. Please set OPENAI_API_KEY environment variable.")
@@ -638,12 +638,12 @@ STRICT ANALYSIS RULES:
 - Provide specific, quantified analysis with exact price levels
 - Consider all provided enhanced chart data for deeper insights"""
 
-            # Use GPT-5's new responses API with high reasoning effort for complex analysis
+            # Use GPT-5 Nano with minimal reasoning effort for fast testing
             response = self.gpt5_client.responses.create(
                 model=self.model_name,
                 input=comprehensive_prompt,
-                reasoning={"effort": "high"},  # High reasoning for complex financial analysis
-                text={"verbosity": "high"}    # High verbosity for comprehensive analysis
+                reasoning={"effort": "minimal"},  # Minimal reasoning for fastest response
+                text={"verbosity": "low"}       # Low verbosity for faster processing
             )
 
             # GPT-5 returns output_text instead of choices

@@ -614,7 +614,9 @@ Based on the comprehensive technical analysis above:
 
 1. **Probability HIGHER than ${current_price:,.2f}: [X]%**
 2. **Probability LOWER than ${current_price:,.2f}: [Y]%**
-3. **Confidence Level: [Z]%**
+3. **Overall Analysis Confidence: [Z]%**
+4. **Price Prediction Confidence: [W]%** (how confident in the specific price target)
+5. **Expected % Move: [+/-X.X]%** (percentage change from current price)
 
 **Key Technical Factors Supporting This Assessment:**
 - [List 3-5 specific technical reasons for the prediction]
@@ -697,7 +699,8 @@ STRICT ANALYSIS RULES:
     def _extract_probabilities(self, prediction_text: str) -> Dict[str, Any]:
         """Extract probability percentages and predicted price from prediction text. Returns both fractions and percents."""
         probs = {"higher_fraction": 0.5, "lower_fraction": 0.5, "confidence_fraction": 0.5,
-                 "higher_pct": 50.0, "lower_pct": 50.0, "confidence_pct": 50.0, "predicted_price": None}
+                 "higher_pct": 50.0, "lower_pct": 50.0, "confidence_pct": 50.0, "predicted_price": None,
+                 "price_confidence_pct": 50.0, "move_percentage": 0.0}
         try:
             import re
 
@@ -715,9 +718,22 @@ STRICT ANALYSIS RULES:
                     r"(\d+)%.*?lower",
                 ],
                 "confidence": [
+                    r"overall.*?confidence.*?(\d+)%",
+                    r"analysis.*?confidence.*?(\d+)%",
                     r"confidence.*?(\d+)%",
                     r"(\d+)%.*?confidence",
                     r"confident.*?(\d+)%",
+                ],
+                "price_confidence": [
+                    r"price.*?confidence.*?(\d+)%",
+                    r"price.*?prediction.*?confidence.*?(\d+)%",
+                    r"target.*?confidence.*?(\d+)%",
+                ],
+                "move_percentage": [
+                    r"([+-]?\d+\.?\d*)%.*?move",
+                    r"move.*?([+-]?\d+\.?\d*)%",
+                    r"expected.*?([+-]?\d+\.?\d*)%",
+                    r"change.*?([+-]?\d+\.?\d*)%",
                 ],
                 "predicted_price": [
                     r"predict.*?\$([\d,]+)(?:\.\d+)?",
@@ -730,7 +746,7 @@ STRICT ANALYSIS RULES:
 
             text_lower = prediction_text.lower()
 
-            for key in ["higher", "lower", "confidence", "predicted_price"]:
+            for key in ["higher", "lower", "confidence", "price_confidence", "move_percentage", "predicted_price"]:
                 for pat in patterns[key]:
                     m = re.findall(pat, text_lower, flags=re.IGNORECASE)
                     if m:
@@ -744,8 +760,12 @@ STRICT ANALYSIS RULES:
                                 probs["higher_pct"] = val
                             elif key == "lower":
                                 probs["lower_pct"] = val
-                            else:
+                            elif key == "confidence":
                                 probs["confidence_pct"] = val
+                            elif key == "price_confidence":
+                                probs["price_confidence_pct"] = val
+                            elif key == "move_percentage":
+                                probs["move_percentage"] = val
                         break
 
             # Normalize higher/lower to sum to 100
@@ -753,6 +773,15 @@ STRICT ANALYSIS RULES:
             if total > 0:
                 probs["higher_pct"] = probs["higher_pct"] * 100.0 / total
                 probs["lower_pct"] = probs["lower_pct"] * 100.0 / total
+
+            # Calculate % move if we have predicted price but didn't extract it from text
+            if probs["predicted_price"] and probs["move_percentage"] == 0.0:
+                # Extract current price from prediction text or use a reasonable estimate
+                import re
+                current_price_match = re.search(r'current.*?\$?([\d,]+)', prediction_text.lower())
+                if current_price_match:
+                    current_price = float(current_price_match.group(1).replace(',', ''))
+                    probs["move_percentage"] = ((probs["predicted_price"] - current_price) / current_price) * 100.0
 
             # Fractions 0..1
             probs["higher_fraction"] = probs["higher_pct"] / 100.0

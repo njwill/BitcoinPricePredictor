@@ -84,6 +84,8 @@ class SocialMediaImageGenerator:
         lower_prob = prediction_data.get('probability_lower', 0)
         predicted_price = prediction_data.get('predicted_price')
         confidence_pct = prediction_data.get('confidence_level', 0)
+        price_confidence_pct = prediction_data.get('price_confidence_level', 0)
+        move_percentage = prediction_data.get('move_percentage', 0)
         
         # Determine direction and recommendation
         if higher_prob > lower_prob:
@@ -166,23 +168,30 @@ class SocialMediaImageGenerator:
             
             y_pos += 80
         
-        # Confidence percentage
-        if confidence_pct > 0:
-            conf_text = f"AI Confidence: {confidence_pct:.0f}%"
-            conf_bbox = draw.textbbox((0, 0), conf_text, font=body_font)
-            conf_width = conf_bbox[2] - conf_bbox[0]
-            conf_x = (self.size - conf_width) // 2
-            
-            # Confidence background
-            conf_margin = 25
-            draw.rounded_rectangle([conf_x - conf_margin, y_pos - 10,
-                                   conf_x + conf_width + conf_margin, y_pos + 45],
-                                  radius=20, fill='#E9ECEF', outline=self.text_color, width=2)
-            draw.text((conf_x, y_pos), conf_text, fill=self.text_color, font=body_font)
-            y_pos += 80
+        # Analysis & Price Confidence
+        conf_line1 = f"Analysis: {confidence_pct:.0f}% confident"
+        conf_line2 = f"Price Target: {price_confidence_pct:.0f}% confident" if price_confidence_pct > 0 else ""
         
-        # Probability direction
+        for i, conf_text in enumerate([conf_line1, conf_line2]):
+            if conf_text:
+                conf_bbox = draw.textbbox((0, 0), conf_text, font=small_font)
+                conf_width = conf_bbox[2] - conf_bbox[0]
+                conf_x = (self.size - conf_width) // 2
+                
+                # Confidence background
+                conf_margin = 20
+                draw.rounded_rectangle([conf_x - conf_margin, y_pos - 8,
+                                       conf_x + conf_width + conf_margin, y_pos + 32],
+                                      radius=15, fill='#F8F9FA', outline=self.text_color, width=1)
+                draw.text((conf_x, y_pos), conf_text, fill=self.text_color, font=small_font)
+                y_pos += 45
+        
+        # Probability direction and % move
         prob_text = f"{arrow} {probability:.0f}% chance {direction}"
+        if move_percentage != 0:
+            move_sign = "+" if move_percentage > 0 else ""
+            prob_text += f" ({move_sign}{move_percentage:.1f}%)"
+        
         prob_bbox = draw.textbbox((0, 0), prob_text, font=large_font)
         prob_width = prob_bbox[2] - prob_bbox[0]
         prob_x = (self.size - prob_width) // 2

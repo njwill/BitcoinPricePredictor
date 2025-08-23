@@ -408,38 +408,7 @@ def main():
                         poor_rate = (poor_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
                         st.metric("❌ Poor (>5%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
                     
-                    # Performance insights
-                    if len(completed_predictions) >= 3:
-                        st.divider()
-                        st.subheader("💡 Key Insights")
-                        
-                        insights = []
-                        
-                        # Best performance insight
-                        if very_good_rate >= 50:
-                            insights.append("🎯 **Excellent Performance**: Over half of predictions are within 1.5% accuracy!")
-                        elif accuracy_rate >= 70:
-                            insights.append("✅ **Strong Performance**: High overall accuracy rate above 70%")
-                        elif direction_accuracy >= 80:
-                            insights.append("📈 **Great Direction Calls**: Correctly predicting price direction 80%+ of the time")
-                        
-                        # Improvement areas
-                        if avg_error > 15:
-                            insights.append("⚠️ **Room for Improvement**: Average error is high - consider shorter prediction timeframes")
-                        elif poor_rate > 30:
-                            insights.append("🔧 **Focus Needed**: Many predictions have large errors - review market conditions")
-                        
-                        # Sample size insights
-                        if len(completed_predictions) < 10:
-                            insights.append("📊 **Building Track Record**: Need more completed predictions for reliable performance metrics")
-                        elif len(completed_predictions) >= 20:
-                            insights.append("📈 **Strong Sample Size**: Sufficient prediction history for reliable accuracy assessment")
-                        
-                        if insights:
-                            for insight in insights:
-                                st.markdown(f"• {insight}")
-                        else:
-                            st.markdown("• 📊 **Steady Performance**: Consistent prediction accuracy across different market conditions")
+
                     
                     st.divider()
                     st.subheader("📋 Detailed Prediction History")
@@ -1014,38 +983,7 @@ def main():
                         poor_rate = (poor_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
                         st.metric("❌ Poor (>5%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
                     
-                    # Performance insights
-                    if len(completed_predictions) >= 3:
-                        st.divider()
-                        st.subheader("💡 Key Insights")
-                        
-                        insights = []
-                        
-                        # Best performance insight
-                        if very_good_rate >= 50:
-                            insights.append("🎯 **Excellent Performance**: Over half of predictions are within 1.5% accuracy!")
-                        elif accuracy_rate >= 70:
-                            insights.append("✅ **Strong Performance**: High overall accuracy rate above 70%")
-                        elif direction_accuracy >= 80:
-                            insights.append("📈 **Great Direction Calls**: Correctly predicting price direction 80%+ of the time")
-                        
-                        # Improvement areas
-                        if avg_error > 15:
-                            insights.append("⚠️ **Room for Improvement**: Average error is high - consider shorter prediction timeframes")
-                        elif poor_rate > 30:
-                            insights.append("🔧 **Focus Needed**: Many predictions have large errors - review market conditions")
-                        
-                        # Sample size insights
-                        if len(completed_predictions) < 10:
-                            insights.append("📊 **Building Track Record**: Need more completed predictions for reliable performance metrics")
-                        elif len(completed_predictions) >= 20:
-                            insights.append("📈 **Strong Sample Size**: Sufficient prediction history for reliable accuracy assessment")
-                        
-                        if insights:
-                            for insight in insights:
-                                st.markdown(f"• {insight}")
-                        else:
-                            st.markdown("• 📊 **Steady Performance**: Consistent prediction accuracy across different market conditions")
+
                     
                     st.divider()
                     st.subheader("📋 Detailed Prediction History")

@@ -285,16 +285,6 @@ def main():
 
     """, unsafe_allow_html=True)
     
-    # Support popup HTML (with working close functionality)
-    st.markdown("""
-    <div id="supportPopup" class="support-popup" style="display: none;">
-        <button class="support-popup-close" onclick="document.getElementById('supportPopup').style.display='none'">&times;</button>
-        <div class="support-popup-content">
-            🎯 Enjoying this tool? It costs me about $0.05 per analysis and I want to keep it free, so showing some support would be awesome!
-        </div>
-        <a href="https://www.thebtccourse.com/support-me/" target="_blank" class="support-popup-link">💝 Show Support</a>
-    </div>
-    """, unsafe_allow_html=True)
 
     # Header navigation bar
     st.markdown("""
@@ -374,6 +364,17 @@ def main():
     st.write("")  # Add some space
     st.markdown("*By clicking \"Analyze Bitcoin\" you're agreeing this is not financial advice, pure entertainment purposes only*")
     analyze_button = st.button("🚀 **Analyze Bitcoin**", type="primary", use_container_width=True)
+    
+    # Check if we should show support message after analysis
+    if 'analysis_completed_time' in st.session_state and st.session_state.analysis_completed_time:
+        import time
+        time_since_analysis = time.time() - st.session_state.analysis_completed_time
+        if time_since_analysis >= 7 and time_since_analysis <= 60:  # Show for up to 60 seconds
+            st.info("🎯 **Enjoying this tool?** It costs me about $0.05 per analysis and I want to keep it free, so [showing some support](https://www.thebtccourse.com/support-me/) would be awesome!")
+            # Clear the flag after showing once
+            if st.button("✕ Close", key="close_support"):
+                st.session_state.analysis_completed_time = None
+                st.rerun()
     
     # Show Prediction History ONLY on front page (when not analyzing)
     if not analyze_button:
@@ -679,18 +680,19 @@ def main():
         else:
             st.success(f"📊 Fresh analysis completed at {current_time_str} ET")
             
-            # Set session state to show popup after delay
-            if 'show_support_popup' not in st.session_state:
-                st.session_state.show_support_popup = False
+            # Set flag to trigger support message
+            if 'analysis_completed_time' not in st.session_state:
+                st.session_state.analysis_completed_time = None
+                
+            # Record when analysis completed
+            st.session_state.analysis_completed_time = time.time()
             
-            st.session_state.show_support_popup = True
-            
-            # Simple JavaScript to show popup after delay
-            st.markdown(f"""
+            # Auto-refresh after 7 seconds to show support message
+            st.markdown("""
             <script>
-                setTimeout(function() {{
-                    document.getElementById('supportPopup').style.display = 'block';
-                }}, 7000);
+            setTimeout(function() {
+                window.location.reload();
+            }, 7000);
             </script>
             """, unsafe_allow_html=True)
         

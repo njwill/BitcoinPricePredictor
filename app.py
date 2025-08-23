@@ -62,6 +62,11 @@ def load_stored_analysis(analysis_hash: str):
     # Add same header styling and navigation as main page
     st.markdown("""
     <style>
+    /* Hide problematic Streamlit class */
+    .st-emotion-cache-13892zc {
+        display: none !important;
+    }
+    
     /* Header navigation bar */
     .header-nav {
         background-color: #FFFFFF;

@@ -664,7 +664,7 @@ def main():
             
             # Create base message with prediction
             predicted_price_text = f" Predicted price: **${predicted_price:,.0f}**." if predicted_price else ""
-            analysis_message = f"Based on fresh analysis at {current_time_str} ET, Bitcoin has a {probability:.0%} chance of being {direction} by {target_formatted}.{predicted_price_text} Recommendation: {recommendation}"
+            analysis_message = f"Based on fresh analysis at {current_time_str} ET, Bitcoin has a **{probability:.0%} chance of being {direction}** by {target_formatted}.{predicted_price_text} Recommendation: {recommendation}"
             st.info(f"📊 {analysis_message}")
         else:
             st.success(f"📊 Fresh analysis completed at {current_time_str} ET")

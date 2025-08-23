@@ -285,32 +285,15 @@ def main():
 
     """, unsafe_allow_html=True)
     
-    # Support popup HTML (hidden by default)
+    # Support popup HTML (with working close functionality)
     st.markdown("""
-    <div id="supportPopup" class="support-popup">
-        <button class="support-popup-close" onclick="closeSupportPopup()">&times;</button>
+    <div id="supportPopup" class="support-popup" style="display: none;">
+        <button class="support-popup-close" onclick="document.getElementById('supportPopup').style.display='none'">&times;</button>
         <div class="support-popup-content">
             🎯 Enjoying this tool? It costs me about $0.05 per analysis and I want to keep it free, so showing some support would be awesome!
         </div>
         <a href="https://www.thebtccourse.com/support-me/" target="_blank" class="support-popup-link">💝 Show Support</a>
     </div>
-    
-    <script>
-    function showSupportPopup() {
-        document.getElementById('supportPopup').style.display = 'block';
-    }
-    
-    function closeSupportPopup() {
-        document.getElementById('supportPopup').style.display = 'none';
-    }
-    
-    // Function to trigger popup after analysis
-    function triggerSupportPopupDelay() {
-        setTimeout(function() {
-            showSupportPopup();
-        }, 7000);
-    }
-    </script>
     """, unsafe_allow_html=True)
 
     # Header navigation bar
@@ -696,10 +679,18 @@ def main():
         else:
             st.success(f"📊 Fresh analysis completed at {current_time_str} ET")
             
-            # Trigger support popup after 7 seconds
-            st.markdown("""
+            # Set session state to show popup after delay
+            if 'show_support_popup' not in st.session_state:
+                st.session_state.show_support_popup = False
+            
+            st.session_state.show_support_popup = True
+            
+            # Simple JavaScript to show popup after delay
+            st.markdown(f"""
             <script>
-            triggerSupportPopupDelay();
+                setTimeout(function() {{
+                    document.getElementById('supportPopup').style.display = 'block';
+                }}, 7000);
             </script>
             """, unsafe_allow_html=True)
         

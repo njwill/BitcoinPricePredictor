@@ -473,7 +473,7 @@ def main():
                 recommendation = "**Hold**"
             
             # Create base message with prediction
-            predicted_price_text = f" **Predicted price:** ${predicted_price:,.0f}." if predicted_price else ""
+            predicted_price_text = f" Predicted price: **${predicted_price:,.0f}**." if predicted_price else ""
             analysis_message = f"Based on fresh analysis at {current_time_str} ET, Bitcoin has a {probability:.0%} chance of being {direction} by {target_formatted}.{predicted_price_text} Recommendation: {recommendation}"
             st.info(f"📊 {analysis_message}")
         else:
@@ -951,7 +951,7 @@ def main():
         
         # Footer with last update info
         st.divider()
-        st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: GPT-5 Nano")
+        st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: GPT-5")
         
     except Exception as e:
         st.error(f"❌ An error occurred: {str(e)}")

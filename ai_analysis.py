@@ -6,12 +6,17 @@ from datetime import datetime, timedelta
 import pytz
 import streamlit as st
 from typing import Dict, Any, Optional
-from anthropic import Anthropic
+# Using GPT-5 for enhanced Bitcoin analysis
+# GPT-5 is the most intelligent model yet, trained to be especially proficient in:
+# - Code generation, bug fixing, and refactoring
+# - Instruction following
+# - Long context and tool calling
+from openai import OpenAI
 
 
 class AIAnalyzer:
     """
-    Handles AI-powered analysis using Anthropic Claude.
+    Handles AI-powered analysis using OpenAI GPT-5.
 
     Expects:
       - data_3m, data_1w: pandas.DataFrame with columns ['Open','High','Low','Close','Volume'].
@@ -23,8 +28,8 @@ class AIAnalyzer:
         (e.g., 'RSI','MACD','MACD_Signal','BB_Upper','BB_Lower','BB_Middle','EMA_20','SMA_50','SMA_200').
 
     Config via environment:
-      - ANTHROPIC_API_KEY: required
-      - ANTHROPIC_MODEL: optional (default: "claude-sonnet-4-20250514")
+      - OPENAI_API_KEY: required
+      - GPT5_MODEL: optional (default: "gpt-5")
       - AI_ANALYZER_DEBUG: "1" to enable verbose Streamlit debug boxes
     """
 
@@ -35,15 +40,15 @@ class AIAnalyzer:
         else:
             self.debug = bool(debug)
 
-        # Initialize Anthropic (Claude) for technical analysis
-        self.anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
-        self.model_name = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514")
+        # Initialize OpenAI GPT-5 for technical analysis
+        self.openai_key = os.getenv("OPENAI_API_KEY", "")
+        self.model_name = os.getenv("GPT5_MODEL", "gpt-5")
 
-        if not self.anthropic_key:
-            st.error("Anthropic API key not found. Please set ANTHROPIC_API_KEY environment variable.")
-            self.claude_client = None
+        if not self.openai_key:
+            st.error("OpenAI API key not found. Please set OPENAI_API_KEY environment variable.")
+            self.gpt5_client = None
         else:
-            self.claude_client = Anthropic(api_key=self.anthropic_key)
+            self.gpt5_client = OpenAI(api_key=self.openai_key)
 
     # ---------- public API ----------
 
@@ -70,15 +75,15 @@ class AIAnalyzer:
         Returns:
             Dict with keys: technical_summary, price_prediction, probabilities, timestamp
         """
-        if not self.claude_client:
-            return {"error": "Claude client not initialized"}
+        if not self.gpt5_client:
+            return {"error": "GPT-5 client not initialized"}
 
         try:
             analysis_data = self._prepare_analysis_data(
                 data_3m, data_1w, indicators_3m, indicators_1w, current_price, target_datetime
             )
 
-            comprehensive_response = self._generate_technical_analysis_claude(analysis_data)
+            comprehensive_response = self._generate_technical_analysis_gpt5(analysis_data)
             parsed = self._parse_comprehensive_response(comprehensive_response)
             probs = self._extract_probabilities(parsed.get("price_prediction", ""))
 
@@ -512,11 +517,11 @@ class AIAnalyzer:
         target = current_time + timedelta(days=days_ahead)
         return target.replace(hour=16, minute=0, second=0, microsecond=0)
 
-    def _generate_technical_analysis_claude(self, analysis_data: Dict[str, Any]) -> str:
-        """Generate technical analysis and price prediction using Claude."""
+    def _generate_technical_analysis_gpt5(self, analysis_data: Dict[str, Any]) -> str:
+        """Generate technical analysis and price prediction using GPT-5."""
         try:
-            if not self.claude_client:
-                return "Error: Claude client not initialized"
+            if not self.gpt5_client:
+                return "Error: GPT-5 client not initialized"
 
             current_price = analysis_data.get("current_price", 0.0)
             data_3m = analysis_data.get("data_3m", {})
@@ -532,126 +537,123 @@ class AIAnalyzer:
 
             # Helpful debug hints (gated)
             if "enhanced_chart_data" in analysis_data and analysis_data["enhanced_chart_data"].get("3m_data"):
-                claude_3m_high = analysis_data["enhanced_chart_data"]["3m_data"]["period_highs_lows"]["period_high"]
-                claude_3m_low = analysis_data["enhanced_chart_data"]["3m_data"]["period_highs_lows"]["period_low"]
+                gpt5_3m_high = analysis_data["enhanced_chart_data"]["3m_data"]["period_highs_lows"]["period_high"]
+                gpt5_3m_low = analysis_data["enhanced_chart_data"]["3m_data"]["period_highs_lows"]["period_low"]
 
             if "enhanced_chart_data" in analysis_data and analysis_data["enhanced_chart_data"].get("1w_data"):
-                claude_1w_high = analysis_data["enhanced_chart_data"]["1w_data"]["period_highs_lows"]["period_high"]
-                claude_1w_low = analysis_data["enhanced_chart_data"]["1w_data"]["period_highs_lows"]["period_low"]
+                gpt5_1w_high = analysis_data["enhanced_chart_data"]["1w_data"]["period_highs_lows"]["period_high"]
+                gpt5_1w_low = analysis_data["enhanced_chart_data"]["1w_data"]["period_highs_lows"]["period_low"]
 
-            
+            # Enhanced prompt for GPT-5's advanced reasoning capabilities
+            comprehensive_prompt = f"""You are a professional Bitcoin analyst providing comprehensive technical analysis and price predictions. Today is {current_date}. The data provided covers ONLY {start_date} through {end_date}. DO NOT REFERENCE ANY DATES OUTSIDE THIS RANGE.
 
-            comprehensive_prompt = f"""
-            CRITICAL: Today is {current_date}. The data provided covers ONLY {start_date} through {end_date}.
-            DO NOT REFERENCE ANY DATES OUTSIDE THIS RANGE.
+Bitcoin's current price is ${current_price:,.2f}. Always use ${current_price:,.2f} when referring to Bitcoin's current price.
 
-            Bitcoin's current price is ${current_price:,.2f}.
-            Always use ${current_price:,.2f} when referring to Bitcoin's current price.
+PRICE PERFORMANCE:
+• 3-month change: {analysis_data.get('data_3m', {}).get('price_change_3m', 0):+.2f}%
+• 1-week change: {analysis_data.get('data_1w', {}).get('price_change_1w', 0):+.2f}%
 
-            PRICE PERFORMANCE:
-            • 3-month change: {analysis_data.get('data_3m', {}).get('price_change_3m', 0):+.2f}%
-            • 1-week change: {analysis_data.get('data_1w', {}).get('price_change_1w', 0):+.2f}%
+TECHNICAL INDICATORS SUMMARY:
+{json.dumps(analysis_data.get('indicators', {}), indent=2)}
 
-            TECHNICAL INDICATORS SUMMARY:
-            {json.dumps(analysis_data.get('indicators', {}), indent=2)}
+ENHANCED CHART DATA:
+{json.dumps(enhanced_data, indent=2) if enhanced_data else 'No enhanced data available'}
 
-            Provide analysis in three sections:
+Provide analysis in these exact sections:
 
-            [TECHNICAL_ANALYSIS_START]
-            **COMPREHENSIVE TECHNICAL ANALYSIS**
+[TECHNICAL_ANALYSIS_START]
+**COMPREHENSIVE TECHNICAL ANALYSIS**
 
-            **Current Price: ${current_price:,.2f}**
+**Current Price: ${current_price:,.2f}**
 
-            **1. MULTI-TIMEFRAME OVERVIEW**
-            - 3-Month Chart Analysis: [Trend, key levels, patterns]
-            - 1-Week Chart Analysis: [Trend, key levels, patterns]
-            - Timeframe Alignment: [How they agree or conflict]
+**1. MULTI-TIMEFRAME OVERVIEW**
+- 3-Month Chart Analysis: [Trend, key levels, patterns]
+- 1-Week Chart Analysis: [Trend, key levels, patterns] 
+- Timeframe Alignment: [How they agree or conflict]
 
-            **2. TECHNICAL INDICATORS ANALYSIS**
-            - RSI Analysis: [3M vs 1W RSI, overbought/oversold, divergences]
-            - MACD Analysis: [Signal line crossovers, histogram, divergences]
-            - Bollinger Bands: [Position relative to bands, squeeze/expansion]
-            - EMA Analysis: [20-period trends, price above/below]
+**2. TECHNICAL INDICATORS ANALYSIS**
+- RSI Analysis: [3M vs 1W RSI, overbought/oversold, divergences]
+- MACD Analysis: [Signal line crossovers, histogram, divergences]
+- Bollinger Bands: [Position relative to bands, squeeze/expansion]
+- EMA Analysis: [20-period trends, price above/below]
 
-            **3. ADVANCED PATTERN ANALYSIS**
-            - Chart Patterns: [Triangles, head & shoulders, flags, wedges]
-            - Candlestick Patterns: [Recent significant patterns]
-            - Support/Resistance: [Key levels identified from price action]
+**3. ADVANCED PATTERN ANALYSIS**
+- Chart Patterns: [Triangles, head & shoulders, flags, wedges]
+- Candlestick Patterns: [Recent significant patterns]
+- Support/Resistance: [Key levels identified from price action]
 
-            **4. DIVERGENCE ANALYSIS**
-            - Price vs RSI Divergences: [Bullish or bearish divergences]
-            - Price vs MACD Divergences: [Hidden or regular divergences]
-            - Volume Divergences: [If volume data conflicts with price]
+**4. DIVERGENCE ANALYSIS**
+- Price vs RSI Divergences: [Bullish or bearish divergences]
+- Price vs MACD Divergences: [Hidden or regular divergences]
+- Volume Divergences: [If volume data conflicts with price]
 
-            **5. FAILURE SWING ANALYSIS**
-            - RSI Failure Swings: [Bullish/bearish failure swings in RSI]
-            - MACD Failures: [Failed breakouts or breakdowns]
-            - Price Action Failures: [Failed support/resistance tests]
+**5. FAILURE SWING ANALYSIS**
+- RSI Failure Swings: [Bullish/bearish failure swings in RSI]
+- MACD Failures: [Failed breakouts or breakdowns]
+- Price Action Failures: [Failed support/resistance tests]
 
-            **6. TRENDLINE & STRUCTURE**
-            - Primary Trendlines: [Major ascending/descending lines]
-            - Support Levels: [Key horizontal and trend support]
-            - Resistance Levels: [Key horizontal and trend resistance]
-            - Market Structure: [Higher highs/lows, lower highs/lows]
+**6. TRENDLINE & STRUCTURE**
+- Primary Trendlines: [Major ascending/descending lines]
+- Support Levels: [Key horizontal and trend support]
+- Resistance Levels: [Key horizontal and trend resistance]
+- Market Structure: [Higher highs/lows, lower highs/lows]
 
-            **7. TRADING RECOMMENDATION**
-            - Overall Bias: **[BULLISH/BEARISH/NEUTRAL]**
-            - Entry Strategy: [Specific entry points and conditions]
-            - Stop Loss: [Risk management levels]
-            - Target Levels: [Profit-taking areas]
-            [TECHNICAL_ANALYSIS_END]
+**7. TRADING RECOMMENDATION**
+- Overall Bias: **[BULLISH/BEARISH/NEUTRAL]**
+- Entry Strategy: [Specific entry points and conditions]
+- Stop Loss: [Risk management levels]
+- Target Levels: [Profit-taking areas]
+[TECHNICAL_ANALYSIS_END]
 
-            [PRICE_PREDICTION_START]
-            **PRICE PREDICTION for {target_datetime_formatted}**
+[PRICE_PREDICTION_START]
+**PRICE PREDICTION for {target_datetime_formatted}**
 
-            Based on the comprehensive technical analysis above:
+Based on the comprehensive technical analysis above:
 
-            **PREDICTED PRICE: I predict Bitcoin will be at $[XX,XXX] on {target_datetime_formatted}**
+**PREDICTED PRICE: I predict Bitcoin will be at $[XX,XXX] on {target_datetime_formatted}**
 
-            1. **Probability HIGHER than ${current_price:,.2f}: [X]%**
-            2. **Probability LOWER than ${current_price:,.2f}: [Y]%**
-            3. **Confidence Level: [Z]%**
+1. **Probability HIGHER than ${current_price:,.2f}: [X]%**
+2. **Probability LOWER than ${current_price:,.2f}: [Y]%**
+3. **Confidence Level: [Z]%**
 
-            **Key Technical Factors Supporting This Assessment:**
-            - [List 3-5 specific technical reasons for the prediction]
+**Key Technical Factors Supporting This Assessment:**
+- [List 3-5 specific technical reasons for the prediction]
 
-            **Potential Price Targets:**
-            - Upside Target 1: $[amount] (reasoning)
-            - Upside Target 2: $[amount] (reasoning)
-            - Downside Target 1: $[amount] (reasoning)
-            - Downside Target 2: $[amount] (reasoning)
+**Potential Price Targets:**
+- Upside Target 1: $[amount] (reasoning)
+- Upside Target 2: $[amount] (reasoning)
+- Downside Target 1: $[amount] (reasoning)
+- Downside Target 2: $[amount] (reasoning)
 
-            **Critical Levels to Watch:**
-            - Bullish above: $[level]
-            - Bearish below: $[level]
+**Critical Levels to Watch:**
+- Bullish above: $[level]
+- Bearish below: $[level]
 
-            [PRICE_PREDICTION_END]
+[PRICE_PREDICTION_END]
 
-            STRICT ANALYSIS RULES:
-            - ONLY analyze data from {start_date} to {end_date}
-            - Use ONLY the actual dates provided in the chart data arrays
-            - Probabilities must sum to 100% (internal instruction - do not print this)
-            """
+STRICT ANALYSIS RULES:
+- ONLY analyze data from {start_date} to {end_date}
+- Use ONLY the actual dates provided in the chart data arrays
+- Probabilities must sum to 100% (internal instruction - do not print this)
+- Provide specific, quantified analysis with exact price levels
+- Consider all provided enhanced chart data for deeper insights"""
 
-            response = self.claude_client.messages.create(
+            # Use GPT-5's new responses API with high reasoning effort for complex analysis
+            response = self.gpt5_client.responses.create(
                 model=self.model_name,
-                max_tokens=2500,
-                temperature=0.3,
-                system="You are a professional Bitcoin analyst providing comprehensive, consistent analysis across technical, predictive, and market perspectives.",
-                messages=[{"role": "user", "content": comprehensive_prompt}],
+                input=comprehensive_prompt,
+                reasoning={"effort": "high"},  # High reasoning for complex financial analysis
+                text={"verbosity": "high"}    # High verbosity for comprehensive analysis
             )
 
-            # Anthropic python SDK returns content items; pick first text block if available
-            content = response.content
-            ai_response = content[0].text if content and hasattr(content[0], "text") else str(content[0])
-
-            return ai_response
+            # GPT-5 returns output_text instead of choices
+            return response.output_text
 
         except Exception as e:
             return f"Error generating technical analysis: {str(e)}"
 
     def _parse_comprehensive_response(self, response: str) -> Dict[str, str]:
-        """Parse Anthropic response into sections."""
+        """Parse GPT-5 response into sections."""
         try:
             sections: Dict[str, str] = {}
 

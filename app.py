@@ -218,7 +218,238 @@ def main():
     target_datetime = datetime.combine(selected_date, selected_time)
     target_datetime = eastern_tz.localize(target_datetime)
     
-    # Analyze button (moved here, right after target selection)
+    # Prediction History Section (always visible on front page)
+    st.divider()
+    st.subheader("📊 Prediction History")
+    
+    predictions = load_predictions_history()
+    if predictions:
+        # Update any past predictions with current price if their target time has passed
+        try:
+            # Get current Bitcoin price for accuracy updates
+            data_fetcher = BitcoinDataFetcher()
+            btc_data = data_fetcher.get_bitcoin_data(period='1d')
+            if not btc_data.empty:
+                current_btc_price = btc_data['Close'].iloc[-1]
+                update_prediction_accuracy(float(current_btc_price))
+                # Reload predictions after potential updates
+                predictions = load_predictions_history()
+        except:
+            pass  # Continue even if we can't update accuracy
+        
+        # Pagination setup
+        predictions_per_page = 50
+        total_predictions = len(predictions)
+        total_pages = max(1, (total_predictions + predictions_per_page - 1) // predictions_per_page)
+        
+        # Initialize page number in session state
+        if 'prediction_page' not in st.session_state:
+            st.session_state.prediction_page = 1
+        
+        # Page navigation
+        if total_pages > 1:
+            col1, col2, col3, col4, col5 = st.columns([1, 1, 2, 1, 1])
+            
+            with col1:
+                if st.button("⬅️ Previous", disabled=(st.session_state.prediction_page <= 1)):
+                    st.session_state.prediction_page = max(1, st.session_state.prediction_page - 1)
+                    st.rerun()
+            
+            with col2:
+                if st.button("⏮️ First", disabled=(st.session_state.prediction_page <= 1)):
+                    st.session_state.prediction_page = 1
+                    st.rerun()
+            
+            with col3:
+                st.write(f"**Page {st.session_state.prediction_page} of {total_pages}**")
+            
+            with col4:
+                if st.button("⏭️ Last", disabled=(st.session_state.prediction_page >= total_pages)):
+                    st.session_state.prediction_page = total_pages
+                    st.rerun()
+            
+            with col5:
+                if st.button("Next ➡️", disabled=(st.session_state.prediction_page >= total_pages)):
+                    st.session_state.prediction_page = min(total_pages, st.session_state.prediction_page + 1)
+                    st.rerun()
+        
+        # Calculate which predictions to show
+        start_idx = (st.session_state.prediction_page - 1) * predictions_per_page
+        end_idx = min(start_idx + predictions_per_page, total_predictions)
+        
+        # Get predictions for current page (newest first)
+        page_predictions = list(reversed(predictions))[start_idx:end_idx]
+        
+        prediction_data = []
+        for pred in page_predictions:
+            prediction_time = pred.get('prediction_timestamp', '')
+            target_time = pred.get('target_datetime', '')
+            predicted_price = pred.get('predicted_price')
+            current_price_at_pred = pred.get('current_price_at_prediction')
+            actual_price = pred.get('actual_price')
+            prob_higher = pred.get('probability_higher', 0)
+            prob_lower = pred.get('probability_lower', 0)
+            
+            try:
+                pred_time_formatted = datetime.fromisoformat(prediction_time).strftime('%Y-%m-%d %H:%M')
+                target_time_formatted = datetime.fromisoformat(target_time).strftime('%Y-%m-%d %H:%M')
+            except:
+                pred_time_formatted = prediction_time
+                target_time_formatted = target_time
+            
+            # Calculate accuracy if we have actual price
+            accuracy_text = "Pending"
+            if actual_price is not None and predicted_price is not None:
+                error_pct = abs(actual_price - predicted_price) / predicted_price * 100
+                if error_pct <= 5:
+                    accuracy_text = f"✅ Very Good ({error_pct:.1f}% error)"
+                elif error_pct <= 10:
+                    accuracy_text = f"✅ Good ({error_pct:.1f}% error)"
+                elif error_pct <= 20:
+                    accuracy_text = f"⚠️ Fair ({error_pct:.1f}% error)"
+                else:
+                    accuracy_text = f"❌ Poor ({error_pct:.1f}% error)"
+            
+            prediction_data.append({
+                'Prediction Made': pred_time_formatted,
+                'Target Time': target_time_formatted,
+                'Price at Prediction': f"${current_price_at_pred:,.0f}" if current_price_at_pred else "N/A",
+                'Predicted Price': f"${predicted_price:,.0f}" if predicted_price else "N/A",
+                'Actual Price': f"${actual_price:,.0f}" if actual_price else "Pending",
+                'Direction': f"↗️ {prob_higher:.0f}% higher / ↘️ {prob_lower:.0f}% lower",
+                'Accuracy': accuracy_text
+            })
+        
+        if prediction_data:
+            # Prediction Dashboard Analytics (above the table)
+            completed_predictions = [p for p in predictions if p.get('actual_price') is not None]
+            if completed_predictions:
+                st.subheader("📈 Prediction Performance Dashboard")
+                
+                # Calculate comprehensive metrics
+                errors = []
+                direction_correct = 0
+                very_good_predictions = 0
+                good_predictions = 0
+                fair_predictions = 0
+                poor_predictions = 0
+                
+                for pred in completed_predictions:
+                    if pred.get('predicted_price') and pred.get('actual_price'):
+                        predicted = pred['predicted_price']
+                        actual = pred['actual_price']
+                        current_at_pred = pred.get('current_price_at_prediction', predicted)
+                        
+                        # Calculate error percentage
+                        error_pct = abs(actual - predicted) / predicted * 100
+                        errors.append(error_pct)
+                        
+                        # Check direction accuracy
+                        predicted_direction = "up" if predicted > current_at_pred else "down"
+                        actual_direction = "up" if actual > current_at_pred else "down"
+                        if predicted_direction == actual_direction:
+                            direction_correct += 1
+                        
+                        # Categorize accuracy
+                        if error_pct <= 5:
+                            very_good_predictions += 1
+                        elif error_pct <= 10:
+                            good_predictions += 1
+                        elif error_pct <= 20:
+                            fair_predictions += 1
+                        else:
+                            poor_predictions += 1
+                
+                # Main dashboard metrics
+                col1, col2, col3, col4, col5 = st.columns(5)
+                
+                with col1:
+                    st.metric("Total Predictions", len(predictions))
+                
+                with col2:
+                    st.metric("Completed", len(completed_predictions))
+                
+                with col3:
+                    accuracy_rate = ((very_good_predictions + good_predictions) / len(completed_predictions)) * 100 if completed_predictions else 0
+                    st.metric("Accuracy Rate (≤10%)", f"{accuracy_rate:.0f}%")
+                
+                with col4:
+                    direction_accuracy = (direction_correct / len(completed_predictions)) * 100 if completed_predictions else 0
+                    st.metric("Direction Accuracy", f"{direction_accuracy:.0f}%")
+                
+                with col5:
+                    avg_error = sum(errors) / len(errors) if errors else 0
+                    st.metric("Avg Error", f"{avg_error:.1f}%")
+                
+                # Detailed accuracy breakdown
+                st.divider()
+                st.subheader("🎯 Accuracy Breakdown")
+                
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    very_good_rate = (very_good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                    st.metric("✅ Very Good (≤5%)", f"{very_good_rate:.0f}%", help=f"{very_good_predictions} predictions")
+                
+                with col2:
+                    good_rate = (good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                    st.metric("✅ Good (5-10%)", f"{good_rate:.0f}%", help=f"{good_predictions} predictions")
+                
+                with col3:
+                    fair_rate = (fair_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                    st.metric("⚠️ Fair (10-20%)", f"{fair_rate:.0f}%", help=f"{fair_predictions} predictions")
+                
+                with col4:
+                    poor_rate = (poor_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                    st.metric("❌ Poor (>20%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
+                
+                # Performance insights
+                if len(completed_predictions) >= 3:
+                    st.divider()
+                    st.subheader("💡 Key Insights")
+                    
+                    insights = []
+                    
+                    # Best performance insight
+                    if very_good_rate >= 50:
+                        insights.append("🎯 **Excellent Performance**: Over half of predictions are within 5% accuracy!")
+                    elif accuracy_rate >= 70:
+                        insights.append("✅ **Strong Performance**: High overall accuracy rate above 70%")
+                    elif direction_accuracy >= 80:
+                        insights.append("📈 **Great Direction Calls**: Correctly predicting price direction 80%+ of the time")
+                    
+                    # Improvement areas
+                    if avg_error > 15:
+                        insights.append("⚠️ **Room for Improvement**: Average error is high - consider shorter prediction timeframes")
+                    elif poor_rate > 30:
+                        insights.append("🔧 **Focus Needed**: Many predictions have large errors - review market conditions")
+                    
+                    # Sample size insights
+                    if len(completed_predictions) < 10:
+                        insights.append("📊 **Building Track Record**: Need more completed predictions for reliable performance metrics")
+                    elif len(completed_predictions) >= 20:
+                        insights.append("📈 **Strong Sample Size**: Sufficient prediction history for reliable accuracy assessment")
+                    
+                    if insights:
+                        for insight in insights:
+                            st.markdown(f"• {insight}")
+                    else:
+                        st.markdown("• 📊 **Steady Performance**: Consistent prediction accuracy across different market conditions")
+                
+                st.divider()
+                st.subheader("📋 Detailed Prediction History")
+            
+            df_predictions = pd.DataFrame(prediction_data)
+            st.dataframe(df_predictions, use_container_width=True, hide_index=True)
+            
+            if completed_predictions:
+                st.caption(f"Showing {len(prediction_data)} of {total_predictions} predictions")
+        else:
+            st.info("No predictions to display on this page.")
+    else:
+        st.info("No prediction history available. Make your first prediction below!")
+    
+    # Analyze button (moved here, after prediction history)
     st.write("")  # Add some space
     analyze_button = st.button("🚀 **Analyze Bitcoin**", type="primary", use_container_width=True)
     

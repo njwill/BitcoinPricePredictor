@@ -615,9 +615,8 @@ def main():
         current_time = get_eastern_time()
         st.session_state.last_update = current_time
         
-        # Display the selected target (only after analysis starts)
+        # Format target for later use
         target_formatted = target_datetime.strftime('%A, %B %d, %Y at %I:%M %p ET')
-        st.info(f"📊 Prediction target: **{target_formatted}**")
         
         # Save prediction to history (if analysis contains prediction data)
         if analysis and isinstance(analysis, dict) and 'probabilities' in analysis:

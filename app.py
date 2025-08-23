@@ -572,11 +572,13 @@ def main():
             )
         
         with col2:
-            weekly_high = btc_1w['High'].max()
+            # Get only the last 7 days (168 hours) for accurate weekly high/low
+            last_7_days = btc_1w.tail(168)  # 7 days * 24 hours = 168 data points
+            weekly_high = last_7_days['High'].max()
             st.metric("High Last 7 Days", format_currency(weekly_high))
         
         with col3:
-            weekly_low = btc_1w['Low'].min()
+            weekly_low = last_7_days['Low'].min()
             st.metric("Low Last 7 Days", format_currency(weekly_low))
         
         st.divider()

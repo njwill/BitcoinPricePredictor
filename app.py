@@ -365,12 +365,6 @@ def main():
     st.markdown("*By clicking \"Analyze Bitcoin\" you're agreeing this is not financial advice, pure entertainment purposes only*")
     analyze_button = st.button("🚀 **Analyze Bitcoin**", type="primary", use_container_width=True)
     
-    # Show support message if flag is set
-    if 'show_support_message' in st.session_state and st.session_state.show_support_message:
-        st.info("🎯 **Enjoying this tool?** It costs me about $0.05 per analysis and I want to keep it free, so [showing some support](https://www.thebtccourse.com/support-me/) would be awesome!")
-        if st.button("✕ Close", key="close_support"):
-            st.session_state.show_support_message = False
-            st.rerun()
     
     # Show Prediction History ONLY on front page (when not analyzing)
     if not analyze_button:
@@ -674,9 +668,10 @@ def main():
             st.info(f"📊 {analysis_message}")
         else:
             st.success(f"📊 Fresh analysis completed at {current_time_str} ET")
-            
-            # Show support message immediately after analysis (skip the delay for now)
-            st.info("🎯 **Enjoying this tool?** It costs me about $0.05 per analysis and I want to keep it free, so [showing some support](https://www.thebtccourse.com/support-me/) would be awesome!")
+        
+        # Show support message after 7-second delay
+        time.sleep(7)
+        st.info("🎯 **Enjoying this tool?** It costs me about $0.05 per analysis and I want to keep it free, so [showing some support](https://www.thebtccourse.com/support-me/) would be awesome!")
         
         # Current price and basic stats
         current_price = btc_1w['Close'].iloc[-1]

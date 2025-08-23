@@ -226,7 +226,6 @@ def main():
     if not analyze_button:
         # Prediction History Section (visible on front page only)
         st.divider()
-        st.subheader("📊 Prediction History")
         
         predictions = load_predictions_history()
         if predictions:
@@ -307,11 +306,11 @@ def main():
                 accuracy_text = "Pending"
                 if actual_price is not None and predicted_price is not None:
                     error_pct = abs(actual_price - predicted_price) / predicted_price * 100
-                    if error_pct <= 5:
+                    if error_pct <= 1.5:
                         accuracy_text = f"✅ Very Good ({error_pct:.1f}% error)"
-                    elif error_pct <= 10:
+                    elif error_pct <= 3.0:
                         accuracy_text = f"✅ Good ({error_pct:.1f}% error)"
-                    elif error_pct <= 20:
+                    elif error_pct <= 5.0:
                         accuracy_text = f"⚠️ Fair ({error_pct:.1f}% error)"
                     else:
                         accuracy_text = f"❌ Poor ({error_pct:.1f}% error)"
@@ -357,11 +356,11 @@ def main():
                                 direction_correct += 1
                             
                             # Categorize accuracy
-                            if error_pct <= 5:
+                            if error_pct <= 1.5:
                                 very_good_predictions += 1
-                            elif error_pct <= 10:
+                            elif error_pct <= 3.0:
                                 good_predictions += 1
-                            elif error_pct <= 20:
+                            elif error_pct <= 5.0:
                                 fair_predictions += 1
                             else:
                                 poor_predictions += 1
@@ -377,7 +376,7 @@ def main():
                     
                     with col3:
                         accuracy_rate = ((very_good_predictions + good_predictions) / len(completed_predictions)) * 100 if completed_predictions else 0
-                        st.metric("Accuracy Rate (≤10%)", f"{accuracy_rate:.0f}%")
+                        st.metric("Accuracy Rate (≤3%)", f"{accuracy_rate:.0f}%")
                     
                     with col4:
                         direction_accuracy = (direction_correct / len(completed_predictions)) * 100 if completed_predictions else 0
@@ -395,19 +394,19 @@ def main():
                     
                     with col1:
                         very_good_rate = (very_good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
-                        st.metric("✅ Very Good (≤5%)", f"{very_good_rate:.0f}%", help=f"{very_good_predictions} predictions")
+                        st.metric("✅ Very Good (≤1.5%)", f"{very_good_rate:.0f}%", help=f"{very_good_predictions} predictions")
                     
                     with col2:
                         good_rate = (good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
-                        st.metric("✅ Good (5-10%)", f"{good_rate:.0f}%", help=f"{good_predictions} predictions")
+                        st.metric("✅ Good (1.5-3%)", f"{good_rate:.0f}%", help=f"{good_predictions} predictions")
                     
                     with col3:
                         fair_rate = (fair_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
-                        st.metric("⚠️ Fair (10-20%)", f"{fair_rate:.0f}%", help=f"{fair_predictions} predictions")
+                        st.metric("⚠️ Fair (3-5%)", f"{fair_rate:.0f}%", help=f"{fair_predictions} predictions")
                     
                     with col4:
                         poor_rate = (poor_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
-                        st.metric("❌ Poor (>20%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
+                        st.metric("❌ Poor (>5%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
                     
                     # Performance insights
                     if len(completed_predictions) >= 3:
@@ -418,7 +417,7 @@ def main():
                         
                         # Best performance insight
                         if very_good_rate >= 50:
-                            insights.append("🎯 **Excellent Performance**: Over half of predictions are within 5% accuracy!")
+                            insights.append("🎯 **Excellent Performance**: Over half of predictions are within 1.5% accuracy!")
                         elif accuracy_rate >= 70:
                             insights.append("✅ **Strong Performance**: High overall accuracy rate above 70%")
                         elif direction_accuracy >= 80:
@@ -828,7 +827,6 @@ def main():
         
         # Prediction History Section (moved to bottom after analysis)
         st.divider()
-        st.subheader("📊 Prediction History")
         
         predictions = load_predictions_history()
         if predictions:
@@ -905,11 +903,11 @@ def main():
                 accuracy_text = "Pending"
                 if actual_price is not None and predicted_price is not None:
                     error_pct = abs(actual_price - predicted_price) / predicted_price * 100
-                    if error_pct <= 5:
+                    if error_pct <= 1.5:
                         accuracy_text = f"✅ Very Good ({error_pct:.1f}% error)"
-                    elif error_pct <= 10:
+                    elif error_pct <= 3.0:
                         accuracy_text = f"✅ Good ({error_pct:.1f}% error)"
-                    elif error_pct <= 20:
+                    elif error_pct <= 5.0:
                         accuracy_text = f"⚠️ Fair ({error_pct:.1f}% error)"
                     else:
                         accuracy_text = f"❌ Poor ({error_pct:.1f}% error)"
@@ -955,11 +953,11 @@ def main():
                                 direction_correct += 1
                             
                             # Categorize accuracy
-                            if error_pct <= 5:
+                            if error_pct <= 1.5:
                                 very_good_predictions += 1
-                            elif error_pct <= 10:
+                            elif error_pct <= 3.0:
                                 good_predictions += 1
-                            elif error_pct <= 20:
+                            elif error_pct <= 5.0:
                                 fair_predictions += 1
                             else:
                                 poor_predictions += 1
@@ -975,7 +973,7 @@ def main():
                     
                     with col3:
                         accuracy_rate = ((very_good_predictions + good_predictions) / len(completed_predictions)) * 100 if completed_predictions else 0
-                        st.metric("Accuracy Rate (≤10%)", f"{accuracy_rate:.0f}%")
+                        st.metric("Accuracy Rate (≤3%)", f"{accuracy_rate:.0f}%")
                     
                     with col4:
                         direction_accuracy = (direction_correct / len(completed_predictions)) * 100 if completed_predictions else 0
@@ -993,19 +991,19 @@ def main():
                     
                     with col1:
                         very_good_rate = (very_good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
-                        st.metric("✅ Very Good (≤5%)", f"{very_good_rate:.0f}%", help=f"{very_good_predictions} predictions")
+                        st.metric("✅ Very Good (≤1.5%)", f"{very_good_rate:.0f}%", help=f"{very_good_predictions} predictions")
                     
                     with col2:
                         good_rate = (good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
-                        st.metric("✅ Good (5-10%)", f"{good_rate:.0f}%", help=f"{good_predictions} predictions")
+                        st.metric("✅ Good (1.5-3%)", f"{good_rate:.0f}%", help=f"{good_predictions} predictions")
                     
                     with col3:
                         fair_rate = (fair_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
-                        st.metric("⚠️ Fair (10-20%)", f"{fair_rate:.0f}%", help=f"{fair_predictions} predictions")
+                        st.metric("⚠️ Fair (3-5%)", f"{fair_rate:.0f}%", help=f"{fair_predictions} predictions")
                     
                     with col4:
                         poor_rate = (poor_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
-                        st.metric("❌ Poor (>20%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
+                        st.metric("❌ Poor (>5%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
                     
                     # Performance insights
                     if len(completed_predictions) >= 3:
@@ -1016,7 +1014,7 @@ def main():
                         
                         # Best performance insight
                         if very_good_rate >= 50:
-                            insights.append("🎯 **Excellent Performance**: Over half of predictions are within 5% accuracy!")
+                            insights.append("🎯 **Excellent Performance**: Over half of predictions are within 1.5% accuracy!")
                         elif accuracy_rate >= 70:
                             insights.append("✅ **Strong Performance**: High overall accuracy rate above 70%")
                         elif direction_accuracy >= 80:

@@ -37,166 +37,6 @@ def get_current_domain():
 def load_stored_analysis(analysis_hash: str):
     """Load and display a stored analysis by hash - use same format as main page"""
     
-    # Add the same CSS styling as main page
-    st.markdown("""
-    <style>
-    /* Completely hide Streamlit header to remove whitespace */
-    .stApp > header {
-        display: none !important;
-    }
-    
-    /* Target the specific header element you found */
-    .stAppHeader {
-        display: none !important;
-    }
-    
-    .stApp {
-        padding-top: 0rem !important;
-        background-color: #FFFFFF !important;
-        color: #262730 !important;
-    }
-    
-    /* Remove all top padding/margins from main content */
-    .block-container {
-        padding-top: 1rem !important;
-        margin-top: 0rem !important;
-    }
-    
-    [data-testid="column"] {
-        position: relative;
-        z-index: 1000;
-    }
-    
-    /* Target only text elements, leave icons untouched */
-    .stMarkdown, .stMarkdown p, .stMarkdown div, .stMarkdown span,
-    .stMetric, .stMetric *,
-    .stDataFrame, .stDataFrame *,
-    h1, h2, h3, h4, h5, h6, p, span {
-        font-family: "Source Sans Pro", sans-serif !important;
-        color: #262730 !important;
-    }
-    
-    /* Navigation header styling */
-    .header-nav {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        background: linear-gradient(135deg, #F7931A, #FF8C00);
-        padding: 10px 0;
-        z-index: 1000;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    .nav-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0 20px;
-    }
-    
-    .nav-logo {
-        height: 40px;
-        width: auto;
-    }
-    
-    .nav-links {
-        display: flex;
-        gap: 20px;
-    }
-    
-    .nav-link {
-        color: white !important;
-        text-decoration: none !important;
-        font-weight: 500;
-        padding: 8px 16px;
-        border-radius: 20px;
-        background: rgba(255, 255, 255, 0.1);
-        transition: all 0.3s ease;
-        font-family: "Source Sans Pro", sans-serif !important;
-    }
-    
-    .nav-link:hover {
-        background: rgba(255, 255, 255, 0.2);
-        color: white !important;
-        text-decoration: none !important;
-    }
-    
-    /* Mobile responsive navigation */
-    @media (max-width: 768px) {
-        .nav-container {
-            padding: 0 15px;
-        }
-        
-        .nav-logo {
-            height: 35px;
-        }
-        
-        .nav-links {
-            gap: 10px;
-        }
-        
-        .nav-link {
-            padding: 6px 12px;
-            font-size: 14px;
-        }
-    }
-    
-    /* Push main content below fixed header */
-    .main .block-container {
-        margin-top: 70px !important;
-        padding-top: 2rem !important;
-    }
-    
-    /* Light theme for charts and content */
-    .js-plotly-plot .plotly .modebar {
-        background: #f8f9fa !important;
-    }
-    
-    .stPlotlyChart {
-        background-color: #ffffff !important;
-        border-radius: 8px;
-        margin: 20px 0;
-    }
-    
-    /* General improvements */
-    .stButton > button {
-        background-color: #f8f9fa;
-        color: #262730;
-        border: 1px solid #dee2e6;
-        border-radius: 4px;
-        font-family: "Source Sans Pro", sans-serif !important;
-    }
-    
-    .stButton > button:hover {
-        background-color: #e9ecef;
-        border-color: #adb5bd;
-    }
-    
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Same header navigation as main page
-    st.markdown("""
-    <div class="header-nav">
-        <div class="nav-container">
-            <a href="https://www.thebtccourse.com" target="_blank">
-                <img src="https://www.thebtccourse.com/wp-content/uploads/2023/02/theBTCcourse-logo.png" alt="theBTCcourse Logo" class="nav-logo">
-            </a>
-            <div class="nav-links">
-                <a href="https://www.thebtccourse.com" target="_blank" class="nav-link">↩️ Return Home</a>
-                <a href="https://www.thebtccourse.com/support-me/" target="_blank" class="nav-link">💝 Support Me!</a>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Same title and subtitle as main page
-    st.title("₿itcoin Analysis Dashboard")
-    st.markdown("### Advanced Bitcoin Chart Analysis & Probability Assessments")
-    
     try:
         # Load the stored analysis data
         result = analysis_db.load_analysis_by_hash(analysis_hash)
@@ -218,6 +58,10 @@ def load_stored_analysis(analysis_hash: str):
             st.query_params.clear()
             st.rerun()
         return
+    
+    # Same title and subtitle as main page
+    st.title("₿itcoin Analysis Dashboard")
+    st.markdown("### Advanced Bitcoin Chart Analysis & Probability Assessments")
     
     # Show analysis details in same format as fresh analysis
     if prediction_data:
@@ -258,52 +102,162 @@ def load_stored_analysis(analysis_hash: str):
         
         st.divider()
     
-    # Display controls same as main page
-    with st.expander("📊 Display Options", expanded=False):
-        show_indicators = st.toggle("Show Technical Indicators", value=True, key="stored_indicators")
-        show_volume = st.toggle("Show Volume", value=True, key="stored_volume")
-    
-    # Initialize chart generator
+    # Initialize chart generator and technical analyzer
     chart_generator = ChartGenerator()
+    technical_analyzer = TechnicalAnalyzer()
     
-    # Charts with same titles as main page
-    st.subheader("📈 3-Month Bitcoin Chart")
-    try:
-        fig_3m = chart_generator.create_comprehensive_chart(
-            btc_3m, 
-            indicators_3m, 
-            title="Bitcoin Price Analysis - 3 Month View",
-            show_indicators=show_indicators,
-            show_volume=show_volume,
-            theme="light"
-        )
-        st.plotly_chart(fig_3m, use_container_width=True)
-    except Exception as e:
-        st.error(f"Error displaying 3-month chart: {str(e)}")
+    # Default chart settings like main page
+    show_indicators = True
+    show_volume = True
     
-    st.subheader("📊 1-Week Bitcoin Chart")
-    try:
-        fig_1w = chart_generator.create_comprehensive_chart(
-            btc_1w, 
-            indicators_1w, 
-            title="Bitcoin Price Analysis - 1 Week View",
-            show_indicators=show_indicators,
-            show_volume=show_volume,
-            theme="light"
-        )
-        st.plotly_chart(fig_1w, use_container_width=True)
-    except Exception as e:
-        st.error(f"Error displaying 1-week chart: {str(e)}")
+    # Chart Generation - Same 2-column layout as main page
+    col1, col2 = st.columns(2, gap="medium")
     
-    # AI analysis in same format as main page
+    with col1:
+        st.subheader("📈 3-Month Bitcoin Chart")
+        st.markdown("<br>", unsafe_allow_html=True)
+        try:
+            display_from_3m = getattr(btc_3m, 'attrs', {}).get('display_from_index', None)
+            fig_3m = chart_generator.create_comprehensive_chart(
+                btc_3m, 
+                indicators_3m, 
+                title="Bitcoin - 3 Month Analysis",
+                show_indicators=show_indicators,
+                show_volume=show_volume,
+                theme="light",
+                display_from_index=display_from_3m
+            )
+            st.plotly_chart(fig_3m, use_container_width=True)
+        except Exception as e:
+            st.error(f"Chart error: {str(e)}")
+    
+    with col2:
+        st.subheader("📊 1-Week Bitcoin Chart")
+        st.markdown("<br>", unsafe_allow_html=True)
+        try:
+            display_from_1w = getattr(btc_1w, 'attrs', {}).get('display_from_index', None)
+            fig_1w = chart_generator.create_comprehensive_chart(
+                btc_1w, 
+                indicators_1w, 
+                title="Bitcoin - 1 Week Analysis",
+                show_indicators=show_indicators,
+                show_volume=show_volume,
+                theme="light",
+                display_from_index=display_from_1w
+            )
+            st.plotly_chart(fig_1w, use_container_width=True)
+        except Exception as e:
+            st.error(f"Chart error: {str(e)}")
+    
+    st.divider()
+    
+    # AI Analysis Section - Same format as main page
+    st.header("🤖 AI-Powered Analysis")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Display AI Analysis Results - same format as main page
     if prediction_data.get('full_ai_analysis'):
-        st.divider()
-        st.subheader("🤖 Complete AI Analysis")
+        # Parse the stored analysis - it should be a string, not a dict
+        full_analysis = prediction_data['full_ai_analysis']
         
-        # Apply same text formatting as main page
-        ai_text = prediction_data['full_ai_analysis']
-        formatted_text = f'<div style="font-family: \'Source Sans Pro\', sans-serif; line-height: 1.6; color: #262730;">{ai_text}</div>'
-        st.markdown(formatted_text, unsafe_allow_html=True)
+        # If it's stored as a dict representation, extract the content
+        if isinstance(full_analysis, dict):
+            technical_summary = full_analysis.get('technical_summary', 'Analysis not available')
+            price_prediction = full_analysis.get('price_prediction', 'Prediction not available')
+        else:
+            # If it's a string, treat it as the technical summary
+            technical_summary = full_analysis
+            price_prediction = 'Prediction not available'
+        
+        col1, col2 = st.columns([2, 1], gap="medium")
+        
+        with col1:
+            st.subheader("📝 Technical Analysis Summary")
+            # Clean and properly format the text same as main page
+            if isinstance(technical_summary, str) and technical_summary.strip():
+                # Remove any problematic characters and ensure proper formatting
+                cleaned_summary = technical_summary.replace('\\n', '\n').strip()
+                
+                # Display the full content using st.write which handles long content better
+                st.write(cleaned_summary)
+            else:
+                st.write("Analysis not available")
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            # Show target date if available
+            target_formatted = "Target Date"
+            if prediction_data.get('target_datetime'):
+                try:
+                    target_dt = datetime.fromisoformat(prediction_data['target_datetime'])
+                    eastern_tz = pytz.timezone('US/Eastern')
+                    if target_dt.tzinfo is not None:
+                        target_dt = target_dt.astimezone(eastern_tz)
+                    target_formatted = target_dt.strftime('%a %b %d, %Y at %I:%M %p ET')
+                except:
+                    target_formatted = prediction_data['target_datetime']
+            
+            st.subheader(f"🎯 {target_formatted} Price Prediction")
+            if isinstance(price_prediction, str) and price_prediction.strip():
+                cleaned_prediction = price_prediction.replace('\\n', '\n').strip()
+                st.write(cleaned_prediction)
+            else:
+                st.write("Prediction not available")
+        
+        with col2:
+            st.subheader("📊 Probability Assessment")
+            
+            # Display probabilities if available
+            higher_prob = prediction_data.get('probability_higher', 0) / 100.0 if prediction_data.get('probability_higher') else 0
+            lower_prob = prediction_data.get('probability_lower', 0) / 100.0 if prediction_data.get('probability_lower') else 0
+            confidence = prediction_data.get('confidence_level', 0) / 100.0 if prediction_data.get('confidence_level') else 0
+            
+            # Probability gauge with theme colors - same as main page
+            gauge_colors = {
+                'bgcolor': '#FFFFFF',
+                'bordercolor': '#262730',
+                'font_color': '#262730'
+            }
+            
+            try:
+                target_dt = datetime.fromisoformat(prediction_data.get('target_datetime', ''))
+                gauge_title = f"Higher by {target_dt.strftime('%A %I:%M %p')} (%)"
+            except:
+                gauge_title = "Higher Probability (%)"
+            
+            fig_gauge = go.Figure(go.Indicator(
+                mode = "gauge+number",
+                value = higher_prob * 100,
+                domain = {'x': [0, 1], 'y': [0, 1]},
+                title = {'text': gauge_title, 'font': {'color': gauge_colors['font_color']}},
+                gauge = {
+                    'axis': {'range': [None, 100], 'tickcolor': gauge_colors['font_color']},
+                    'bar': {'color': "darkgreen"},
+                    'steps': [
+                        {'range': [0, 25], 'color': "lightgray"},
+                        {'range': [25, 50], 'color': "gray"},
+                        {'range': [50, 75], 'color': "lightgreen"},
+                        {'range': [75, 100], 'color': "green"}
+                    ]
+                }
+            ))
+            fig_gauge.update_layout(
+                height=300,
+                paper_bgcolor=gauge_colors['bgcolor'],
+                plot_bgcolor=gauge_colors['bgcolor'],
+                font=dict(color=gauge_colors['font_color'])
+            )
+            st.plotly_chart(fig_gauge, use_container_width=True)
+            
+            # Confidence metrics
+            st.metric("Higher Probability", f"{higher_prob:.1%}")
+            st.metric("Lower Probability", f"{lower_prob:.1%}")
+            st.metric("AI Confidence", f"{confidence:.1%}")
+            
+            # Confidence indicator
+            if confidence >= 0.75:
+                st.success(f"✅ High confidence analysis (≥75%)")
+            else:
+                st.warning(f"⚠️ Lower confidence analysis (<75%)")
     
     # Share link same as main page
     st.divider()

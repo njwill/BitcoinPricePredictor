@@ -670,6 +670,7 @@ def main():
             st.success(f"📊 Fresh analysis completed at {current_time_str} ET")
         
         # Show support message after 7-second delay
+        import time
         time.sleep(7)
         st.info("🎯 **Enjoying this tool?** It costs me about $0.05 per analysis and I want to keep it free, so [showing some support](https://www.thebtccourse.com/support-me/) would be awesome!")
         

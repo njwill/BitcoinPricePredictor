@@ -110,6 +110,17 @@ def load_stored_analysis(analysis_hash: str):
     show_indicators = True
     show_volume = True
     
+    # Calculate correct display_from_index values for stored data
+    # 3-month chart: show last 90 days if we have more data
+    display_from_3m = None
+    if len(btc_3m) > 90:
+        display_from_3m = len(btc_3m) - 90
+    
+    # 1-week chart: show last 168 hours (7 days) if we have more data  
+    display_from_1w = None
+    if len(btc_1w) > 168:
+        display_from_1w = len(btc_1w) - 168
+    
     # Chart Generation - Same 2-column layout as main page
     col1, col2 = st.columns(2, gap="medium")
     
@@ -117,7 +128,6 @@ def load_stored_analysis(analysis_hash: str):
         st.subheader("📈 3-Month Bitcoin Chart")
         st.markdown("<br>", unsafe_allow_html=True)
         try:
-            display_from_3m = getattr(btc_3m, 'attrs', {}).get('display_from_index', None)
             fig_3m = chart_generator.create_comprehensive_chart(
                 btc_3m, 
                 indicators_3m, 
@@ -135,7 +145,6 @@ def load_stored_analysis(analysis_hash: str):
         st.subheader("📊 1-Week Bitcoin Chart")
         st.markdown("<br>", unsafe_allow_html=True)
         try:
-            display_from_1w = getattr(btc_1w, 'attrs', {}).get('display_from_index', None)
             fig_1w = chart_generator.create_comprehensive_chart(
                 btc_1w, 
                 indicators_1w, 

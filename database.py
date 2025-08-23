@@ -95,10 +95,11 @@ class AnalysisDatabase:
         for key, value in indicators.items():
             if isinstance(value, pd.Series):
                 # Convert Series to list, handling NaN values
-                serialized[key] = value.fillna(None).tolist()
+                serialized[key] = value.fillna(value=0).tolist()  # Fill NaN with 0
             elif isinstance(value, np.ndarray):
-                # Convert numpy array to list, handling NaN values
-                serialized[key] = pd.Series(value).fillna(None).tolist()
+                # Convert numpy array to list, handling NaN values  
+                series_val = pd.Series(value)
+                serialized[key] = series_val.fillna(value=0).tolist()  # Fill NaN with 0
             else:
                 serialized[key] = value
         return serialized

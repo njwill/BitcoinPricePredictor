@@ -201,11 +201,117 @@ def main():
         transform: translateY(-1px);
     }
     
+    /* Support popup styling */
+    .support-popup {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #F7931A, #FF8C00);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 8px 25px rgba(247, 147, 26, 0.3);
+        max-width: 350px;
+        z-index: 10000;
+        font-family: "Source Sans Pro", sans-serif;
+        display: none;
+        animation: slideInUp 0.5s ease-out;
+    }
+    
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(50px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .support-popup-close {
+        position: absolute;
+        top: 8px;
+        right: 12px;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+    }
+    
+    .support-popup-close:hover {
+        opacity: 1;
+    }
+    
+    .support-popup-content {
+        margin-bottom: 15px;
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    
+    .support-popup-link {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.2);
+        color: white !important;
+        text-decoration: none !important;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: background 0.2s;
+    }
+    
+    .support-popup-link:hover {
+        background: rgba(255, 255, 255, 0.3);
+        color: white !important;
+        text-decoration: none !important;
+    }
+    
+    /* Mobile responsive for popup */
+    @media (max-width: 480px) {
+        .support-popup {
+            bottom: 10px;
+            right: 10px;
+            left: 10px;
+            max-width: none;
+            padding: 15px;
+        }
+    }
+    
     </style>
     
 
     """, unsafe_allow_html=True)
     
+    # Support popup HTML (hidden by default)
+    st.markdown("""
+    <div id="supportPopup" class="support-popup">
+        <button class="support-popup-close" onclick="closeSupportPopup()">&times;</button>
+        <div class="support-popup-content">
+            🎯 Enjoying this tool? It costs me about $0.05 per analysis and I want to keep it free, so showing some support would be awesome!
+        </div>
+        <a href="https://www.thebtccourse.com/support-me/" target="_blank" class="support-popup-link">💝 Show Support</a>
+    </div>
+    
+    <script>
+    function showSupportPopup() {
+        document.getElementById('supportPopup').style.display = 'block';
+    }
+    
+    function closeSupportPopup() {
+        document.getElementById('supportPopup').style.display = 'none';
+    }
+    
+    // Function to trigger popup after analysis
+    function triggerSupportPopupDelay() {
+        setTimeout(function() {
+            showSupportPopup();
+        }, 7000);
+    }
+    </script>
+    """, unsafe_allow_html=True)
 
     # Header navigation bar
     st.markdown("""
@@ -589,6 +695,13 @@ def main():
             st.info(f"📊 {analysis_message}")
         else:
             st.success(f"📊 Fresh analysis completed at {current_time_str} ET")
+            
+            # Trigger support popup after 7 seconds
+            st.markdown("""
+            <script>
+            triggerSupportPopupDelay();
+            </script>
+            """, unsafe_allow_html=True)
         
         # Current price and basic stats
         current_price = btc_1w['Close'].iloc[-1]

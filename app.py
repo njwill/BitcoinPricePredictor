@@ -12,6 +12,7 @@ from chart_generator import ChartGenerator
 from technical_analysis import TechnicalAnalyzer
 from ai_analysis import AIAnalyzer
 from database import analysis_db
+from social_media_generator import social_media_generator
 from utils import format_currency, get_eastern_time, calculate_time_until_update, should_update_analysis, save_analysis_cache, load_analysis_cache, save_prediction, load_predictions_history, update_prediction_accuracy
 
 # Configure page
@@ -1139,6 +1140,17 @@ def main():
                         prediction_data, btc_3m, btc_1w, indicators_3m, indicators_1w, full_ai_text
                     )
                     
+                    # Generate social media image for sharing
+                    try:
+                        domain = get_current_domain()
+                        image_path = social_media_generator.save_prediction_image(
+                            prediction_data, analysis_hash, domain
+                        )
+                        st.session_state.social_media_image = image_path
+                    except Exception as e:
+                        print(f"Error generating social media image: {e}")
+                        st.session_state.social_media_image = None
+                    
                     # Also save to legacy JSON system for backward compatibility
                     save_prediction(prediction_data)
                     
@@ -1475,6 +1487,26 @@ def main():
             st.code(share_url, language="text")
             st.markdown(f"[📋 Open this analysis link]({share_url})")
             st.caption("💡 Copy the full URL from your browser to share with others - works on any domain!")
+            
+            # Display social media image if generated
+            if 'social_media_image' in st.session_state and st.session_state.social_media_image:
+                st.markdown("### 📱 Social Media Share Image")
+                try:
+                    st.image(st.session_state.social_media_image, 
+                            caption="Share this image on social media with the analysis link!", 
+                            width=400)
+                    
+                    # Provide download button for the image
+                    with open(st.session_state.social_media_image, "rb") as file:
+                        st.download_button(
+                            label="📥 Download Image for Social Media",
+                            data=file.read(),
+                            file_name=f"bitcoin_prediction_{st.session_state.analysis_hash[:8]}.png",
+                            mime="image/png",
+                            help="Download this image to share on social media along with the analysis link"
+                        )
+                except Exception as e:
+                    st.warning(f"Could not display social media image: {e}")
         
         # Update timestamp
         st.session_state.last_update = current_time

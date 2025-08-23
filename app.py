@@ -67,6 +67,22 @@ def load_stored_analysis(analysis_hash: str):
         display: none !important;
     }
     
+    /* Remove default Streamlit top spacing */
+    .block-container {
+        padding-top: 0rem !important;
+        margin-top: 0rem !important;
+    }
+    
+    /* Remove any extra top margins */
+    .main .block-container {
+        padding-top: 0rem !important;
+    }
+    
+    /* Ensure no top spacing on main content */
+    [data-testid="stAppViewContainer"] > .main {
+        padding-top: 0rem !important;
+    }
+    
     /* Header navigation bar */
     .header-nav {
         background-color: #FFFFFF;

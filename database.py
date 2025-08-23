@@ -187,10 +187,10 @@ class AnalysisDatabase:
                         prediction_data.get('technical_summary', '')[:1000],  # Store more than before
                         prediction_data.get('prediction_reasoning', '')[:1000],
                         full_ai_analysis,  # Store complete AI analysis
-                        json.dumps(btc_3m_serialized),
-                        json.dumps(btc_1w_serialized),
-                        json.dumps(indicators_3m_serialized),
-                        json.dumps(indicators_1w_serialized)
+                        btc_3m_serialized,  # PostgreSQL JSONB handles the JSON conversion
+                        btc_1w_serialized,
+                        indicators_3m_serialized,
+                        indicators_1w_serialized
                     ))
                     conn.commit()
             
@@ -225,13 +225,13 @@ class AnalysisDatabase:
                      btc_3m_json, btc_1w_json, indicators_3m_json, indicators_1w_json,
                      actual_price, accuracy_calculated) = row
                     
-                    # Deserialize DataFrames
-                    btc_3m = self.deserialize_dataframe(json.loads(btc_3m_json))
-                    btc_1w = self.deserialize_dataframe(json.loads(btc_1w_json))
+                    # Deserialize DataFrames (PostgreSQL JSONB returns dicts directly, no json.loads needed)
+                    btc_3m = self.deserialize_dataframe(btc_3m_json)
+                    btc_1w = self.deserialize_dataframe(btc_1w_json)
                     
                     # Deserialize indicators with proper DataFrame indices
-                    indicators_3m = self.deserialize_indicators(json.loads(indicators_3m_json), btc_3m.index)
-                    indicators_1w = self.deserialize_indicators(json.loads(indicators_1w_json), btc_1w.index)
+                    indicators_3m = self.deserialize_indicators(indicators_3m_json, btc_3m.index)
+                    indicators_1w = self.deserialize_indicators(indicators_1w_json, btc_1w.index)
                     
                     # Prepare prediction data
                     prediction_data = {

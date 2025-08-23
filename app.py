@@ -108,7 +108,7 @@ def main():
     .nav-link {
         color: #F7931A !important;
         text-decoration: none !important;
-        font-weight: 500 !important;
+        font-weight: normal !important;
         white-space: nowrap !important;
         display: inline-block !important;
         margin-bottom: 0 !important;
@@ -134,7 +134,7 @@ def main():
     nav_col1, nav_col2, nav_col3 = st.columns([3, 1, 1])
     
     with nav_col2:
-        st.markdown('<a href="https://www.thebtccourse.com" target="_blank" class="nav-link">↩️ Return to theBTCcourse.com</a>', unsafe_allow_html=True)
+        st.markdown('<a href="https://www.thebtccourse.com" target="_blank" class="nav-link">↩️ Return Home</a>', unsafe_allow_html=True)
     
     with nav_col3:
         st.markdown('<a href="https://www.thebtccourse.com/support-me/" target="_blank" class="nav-link">💝 Support Me!</a>', unsafe_allow_html=True)
@@ -145,8 +145,6 @@ def main():
     
     # Instructions section at the top
     st.markdown("""
-    ### 📋 Ready to Analyze Bitcoin?
-    
     **Instructions:**
     1. Select your target **date** and **time** below, 3-10 days is best  
     2. Click the **"Analyze Bitcoin"** button

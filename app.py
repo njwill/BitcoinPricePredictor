@@ -545,8 +545,19 @@ def main():
                 prob_lower = pred.get('probability_lower', 0)
                 
                 try:
-                    pred_time_formatted = datetime.fromisoformat(prediction_time).strftime('%Y-%m-%d %H:%M')
-                    target_time_formatted = datetime.fromisoformat(target_time).strftime('%Y-%m-%d %H:%M')
+                    # Convert to Eastern Time for display
+                    eastern_tz = pytz.timezone('US/Eastern')
+                    pred_dt = datetime.fromisoformat(prediction_time)
+                    target_dt = datetime.fromisoformat(target_time)
+                    
+                    # If timezone-aware, convert to Eastern; if naive, assume it's already Eastern
+                    if pred_dt.tzinfo is not None:
+                        pred_dt = pred_dt.astimezone(eastern_tz)
+                    if target_dt.tzinfo is not None:
+                        target_dt = target_dt.astimezone(eastern_tz)
+                    
+                    pred_time_formatted = pred_dt.strftime('%Y-%m-%d %H:%M ET')
+                    target_time_formatted = target_dt.strftime('%Y-%m-%d %H:%M ET')
                 except:
                     pred_time_formatted = prediction_time
                     target_time_formatted = target_time
@@ -1170,8 +1181,19 @@ def main():
                 prob_lower = pred.get('probability_lower', 0)
                 
                 try:
-                    pred_time_formatted = datetime.fromisoformat(prediction_time).strftime('%Y-%m-%d %H:%M')
-                    target_time_formatted = datetime.fromisoformat(target_time).strftime('%Y-%m-%d %H:%M')
+                    # Convert to Eastern Time for display
+                    eastern_tz = pytz.timezone('US/Eastern')
+                    pred_dt = datetime.fromisoformat(prediction_time)
+                    target_dt = datetime.fromisoformat(target_time)
+                    
+                    # If timezone-aware, convert to Eastern; if naive, assume it's already Eastern
+                    if pred_dt.tzinfo is not None:
+                        pred_dt = pred_dt.astimezone(eastern_tz)
+                    if target_dt.tzinfo is not None:
+                        target_dt = target_dt.astimezone(eastern_tz)
+                    
+                    pred_time_formatted = pred_dt.strftime('%Y-%m-%d %H:%M ET')
+                    target_time_formatted = target_dt.strftime('%Y-%m-%d %H:%M ET')
                 except:
                     pred_time_formatted = prediction_time
                     target_time_formatted = target_time

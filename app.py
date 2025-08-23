@@ -104,24 +104,44 @@ def main():
         color: #F7931A !important;
     }
     
-    /* Navigation links styling */
+    /* Header navigation bar */
+    .header-nav {
+        background-color: #FFFFFF;
+        border-bottom: 2px solid #F7931A;
+        padding: 8px 0;
+        margin: -1rem -1rem 1rem -1rem;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        box-shadow: 0 2px 4px rgba(247, 147, 26, 0.1);
+    }
+    
+    .nav-container {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 2rem;
+        gap: 2rem;
+    }
+    
     .nav-link {
         color: #F7931A !important;
         text-decoration: none !important;
         font-weight: normal !important;
+        font-size: 0.9rem;
+        padding: 6px 12px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
         white-space: nowrap !important;
-        display: inline-block !important;
-        margin-bottom: 0 !important;
     }
     
     .nav-link:hover {
-        color: #D66A00 !important;
+        background-color: #F7931A;
+        color: #FFFFFF !important;
         text-decoration: none !important;
-    }
-    
-    /* Remove underlines from emoji links */
-    .nav-link span {
-        text-decoration: none !important;
+        transform: translateY(-1px);
     }
     
     </style>
@@ -130,14 +150,15 @@ def main():
     """, unsafe_allow_html=True)
     
 
-    # Navigation links at the top
-    nav_col1, nav_col2, nav_col3 = st.columns([3, 1, 1])
-    
-    with nav_col2:
-        st.markdown('<a href="https://www.thebtccourse.com" target="_blank" class="nav-link">↩️ Return Home</a>', unsafe_allow_html=True)
-    
-    with nav_col3:
-        st.markdown('<a href="https://www.thebtccourse.com/support-me/" target="_blank" class="nav-link">💝 Support Me!</a>', unsafe_allow_html=True)
+    # Header navigation bar
+    st.markdown("""
+    <div class="header-nav">
+        <div class="nav-container">
+            <a href="https://www.thebtccourse.com" target="_blank" class="nav-link">↩️ Return Home</a>
+            <a href="https://www.thebtccourse.com/support-me/" target="_blank" class="nav-link">💝 Support Me!</a>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Header
     st.title("₿itcoin Analysis Dashboard")

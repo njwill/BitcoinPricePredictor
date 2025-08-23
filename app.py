@@ -572,13 +572,20 @@ def main():
             )
         
         with col2:
-            # Get only the last 7 days (168 hours) for accurate weekly high/low
-            last_7_days = btc_1w.tail(168)  # 7 days * 24 hours = 168 data points
-            weekly_high = last_7_days['High'].max()
+            # Get only the last 7 days for accurate weekly high/low
+            # Use time-based filtering to ensure exactly 7 days
+            current_time = btc_1w.index[-1]
+            seven_days_ago = current_time - pd.Timedelta(days=7)
+            last_7_days = btc_1w[btc_1w.index >= seven_days_ago]
+            
+            # Clean data to remove any NaN values that might affect calculations
+            clean_high_data = last_7_days['High'].dropna()
+            weekly_high = clean_high_data.max() if not clean_high_data.empty else current_price
             st.metric("High Last 7 Days", format_currency(weekly_high))
         
         with col3:
-            weekly_low = last_7_days['Low'].min()
+            clean_low_data = last_7_days['Low'].dropna()
+            weekly_low = clean_low_data.min() if not clean_low_data.empty else current_price
             st.metric("Low Last 7 Days", format_currency(weekly_low))
         
         st.divider()

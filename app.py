@@ -1144,7 +1144,7 @@ def main():
                     try:
                         domain = get_current_domain()
                         image_path = social_media_generator.save_prediction_image(
-                            prediction_data, analysis_hash, domain
+                            prediction_data, analysis_hash, btc_1w, domain
                         )
                         st.session_state.social_media_image = image_path
                     except Exception as e:

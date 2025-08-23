@@ -99,6 +99,11 @@ def main():
         display: none !important;
     }
     
+    /* Bitcoin symbol styling - official Bitcoin orange */
+    h1:first-letter {
+        color: #F7931A !important;
+    }
+    
     </style>
     
 

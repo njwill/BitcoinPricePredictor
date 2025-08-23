@@ -161,6 +161,22 @@ def main():
     st.title("₿itcoin Analysis Dashboard")
     st.markdown("### Advanced Bitcoin Chart Analysis & Probability Assessments")
     
+    # Instructions section at the top
+    st.markdown("""
+    ### 📋 Ready to Analyze Bitcoin?
+    
+    **Instructions:**
+    1. Select your target **date** and **time** below  
+    2. Click the **"Analyze Bitcoin"** button
+    3. Get comprehensive technical analysis with AI insights
+    
+    The analysis will include:
+    - 🔍 **Multi-timeframe technical analysis** (3-month and 1-week charts)
+    - 📊 **Advanced indicators** (RSI, MACD, Bollinger Bands, EMAs)
+    - 🎯 **Price prediction** with probability assessment
+    - 📈 **Interactive charts** with detailed visualizations
+    """)
+    
     # Settings moved to main content area
     eastern_tz = pytz.timezone('US/Eastern')
     current_time = datetime.now(eastern_tz)
@@ -202,9 +218,9 @@ def main():
     target_datetime = datetime.combine(selected_date, selected_time)
     target_datetime = eastern_tz.localize(target_datetime)
     
-    # Display the selected target
-    target_formatted = target_datetime.strftime('%A, %B %d, %Y at %I:%M %p ET')
-    st.info(f"📊 Prediction target: **{target_formatted}**")
+    # Analyze button (moved here, right after target selection)
+    st.write("")  # Add some space
+    analyze_button = st.button("🚀 **Analyze Bitcoin**", type="primary", use_container_width=True)
     
     # Prediction History Section (always visible on front page)
     st.divider()
@@ -340,26 +356,7 @@ def main():
     else:
         st.info("No prediction history available. Make your first prediction below!")
     
-    # Analyze button
-    st.write("")  # Add some space
-    analyze_button = st.button("🚀 **Analyze Bitcoin**", type="primary", use_container_width=True)
-    
     if not analyze_button:
-        # Show instructions when not analyzing
-        st.markdown("""
-        ### 📋 Ready to Analyze Bitcoin?
-        
-        **Instructions:**
-        1. Select your target **date** and **time** above  
-        2. Click the **"Analyze Bitcoin"** button
-        3. Get comprehensive technical analysis with AI insights
-        
-        The analysis will include:
-        - 🔍 **Multi-timeframe technical analysis** (3-month and 1-week charts)
-        - 📊 **Advanced indicators** (RSI, MACD, Bollinger Bands, EMAs)
-        - 🎯 **Price prediction** with probability assessment
-        - 📈 **Interactive charts** with detailed visualizations
-        """)
         return  # Exit early, don't run analysis
 
     # Initialize components (only when analyze button is pressed)
@@ -399,6 +396,10 @@ def main():
         # Update session state timestamp
         current_time = get_eastern_time()
         st.session_state.last_update = current_time
+        
+        # Display the selected target (only after analysis starts)
+        target_formatted = target_datetime.strftime('%A, %B %d, %Y at %I:%M %p ET')
+        st.info(f"📊 Prediction target: **{target_formatted}**")
         
         # Save prediction to history (if analysis contains prediction data)
         if analysis and isinstance(analysis, dict) and 'probabilities' in analysis:

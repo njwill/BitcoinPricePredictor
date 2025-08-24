@@ -958,15 +958,26 @@ def main():
                 # Calculate direction confidence (the higher probability)
                 direction_confidence = max(prob_higher, prob_lower)
                 
+                # Check if direction was correct
+                direction_correct = "Pending"
+                if actual_price is not None and current_price_at_pred is not None and predicted_price is not None:
+                    predicted_direction = "up" if predicted_price > current_price_at_pred else "down"
+                    actual_direction = "up" if actual_price > current_price_at_pred else "down"
+                    if predicted_direction == actual_direction:
+                        direction_correct = "✅ Correct"
+                    else:
+                        direction_correct = "❌ Wrong"
+                
                 prediction_data.append({
                     'Prediction Made': pred_time_formatted,
                     'Target Time': target_time_formatted,
                     'Price at Prediction': f"${current_price_at_pred:,.0f}" if current_price_at_pred else "N/A",
                     'Predicted Price': f"${predicted_price:,.0f}" if predicted_price else "N/A",
                     'Actual Price': f"${actual_price:,.0f}" if actual_price else "Pending",
+                    'Accuracy': accuracy_text,
                     'Direction': f"↗️ {prob_higher:.0f}% higher / ↘️ {prob_lower:.0f}% lower",
                     'Direction Confidence %': f"{direction_confidence:.0f}%",
-                    'Accuracy': accuracy_text,
+                    'Direction Correct': direction_correct,
                     'Full Analysis': view_link
                 })
             
@@ -1621,15 +1632,26 @@ def main():
                 # Calculate direction confidence (the higher probability)
                 direction_confidence = max(prob_higher, prob_lower)
                 
+                # Check if direction was correct
+                direction_correct = "Pending"
+                if actual_price is not None and current_price_at_pred is not None and predicted_price is not None:
+                    predicted_direction = "up" if predicted_price > current_price_at_pred else "down"
+                    actual_direction = "up" if actual_price > current_price_at_pred else "down"
+                    if predicted_direction == actual_direction:
+                        direction_correct = "✅ Correct"
+                    else:
+                        direction_correct = "❌ Wrong"
+                
                 prediction_data.append({
                     'Prediction Made': pred_time_formatted,
                     'Target Time': target_time_formatted,
                     'Price at Prediction': f"${current_price_at_pred:,.0f}" if current_price_at_pred else "N/A",
                     'Predicted Price': f"${predicted_price:,.0f}" if predicted_price else "N/A",
                     'Actual Price': f"${actual_price:,.0f}" if actual_price else "Pending",
+                    'Accuracy': accuracy_text,
                     'Direction': f"↗️ {prob_higher:.0f}% higher / ↘️ {prob_lower:.0f}% lower",
                     'Direction Confidence %': f"{direction_confidence:.0f}%",
-                    'Accuracy': accuracy_text,
+                    'Direction Correct': direction_correct,
                     'Full Analysis': view_link
                 })
             

@@ -1194,10 +1194,10 @@ def main():
                     
                     # Analysis already saved to database above
                     
-                    # Store hash in session state for later display
-                    st.session_state.analysis_hash = analysis_hash
-            except Exception as e:
-                st.warning(f"Note: Could not save prediction to history: {str(e)}")
+                        # Store hash in session state for later display
+                        st.session_state.analysis_hash = analysis_hash
+                except Exception as e:
+                    st.warning(f"Note: Could not save prediction to history: {str(e)}")
         
         # Update any past predictions with current price if their target time has passed
         try:

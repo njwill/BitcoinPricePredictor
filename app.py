@@ -1198,12 +1198,12 @@ def main():
                         st.session_state.analysis_hash = analysis_hash
                 except Exception as e:
                     st.warning(f"Note: Could not save prediction to history: {str(e)}")
-        
-        # Update any past predictions with current price if their target time has passed
-        try:
-            analysis_db.update_analysis_accuracy()  # Uses historical prices automatically
-        except:
-            pass  # Continue even if we can't update accuracy
+            
+            # Update any past predictions with current price if their target time has passed
+            try:
+                analysis_db.update_analysis_accuracy()  # Uses historical prices automatically
+            except:
+                pass  # Continue even if we can't update accuracy
         
         # Display fresh analysis message
         current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')

@@ -104,7 +104,7 @@ class SocialMediaTextGenerator:
             
             return tweet_text
         except Exception as e:
-            print(f"Error generating shareable text: {e}")
+            # Error generating shareable text
             return f"Bitcoin analysis complete - check the full analysis for details."
 
 # Create a global instance

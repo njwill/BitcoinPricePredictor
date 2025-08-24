@@ -149,7 +149,7 @@ class AnalysisDatabase:
                 if df.index.isna().any():
                     df.index = pd.to_datetime(data['index'], errors='coerce')
             except Exception as e:
-                print(f"Date parsing error: {e}")
+                # Date parsing error - continue with manual conversion
                 # Fallback: create a simple numeric index
                 df.index = range(len(df))
         return df
@@ -343,7 +343,7 @@ class AnalysisDatabase:
             hist_data = btc.history(start=start_date, end=end_date, interval="1h")
             
             if hist_data.empty:
-                print(f"No historical data available for {target_utc}")
+                # No historical data available for this target time
                 return None
             
             # Find the closest time to our target
@@ -363,11 +363,11 @@ class AnalysisDatabase:
             closest_price = hist_data.iloc[closest_idx]['Close']
             closest_time = hist_data.index[closest_idx]
             
-            print(f"Target time: {target_timestamp}, Closest data: {closest_time}, Price: ${closest_price:.2f}")
+            # Target time: {target_timestamp}, Closest data: {closest_time}, Price: ${closest_price:.2f}
             return float(closest_price)
             
         except Exception as e:
-            print(f"Error fetching historical price for {target_datetime}: {e}")
+            # Error fetching historical price
             return None
 
     def update_analysis_accuracy(self, current_btc_price: float = None):
@@ -388,7 +388,7 @@ class AnalysisDatabase:
                     if not pending_analyses:
                         return  # Nothing to update
                     
-                    print(f"Updating accuracy for {len(pending_analyses)} expired predictions...")
+                    # Updating accuracy for expired predictions
                     
                     # Update each prediction with its historical price
                     for analysis_id, analysis_hash, target_datetime in pending_analyses:
@@ -403,15 +403,16 @@ class AnalysisDatabase:
                                 WHERE id = %s
                             """, (historical_price, analysis_id))
                             
-                            print(f"Updated prediction {analysis_hash[:8]} - Target: {target_datetime}, Historical Price: ${historical_price:.2f}")
+                            # Updated prediction with historical price
                         else:
-                            print(f"Could not fetch historical price for prediction {analysis_hash[:8]} at {target_datetime}")
+                            # Could not fetch historical price
+                            pass
                     
                     conn.commit()
-                    print(f"Accuracy update complete!")
+                    # Accuracy update complete
                     
         except Exception as e:
-            print(f"Error updating accuracy: {str(e)}")
+            # Error updating accuracy
             st.error(f"Error updating accuracy: {str(e)}")
 
 # Global instance

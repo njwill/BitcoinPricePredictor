@@ -1183,8 +1183,7 @@ def main():
                         print(f"Error generating social media text: {e}")
                         st.session_state.social_media_text = None
                     
-                    # Also save to legacy JSON system for backward compatibility
-                    save_prediction(prediction_data)
+                    # Analysis already saved to database above
                     
                     # Store hash in session state for later display
                     st.session_state.analysis_hash = analysis_hash
@@ -1192,7 +1191,10 @@ def main():
                 st.warning(f"Note: Could not save prediction to history: {str(e)}")
         
         # Update any past predictions with current price if their target time has passed
-        update_prediction_accuracy(float(current_price))
+        try:
+            analysis_db.update_analysis_accuracy()  # Uses historical prices automatically
+        except:
+            pass  # Continue even if we can't update accuracy
         
         # Display fresh analysis message
         current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')

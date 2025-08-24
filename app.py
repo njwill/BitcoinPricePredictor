@@ -851,7 +851,7 @@ def main():
         except:
             pass  # Continue even if we can't update accuracy
         
-        predictions = analysis_db.get_all_analyses()
+        predictions = analysis_db.get_recent_analyses(limit=1000)  # Get all predictions
         
         if predictions:
             # Pagination setup

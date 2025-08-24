@@ -78,9 +78,6 @@ class SocialMediaTextGenerator:
             if analysis_url:
                 tweet_parts.append(f"📈 Full Analysis: {analysis_url}")
             
-            # Add hashtags
-            tweet_parts.append("#BTC #CryptoAnalysis #TechnicalAnalysis")
-            
             return "\n".join(tweet_parts)
             
         except Exception as e:

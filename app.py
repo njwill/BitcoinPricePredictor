@@ -1482,11 +1482,11 @@ def main():
         if 'analysis_hash' in st.session_state and st.session_state.analysis_hash:
             st.divider()
             st.subheader("🔗 Save & Share This Analysis")
-            share_url = f"?analysis={st.session_state.analysis_hash}"
+            domain = get_current_domain()
+            full_share_url = f"{domain}?analysis={st.session_state.analysis_hash}"
             st.success("Analysis saved! Share this link to recall the complete analysis:")
-            st.code(share_url, language="text")
-            st.markdown(f"[📋 Open this analysis link]({share_url})")
-            st.caption("💡 Copy the full URL from your browser to share with others - works on any domain!")
+            st.code(full_share_url, language="text")
+            st.markdown(f"[📋 Open this analysis link]({full_share_url})")
             
             # Display social media tweet text if generated
             if 'social_media_text' in st.session_state and st.session_state.social_media_text:

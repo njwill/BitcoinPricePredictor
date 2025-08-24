@@ -489,6 +489,15 @@ def load_stored_analysis(analysis_hash: str):
     if st.button("← Return to Main Page", type="secondary"):
         st.query_params.clear()
         st.rerun()
+    
+    # Add footer
+    display_footer()
+
+def display_footer():
+    """Display footer with timestamp, data source, AI model, and GitHub link"""
+    current_time = get_eastern_time()
+    st.divider()
+    st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: GPT-5 | [GitHub](https://github.com/njwill/BitcoinPricePredictor)")
 
 def main():
     # Check for analysis hash in URL parameters
@@ -1802,8 +1811,7 @@ def main():
                 st.info("No predictions to display on this page.")
         
         # Footer with last update info
-        st.divider()
-        st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: GPT-5 | [GitHub](https://github.com/njwill/BitcoinPricePredictor)")
+        display_footer()
         
     except Exception as e:
         st.error(f"❌ An error occurred: {str(e)}")

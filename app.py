@@ -483,13 +483,6 @@ def load_stored_analysis(analysis_hash: str):
             else:
                 st.warning(f"⚠️ Lower confidence analysis (<75%)")
     
-    # Share link same as main page
-    st.divider()
-    st.subheader("🔗 Share This Analysis")
-    share_url = f"?analysis={analysis_hash}"
-    st.code(share_url, language="text")
-    st.markdown(f"[📋 Open this analysis link]({share_url})")
-    st.caption("💡 Copy the full URL from your browser address bar to share with the exact domain")
     
     # Return to main page same as main page
     st.markdown("---")

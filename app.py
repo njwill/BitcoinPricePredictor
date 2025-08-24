@@ -1008,19 +1008,19 @@ def main():
                         # Skip predictions with invalid timestamps
                         continue
                 
-                if dashboard_predictions:
-                    st.subheader("📈 Prediction Performance Dashboard")
-                    st.caption("📅 Showing metrics for predictions made 3-10 days in advance only")
-                    
-                    # Calculate comprehensive metrics
-                    errors = []
-                    direction_correct = 0
-                    very_good_predictions = 0
-                    good_predictions = 0
-                    fair_predictions = 0
-                    poor_predictions = 0
-                    
-                    for pred in dashboard_predictions:
+                # Always show dashboard (even if no eligible predictions)
+                st.subheader("📈 Prediction Performance Dashboard")
+                st.caption("📅 Showing metrics for predictions made 3-10 days in advance only")
+                
+                # Calculate comprehensive metrics
+                errors = []
+                direction_correct = 0
+                very_good_predictions = 0
+                good_predictions = 0
+                fair_predictions = 0
+                poor_predictions = 0
+                
+                for pred in dashboard_predictions:
                         if pred.get('predicted_price') and pred.get('actual_price'):
                             predicted = pred['predicted_price']
                             actual = pred['actual_price']
@@ -1046,48 +1046,48 @@ def main():
                             else:
                                 poor_predictions += 1
                     
-                    # Main dashboard metrics
-                    col1, col2, col3, col4, col5 = st.columns(5)
+                # Main dashboard metrics
+                col1, col2, col3, col4, col5 = st.columns(5)
+                
+                with col1:
+                    st.metric("Total Predictions", len(predictions))
+                
+                with col2:
+                    st.metric("Eligible (3-10 days)", len(dashboard_predictions))
+                
+                with col3:
+                    accuracy_rate = ((very_good_predictions + good_predictions) / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
+                    st.metric("Price Accuracy Rate (≤3%)", f"{accuracy_rate:.0f}%")
+                
+                with col4:
+                    avg_error = sum(errors) / len(errors) if errors else 0
+                    st.metric("Avg Error", f"{avg_error:.1f}%")
+                
+                with col5:
+                    direction_accuracy = (direction_correct / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
+                    st.metric("Direction Accuracy", f"{direction_accuracy:.0f}%")
                     
-                    with col1:
-                        st.metric("Total Predictions", len(predictions))
-                    
-                    with col2:
-                        st.metric("Eligible (3-10 days)", len(dashboard_predictions))
-                    
-                    with col3:
-                        accuracy_rate = ((very_good_predictions + good_predictions) / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
-                        st.metric("Price Accuracy Rate (≤3%)", f"{accuracy_rate:.0f}%")
-                    
-                    with col4:
-                        avg_error = sum(errors) / len(errors) if errors else 0
-                        st.metric("Avg Error", f"{avg_error:.1f}%")
-                    
-                    with col5:
-                        direction_accuracy = (direction_correct / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
-                        st.metric("Direction Accuracy", f"{direction_accuracy:.0f}%")
-                    
-                    # Detailed accuracy breakdown
-                    st.divider()
-                    st.subheader("🎯 Price Accuracy Breakdown")
-                    
-                    col1, col2, col3, col4 = st.columns(4)
-                    
-                    with col1:
-                        very_good_rate = (very_good_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
-                        st.metric("✅ Very Good (≤1.5%)", f"{very_good_rate:.0f}%", help=f"{very_good_predictions} predictions")
-                    
-                    with col2:
-                        good_rate = (good_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
-                        st.metric("✅ Good (1.5-3%)", f"{good_rate:.0f}%", help=f"{good_predictions} predictions")
-                    
-                    with col3:
-                        fair_rate = (fair_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
-                        st.metric("⚠️ Fair (3-5%)", f"{fair_rate:.0f}%", help=f"{fair_predictions} predictions")
-                    
-                    with col4:
-                        poor_rate = (poor_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
-                        st.metric("❌ Poor (>5%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
+                # Detailed accuracy breakdown
+                st.divider()
+                st.subheader("🎯 Price Accuracy Breakdown")
+                
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    very_good_rate = (very_good_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
+                    st.metric("✅ Very Good (≤1.5%)", f"{very_good_rate:.0f}%", help=f"{very_good_predictions} predictions")
+                
+                with col2:
+                    good_rate = (good_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
+                    st.metric("✅ Good (1.5-3%)", f"{good_rate:.0f}%", help=f"{good_predictions} predictions")
+                
+                with col3:
+                    fair_rate = (fair_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
+                    st.metric("⚠️ Fair (3-5%)", f"{fair_rate:.0f}%", help=f"{fair_predictions} predictions")
+                
+                with col4:
+                    poor_rate = (poor_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
+                    st.metric("❌ Poor (>5%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
                     
 
                     
@@ -1707,19 +1707,19 @@ def main():
                         # Skip predictions with invalid timestamps
                         continue
                 
-                if dashboard_predictions:
-                    st.subheader("📈 Prediction Performance Dashboard")
-                    st.caption("📅 Showing metrics for predictions made 3-10 days in advance only")
-                    
-                    # Calculate comprehensive metrics
-                    errors = []
-                    direction_correct = 0
-                    very_good_predictions = 0
-                    good_predictions = 0
-                    fair_predictions = 0
-                    poor_predictions = 0
-                    
-                    for pred in dashboard_predictions:
+                # Always show dashboard (even if no eligible predictions)
+                st.subheader("📈 Prediction Performance Dashboard")
+                st.caption("📅 Showing metrics for predictions made 3-10 days in advance only")
+                
+                # Calculate comprehensive metrics
+                errors = []
+                direction_correct = 0
+                very_good_predictions = 0
+                good_predictions = 0
+                fair_predictions = 0
+                poor_predictions = 0
+                
+                for pred in dashboard_predictions:
                         if pred.get('predicted_price') and pred.get('actual_price'):
                             predicted = pred['predicted_price']
                             actual = pred['actual_price']
@@ -1745,48 +1745,48 @@ def main():
                             else:
                                 poor_predictions += 1
                     
-                    # Main dashboard metrics
-                    col1, col2, col3, col4, col5 = st.columns(5)
+                # Main dashboard metrics
+                col1, col2, col3, col4, col5 = st.columns(5)
+                
+                with col1:
+                    st.metric("Total Predictions", len(predictions))
+                
+                with col2:
+                    st.metric("Eligible (3-10 days)", len(dashboard_predictions))
+                
+                with col3:
+                    accuracy_rate = ((very_good_predictions + good_predictions) / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
+                    st.metric("Price Accuracy Rate (≤3%)", f"{accuracy_rate:.0f}%")
+                
+                with col4:
+                    avg_error = sum(errors) / len(errors) if errors else 0
+                    st.metric("Avg Error", f"{avg_error:.1f}%")
+                
+                with col5:
+                    direction_accuracy = (direction_correct / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
+                    st.metric("Direction Accuracy", f"{direction_accuracy:.0f}%")
                     
-                    with col1:
-                        st.metric("Total Predictions", len(predictions))
-                    
-                    with col2:
-                        st.metric("Eligible (3-10 days)", len(dashboard_predictions))
-                    
-                    with col3:
-                        accuracy_rate = ((very_good_predictions + good_predictions) / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
-                        st.metric("Price Accuracy Rate (≤3%)", f"{accuracy_rate:.0f}%")
-                    
-                    with col4:
-                        avg_error = sum(errors) / len(errors) if errors else 0
-                        st.metric("Avg Error", f"{avg_error:.1f}%")
-                    
-                    with col5:
-                        direction_accuracy = (direction_correct / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
-                        st.metric("Direction Accuracy", f"{direction_accuracy:.0f}%")
-                    
-                    # Detailed accuracy breakdown
-                    st.divider()
-                    st.subheader("🎯 Price Accuracy Breakdown")
-                    
-                    col1, col2, col3, col4 = st.columns(4)
-                    
-                    with col1:
-                        very_good_rate = (very_good_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
-                        st.metric("✅ Very Good (≤1.5%)", f"{very_good_rate:.0f}%", help=f"{very_good_predictions} predictions")
-                    
-                    with col2:
-                        good_rate = (good_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
-                        st.metric("✅ Good (1.5-3%)", f"{good_rate:.0f}%", help=f"{good_predictions} predictions")
-                    
-                    with col3:
-                        fair_rate = (fair_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
-                        st.metric("⚠️ Fair (3-5%)", f"{fair_rate:.0f}%", help=f"{fair_predictions} predictions")
-                    
-                    with col4:
-                        poor_rate = (poor_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
-                        st.metric("❌ Poor (>5%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
+                # Detailed accuracy breakdown
+                st.divider()
+                st.subheader("🎯 Price Accuracy Breakdown")
+                
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    very_good_rate = (very_good_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
+                    st.metric("✅ Very Good (≤1.5%)", f"{very_good_rate:.0f}%", help=f"{very_good_predictions} predictions")
+                
+                with col2:
+                    good_rate = (good_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
+                    st.metric("✅ Good (1.5-3%)", f"{good_rate:.0f}%", help=f"{good_predictions} predictions")
+                
+                with col3:
+                    fair_rate = (fair_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
+                    st.metric("⚠️ Fair (3-5%)", f"{fair_rate:.0f}%", help=f"{fair_predictions} predictions")
+                
+                with col4:
+                    poor_rate = (poor_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
+                    st.metric("❌ Poor (>5%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
                     
 
                     

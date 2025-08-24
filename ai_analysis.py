@@ -694,9 +694,12 @@ Return EXACT, VALID JSON (no surrounding text). Schema example:
             asset_name = analysis_data.get("asset_name", "Asset")
             system_msg, user_msg = self._build_messages(analysis_data, asset_name)
 
+            # Combine system and user messages into a single prompt
+            combined_prompt = f"{system_msg['content']}\n\n{user_msg['content']}"
+            
             resp = self.gpt5_client.responses.create(
                 model=self.model_name,
-                input=[system_msg, user_msg],
+                input=combined_prompt,
                 temperature=0.1,
                 top_p=1.0,
                 reasoning={"effort": "minimal"},

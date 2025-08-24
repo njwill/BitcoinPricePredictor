@@ -108,12 +108,6 @@ class AIAnalyzer:
                 tech_md = tech_md or synth_tech
                 pred_md = pred_md or synth_pred
 
-            # Apply text cleaning to fix formatting issues
-            if tech_md:
-                tech_md = self._clean_text_formatting(tech_md)
-            if pred_md:
-                pred_md = self._clean_text_formatting(pred_md)
-
             # If the JSON says insufficient but narrative exists, honor JSON for status
             status = parsed_json.get("status", "ok") if isinstance(parsed_json, dict) else "error"
             if status != "ok" and status != "insufficient_data":
@@ -146,49 +140,6 @@ class AIAnalyzer:
             return
         fn = getattr(st, level, None)
         (fn or st.write)(msg)
-
-    # ---------- text cleaning helpers ----------
-
-    def _format_timestamp(self, timestamp_str: str) -> str:
-        """Convert ISO timestamp to readable format"""
-        try:
-            if not timestamp_str:
-                return "N/A"
-            
-            # Parse the timestamp
-            if 'T' in timestamp_str:
-                dt = pd.to_datetime(timestamp_str)
-                # Format as "September 6, 2025 at 4:30 PM"
-                return dt.strftime("%B %d, %Y at %I:%M %p")
-            else:
-                return timestamp_str
-        except Exception:
-            return timestamp_str
-
-    def _clean_text_formatting(self, text: str) -> str:
-        """Clean up text formatting issues like mismatched parentheses"""
-        if not text:
-            return text
-        
-        # Fix common parentheses issues
-        # Remove orphaned closing parentheses at the beginning of sentences
-        text = re.sub(r'\b\)', '', text)
-        
-        # Remove orphaned opening parentheses at the end of sentences
-        text = re.sub(r'\(\s*[.;:]', '.', text)
-        text = re.sub(r'\(\s*$', '', text, flags=re.MULTILINE)
-        
-        # Fix cases where parentheses are split across sentences
-        # Look for patterns like "text) and" followed by "(more text"
-        text = re.sub(r'\)\s+and\s+([^(]*?)\(', r' and \1', text)
-        
-        # Clean up multiple spaces
-        text = re.sub(r'\s+', ' ', text)
-        
-        # Clean up formatting around currency
-        text = re.sub(r'\$\s+(\d)', r'$\1', text)
-        
-        return text.strip()
 
     # ---------- helpers: dataframe hygiene ----------
 
@@ -616,10 +567,6 @@ class AIAnalyzer:
             "notes": ["if status=insufficient_data, list what's missing"]
         }
 
-        # Format timestamps for readable display
-        target_formatted = self._format_timestamp(analysis_data.get('target_time', ''))
-        current_formatted = self._format_timestamp(analysis_data.get('current_time', ''))
-
         # Narrative section template (your original)
         narrative_template = """
 [TECHNICAL_ANALYSIS_START]
@@ -659,7 +606,7 @@ class AIAnalyzer:
 **PREDICTED PRICE: I predict {asset} will be at $<PRICE> on {target_formatted}**
 
 ⏰ **DATA-BASED TIME ANALYSIS:**
-- Target Time: {target_formatted}
+- Exact Target: {target_ts}
 - Momentum Direction: <from RSI/MACD arrays>
 - Trend Strength: <from EMA/price action>
 - Volume Analysis: <from volume arrays>
@@ -726,7 +673,8 @@ filling in concrete values from the arrays. This is the display copy for the app
 {narrative_template.format(
 current_price=analysis_data.get('current_price'),
 asset=asset_name,
-target_formatted=target_formatted
+target_formatted=analysis_data.get('target_time'),
+target_ts=analysis_data.get('target_time')
 )}
 """.strip()
 
@@ -930,16 +878,12 @@ target_formatted=target_formatted
         bull = crit.get("bullish_above", None)
         bear = crit.get("bearish_below", None)
 
-        # Format timestamps for readability
-        as_of_formatted = self._format_timestamp(as_of)
-        target_formatted = self._format_timestamp(target_ts)
-
         if status != "ok":
             notes = data.get("notes", [])
             msg = "; ".join([str(n) for n in notes]) if notes else "insufficient data"
             return (
                 f"**Status:** _insufficient data_\n\n**Notes:** {msg}",
-                f"**Target:** {target_formatted}\n\n_No price prediction due to insufficient data._"
+                f"**Target:** `{target_ts}`\n\n_No price prediction due to insufficient data._"
             )
 
         bullets: List[str] = []
@@ -954,20 +898,14 @@ target_formatted=target_formatted
             t = e.get("type","fact"); tf = e.get("timeframe",""); ts = e.get("ts",""); note = e.get("note","")
             bullets.append(f"- **{t.upper()} {tf} @ {ts}:** {note}")
 
-        tech_md = f"**As of:** {as_of_formatted}\n\n" + ("\n".join(bullets) if bullets else "_No additional evidence provided._")
-        price_line = f"**Predicted price at {target_formatted}:** " + (f"**${pred:,.0f}**" if pred is not None else "unavailable")
+        tech_md = f"**As of:** `{as_of}`\n\n" + ("\n".join(bullets) if bullets else "_No additional evidence provided._")
+        price_line = f"**Predicted price at `{target_ts}`:** " + (f"**${pred:,.0f}**" if pred is not None else "unavailable")
         pred_md = f"{price_line}\n\n- **P(higher)**: {p_up*100:.0f}%   - **P(lower)**: {p_down*100:.0f}%   - **AI confidence**: {data.get('conf_overall',0.5)*100:.0f}%"
-        
-        # Apply text cleaning
-        tech_md = self._clean_text_formatting(tech_md)
-        pred_md = self._clean_text_formatting(pred_md)
-        
         return tech_md, pred_md
 
     def _compose_text_when_insufficient(self, reason: str, target_ts: str) -> Tuple[str, str]:
-        target_formatted = self._format_timestamp(target_ts)
         tech = f"**Status:** _insufficient data_\n\n**Notes:** {reason or 'missing inputs'}"
-        pred = f"**Target:** {target_formatted}\n\n_No price prediction due to insufficient data._"
+        pred = f"**Target:** `{target_ts}`\n\n_No price prediction due to insufficient data._"
         return tech, pred
 
     def _extract_probabilities(self, prediction_text: str) -> Dict[str, Any]:

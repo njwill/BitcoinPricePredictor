@@ -1,5 +1,5 @@
 {
-  "last_updated": "2025-08-24T07:10:57.777630-04:00",
+  "last_updated": "2025-08-24T07:14:04.726640-04:00",
   "predictions": [
     {
       "id": 1,
@@ -672,6 +672,20 @@
       "prediction_reasoning": "**PREDICTED PRICE: I predict Bitcoin will be at $115,200 on Friday August 29, 2025 at 04:15 PM ET**\n\n1. **Probability HIGHER than $114,830.08: 52%**\n2. **Probability LOWER than $114,830.08: 48%**\n3. **Overall Analysis Confidence: 58%**\n4. **Price Prediction Confidence: 42%**\n5. **Expected % Move: +/",
       "actual_price": null,
       "accuracy_calculated": false
+    },
+    {
+      "id": 49,
+      "prediction_timestamp": "2025-08-24T07:14:04.719944-04:00",
+      "target_datetime": "2025-08-24T01:15:00-04:00",
+      "current_price_at_prediction": 114758.390625,
+      "predicted_price": 114600.0,
+      "probability_higher": 42.0,
+      "probability_lower": 57.99999999999999,
+      "confidence_level": 63.0,
+      "technical_summary": "**COMPREHENSIVE TECHNICAL ANALYSIS**\n\n**Current Price: $114,758.39**\n\n**1. MULTI-TIMEFRAME OVERVIEW**\n- 3-Month Chart Analysis: Sideways-to-soft-bearish bias. Price below 3M EMA20 (116,122) and BB mid (116,745). Range defined by ~111,700\u2013121,800 BBs; recent rejection near 115,600 with intraday low 114,582. 3M trend lower highs from the 124,457 high and higher lows from 98,286 compress into a broad range.\n- 1-Week Chart Analysis: Micro downtrend. Price sits just under 1W EMA20 (115,012) and BB mi",
+      "prediction_reasoning": "**PREDICTED PRICE: I predict Bitcoin will be at $114,600 on Sunday August 24, 2025 at 01:15 AM ET**\n\n1. **Probability HIGHER than $114,758.39: 42%**\n2. **Probability LOWER than $114,758.39: 58%**\n3. **Overall Analysis Confidence: 63%**\n4. **Price Prediction Confidence: 54%**\n5. **Expected % Move: +/",
+      "actual_price": 114758.390625,
+      "accuracy_calculated": true
     }
   ]
 }

@@ -834,10 +834,17 @@ def main():
     target_datetime = datetime.combine(selected_date, selected_time)
     target_datetime = eastern_tz.localize(target_datetime)
     
+    # Check if target datetime is in the past
+    is_future_datetime = target_datetime > current_time
+    
+    # Show validation message if target is in the past
+    if not is_future_datetime:
+        st.error("⚠️ Target date and time must be in the future. Please select a later time.")
+    
     # Analyze button (directly under target selection)
     st.write("")  # Add some space
     st.markdown("*By clicking \"Analyze Bitcoin\" you're agreeing this is not financial advice, pure entertainment purposes only*")
-    analyze_button = st.button("🚀 **Analyze Bitcoin**", type="primary", use_container_width=True)
+    analyze_button = st.button("🚀 **Analyze Bitcoin**", type="primary", use_container_width=True, disabled=not is_future_datetime)
     
     
     # Show Prediction History ONLY on front page (when not analyzing)

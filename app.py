@@ -1104,6 +1104,10 @@ def main():
         else:
             st.info("No prediction history available. Make your first prediction above!")
         
+        # Footer with last update info - always visible
+        st.divider()
+        st.caption(f"Last updated: {get_eastern_time().strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: GPT-5 | [GitHub](https://github.com/njwill/BitcoinPricePredictor)")
+        
         return  # Exit early, don't run analysis
     
     # If analyze button was clicked, proceed with analysis (prediction history will only show at bottom)
@@ -1806,7 +1810,7 @@ def main():
         st.error(f"❌ An error occurred: {str(e)}")
         st.exception(e)
     
-    # Footer with last update info - always visible
+    # Footer already shown above before analysis, add it here too for post-analysis
     st.divider()
     st.caption(f"Last updated: {get_eastern_time().strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: GPT-5 | [GitHub](https://github.com/njwill/BitcoinPricePredictor)")
 

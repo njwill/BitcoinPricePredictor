@@ -249,7 +249,7 @@ def calculate_price_metrics(data: pd.DataFrame) -> dict:
         st.warning(f"Error calculating price metrics: {str(e)}")
         return {}
 
-def format_time_remaining(target_time: datetime, current_time: datetime = None) -> str:
+def format_time_remaining(target_time: datetime, current_time: Optional[datetime] = None) -> str:
     """
     Format time remaining until target time
     

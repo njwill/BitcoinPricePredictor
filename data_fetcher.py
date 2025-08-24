@@ -73,7 +73,8 @@ class BitcoinDataFetcher:
                 data = data.rename(columns={'Date': 'Datetime'})
             elif 'Datetime' not in data.columns and data.index.name in ['Date', 'Datetime']:
                 data = data.reset_index()
-                data = data.rename(columns={data.columns[0]: 'Datetime'})
+                if len(data.columns) > 0:
+                    data = data.rename(columns={data.columns[0]: 'Datetime'})
             
             return data
             

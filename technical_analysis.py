@@ -111,7 +111,7 @@ class TechnicalAnalyzer:
             
             if len(close_float) >= 20:
                 bb_upper, bb_middle, bb_lower = talib.BBANDS(
-                    close_float, timeperiod=20, nbdevup=2, nbdevdn=2, matype=0
+                    close_float, timeperiod=20, nbdevup=2, nbdevdn=2
                 )
                 indicators['BB_Upper'] = bb_upper
                 indicators['BB_Middle'] = bb_middle
@@ -182,8 +182,8 @@ class TechnicalAnalyzer:
             if len(close_float) >= 14:
                 slowk, slowd = talib.STOCH(
                     high_float, low_float, close_float,
-                    fastk_period=14, slowk_period=3, slowk_matype=0,
-                    slowd_period=3, slowd_matype=0
+                    fastk_period=14, slowk_period=3,
+                    slowd_period=3
                 )
                 indicators['STOCH_K'] = slowk
                 indicators['STOCH_D'] = slowd

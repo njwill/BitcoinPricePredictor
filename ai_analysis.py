@@ -544,28 +544,76 @@ class AIAnalyzer:
                 gpt5_1w_high = analysis_data["enhanced_chart_data"]["1w_data"]["period_highs_lows"]["period_high"]
                 gpt5_1w_low = analysis_data["enhanced_chart_data"]["1w_data"]["period_highs_lows"]["period_low"]
 
-            # Calculate time components for better prompt context
+            # Calculate specific time components for ultra-precise context
             hours_until_target = analysis_data.get('hours_until_target', 0)
-            time_context = ""
-            if hours_until_target < 1:
-                time_context = "VERY SHORT-TERM (less than 1 hour) - Focus on immediate price action, order book dynamics, and very short-term momentum"
-            elif hours_until_target < 24:
-                time_context = f"SHORT-TERM ({hours_until_target:.1f} hours) - Consider intraday patterns, momentum shifts, and immediate technical levels"
-            elif hours_until_target < 168:  # 1 week
-                time_context = f"MEDIUM-TERM ({hours_until_target/24:.1f} days) - Factor in daily trends, weekly patterns, and developing technical formations"
+            
+            # Parse the target datetime for specific analysis
+            target_time_obj = datetime.fromisoformat(analysis_data.get('target_time', ''))
+            current_time_obj = datetime.fromisoformat(analysis_data.get('current_time', ''))
+            
+            # Get specific day and time details
+            target_day = target_time_obj.strftime('%A')
+            target_hour = target_time_obj.hour
+            target_minute = target_time_obj.minute
+            current_day = current_time_obj.strftime('%A')
+            current_hour = current_time_obj.hour
+            
+            # Build ultra-specific time context
+            day_context = ""
+            if target_day in ['Saturday', 'Sunday']:
+                day_context = f"{target_day} (Weekend) - Lower traditional market volume but crypto trades 24/7. Different retail vs institutional activity patterns."
             else:
-                time_context = f"LONGER-TERM ({hours_until_target/24:.1f} days) - Consider broader market cycles, fundamental shifts, and major technical levels"
+                day_context = f"{target_day} (Weekday) - Active traditional market day. Consider overlap with stock market hours and institutional activity."
+            
+            time_of_day_context = ""
+            if 9 <= target_hour < 16:
+                time_of_day_context = "US Market Hours (9AM-4PM ET) - High institutional activity, maximum liquidity, strong correlation with traditional markets"
+            elif 16 <= target_hour < 20:
+                time_of_day_context = "After-Hours (4PM-8PM ET) - Reduced institutional activity, retail-driven movements, earnings reactions"
+            elif 20 <= target_hour < 24:
+                time_of_day_context = "Evening Hours (8PM-12AM ET) - Asian market pre-opening, crypto-native activity, lower volume"
+            elif 0 <= target_hour < 4:
+                time_of_day_context = "Late Night/Early Morning (12AM-4AM ET) - Asian trading hours, thin liquidity, potential for larger moves"
+            elif 4 <= target_hour < 9:
+                time_of_day_context = "Pre-Market Hours (4AM-9AM ET) - European markets active, pre-US market positioning, news reactions"
+            
+            # Calculate crossing of significant time boundaries
+            time_boundary_context = ""
+            if current_day != target_day:
+                time_boundary_context = f"CROSSES DAY BOUNDARY: From {current_day} to {target_day}. "
+            
+            if current_hour < 9 and target_hour >= 9:
+                time_boundary_context += "CROSSES MARKET OPEN (9AM ET). "
+            elif current_hour < 16 and target_hour >= 16:
+                time_boundary_context += "CROSSES MARKET CLOSE (4PM ET). "
+            
+            if current_day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] and target_day in ['Saturday', 'Sunday']:
+                time_boundary_context += "ENTERS WEEKEND PERIOD. "
+            elif current_day in ['Saturday', 'Sunday'] and target_day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']:
+                time_boundary_context += "ENTERS WEEKDAY PERIOD. "
+            
+            precise_time_context = f"""
+ULTRA-PRECISE TIME ANALYSIS:
+• Target: {target_day} at {target_hour:02d}:{target_minute:02d} ET ({hours_until_target:.1f} hours from now)
+• Day Context: {day_context}
+• Time Context: {time_of_day_context}
+• Boundary Events: {time_boundary_context if time_boundary_context else 'No significant time boundaries crossed'}
+• Exact Duration: {int(hours_until_target)} hours and {int((hours_until_target % 1) * 60)} minutes"""
 
             # Enhanced prompt for GPT-5's advanced reasoning capabilities
             comprehensive_prompt = f"""You are a professional Bitcoin analyst providing comprehensive technical analysis and price predictions. Today is {current_date}. The data provided covers ONLY {start_date} through {end_date}. DO NOT REFERENCE ANY DATES OUTSIDE THIS RANGE.
 
 Bitcoin's current price is ${current_price:,.2f}. Always use ${current_price:,.2f} when referring to Bitcoin's current price.
 
-⚠️ CRITICAL PREDICTION CONTEXT ⚠️
-TIME TO TARGET: {hours_until_target:.1f} hours ({target_datetime_formatted})
-PREDICTION TIMEFRAME: {time_context}
+⚠️ ULTRA-SPECIFIC PREDICTION CONTEXT ⚠️
+{precise_time_context}
 
-Your prediction MUST consider this specific time horizon. Shorter timeframes should focus on technical momentum and immediate patterns, while longer timeframes should consider broader trends and structural levels.
+Your prediction MUST be tailored to this EXACT day and time. Consider:
+• Specific day-of-week trading patterns for {target_day}
+• Hour-specific market dynamics at {target_hour:02d}:{target_minute:02d} ET
+• Market participant behavior during this specific time window
+• Liquidity patterns and volume characteristics for this exact timeframe
+• Any market structure changes that occur during this precise period
 
 PRICE PERFORMANCE:
 • 3-month change: {analysis_data.get('data_3m', {}).get('price_change_3m', 0):+.2f}%
@@ -626,9 +674,12 @@ Provide analysis in these exact sections:
 [PRICE_PREDICTION_START]
 **PREDICTED PRICE: I predict Bitcoin will be at $[XX,XXX] on {target_datetime_formatted}**
 
-⏰ **TIME-SPECIFIC ANALYSIS ({hours_until_target:.1f} hours until target):**
-- **Time Horizon Impact**: [Explain how this specific timeframe affects your prediction - short-term vs medium-term vs long-term considerations]
-- **Expected Price Movement Path**: [Describe how you expect price to move over this specific time period]
+⏰ **ULTRA-PRECISE TIME ANALYSIS:**
+- **Exact Target**: {target_day} at {target_hour:02d}:{target_minute:02d} ET (in {int(hours_until_target)} hours, {int((hours_until_target % 1) * 60)} minutes)
+- **Day-Specific Impact**: [How {target_day} trading patterns affect this prediction]
+- **Hour-Specific Impact**: [How {target_hour:02d}:{target_minute:02d} ET market dynamics affect this prediction]
+- **Market Transition Effects**: [Any market opens/closes/boundary crossings during this period]
+- **Expected Path to Target**: [Minute-by-minute or hour-by-hour price movement expectations]
 
 1. **Probability HIGHER than ${current_price:,.2f}: [X]%**
 2. **Probability LOWER than ${current_price:,.2f}: [Y]%**
@@ -636,18 +687,22 @@ Provide analysis in these exact sections:
 4. **Price Prediction Confidence: [W]%** (how confident in the specific price target)
 5. **Expected % Move: [+/-X.X]%** (percentage change from current price) **- [X]% confident**
 
-**Key Technical Factors Supporting This {time_context.split(' - ')[0]} Assessment:**
-- [List 3-5 specific technical reasons for the prediction, considering the time horizon]
+**Key Factors for This EXACT {target_day} {target_hour:02d}:{target_minute:02d} ET Prediction:**
+- [Factor 1: Specific to this day/time combination]
+- [Factor 2: Market participant behavior at this exact time]
+- [Factor 3: Liquidity/volume patterns for this precise window]
+- [Factor 4: Technical levels relevant to this specific timeframe]
+- [Factor 5: Market structure considerations for this exact period]
 
-**Time-Appropriate Price Targets:**
-- Upside Target 1: $[amount] (reasoning for this timeframe)
-- Upside Target 2: $[amount] (reasoning for this timeframe)
-- Downside Target 1: $[amount] (reasoning for this timeframe)
-- Downside Target 2: $[amount] (reasoning for this timeframe)
+**Precision Price Targets for {target_day} {target_hour:02d}:{target_minute:02d} ET:**
+- Upside Target 1: $[amount] (specific reasoning for this day/time)
+- Upside Target 2: $[amount] (specific reasoning for this day/time)
+- Downside Target 1: $[amount] (specific reasoning for this day/time)
+- Downside Target 2: $[amount] (specific reasoning for this day/time)
 
-**Critical Levels to Watch Over Next {hours_until_target:.1f} Hours:**
-- Bullish above: $[level]
-- Bearish below: $[level]
+**Critical Levels for Exact {int(hours_until_target)}h {int((hours_until_target % 1) * 60)}m Window:**
+- Bullish above: $[level] (why this level matters for this specific time)
+- Bearish below: $[level] (why this level matters for this specific time)
 
 [PRICE_PREDICTION_END]
 

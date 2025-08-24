@@ -954,6 +954,9 @@ def main():
                 else:
                     view_link = ""
                 
+                # Calculate direction confidence (the higher probability)
+                direction_confidence = max(prob_higher, prob_lower)
+                
                 prediction_data.append({
                     'Prediction Made': pred_time_formatted,
                     'Target Time': target_time_formatted,
@@ -961,6 +964,7 @@ def main():
                     'Predicted Price': f"${predicted_price:,.0f}" if predicted_price else "N/A",
                     'Actual Price': f"${actual_price:,.0f}" if actual_price else "Pending",
                     'Direction': f"↗️ {prob_higher:.0f}% higher / ↘️ {prob_lower:.0f}% lower",
+                    'Direction Confidence %': f"{direction_confidence:.0f}%",
                     'Accuracy': accuracy_text,
                     'Full Analysis': view_link
                 })
@@ -1613,6 +1617,9 @@ def main():
                 else:
                     view_link = ""
                 
+                # Calculate direction confidence (the higher probability)
+                direction_confidence = max(prob_higher, prob_lower)
+                
                 prediction_data.append({
                     'Prediction Made': pred_time_formatted,
                     'Target Time': target_time_formatted,
@@ -1620,6 +1627,7 @@ def main():
                     'Predicted Price': f"${predicted_price:,.0f}" if predicted_price else "N/A",
                     'Actual Price': f"${actual_price:,.0f}" if actual_price else "Pending",
                     'Direction': f"↗️ {prob_higher:.0f}% higher / ↘️ {prob_lower:.0f}% lower",
+                    'Direction Confidence %': f"{direction_confidence:.0f}%",
                     'Accuracy': accuracy_text,
                     'Full Analysis': view_link
                 })

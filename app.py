@@ -1032,19 +1032,19 @@ def main():
                     
                     with col3:
                         accuracy_rate = ((very_good_predictions + good_predictions) / len(completed_predictions)) * 100 if completed_predictions else 0
-                        st.metric("Accuracy Rate (≤3%)", f"{accuracy_rate:.0f}%")
+                        st.metric("Price Accuracy Rate (≤3%)", f"{accuracy_rate:.0f}%")
                     
                     with col4:
-                        direction_accuracy = (direction_correct / len(completed_predictions)) * 100 if completed_predictions else 0
-                        st.metric("Direction Accuracy", f"{direction_accuracy:.0f}%")
-                    
-                    with col5:
                         avg_error = sum(errors) / len(errors) if errors else 0
                         st.metric("Avg Error", f"{avg_error:.1f}%")
                     
+                    with col5:
+                        direction_accuracy = (direction_correct / len(completed_predictions)) * 100 if completed_predictions else 0
+                        st.metric("Direction Accuracy", f"{direction_accuracy:.0f}%")
+                    
                     # Detailed accuracy breakdown
                     st.divider()
-                    st.subheader("🎯 Accuracy Breakdown")
+                    st.subheader("🎯 Price Accuracy Breakdown")
                     
                     col1, col2, col3, col4 = st.columns(4)
                     
@@ -1706,19 +1706,19 @@ def main():
                     
                     with col3:
                         accuracy_rate = ((very_good_predictions + good_predictions) / len(completed_predictions)) * 100 if completed_predictions else 0
-                        st.metric("Accuracy Rate (≤3%)", f"{accuracy_rate:.0f}%")
+                        st.metric("Price Accuracy Rate (≤3%)", f"{accuracy_rate:.0f}%")
                     
                     with col4:
-                        direction_accuracy = (direction_correct / len(completed_predictions)) * 100 if completed_predictions else 0
-                        st.metric("Direction Accuracy", f"{direction_accuracy:.0f}%")
-                    
-                    with col5:
                         avg_error = sum(errors) / len(errors) if errors else 0
                         st.metric("Avg Error", f"{avg_error:.1f}%")
                     
+                    with col5:
+                        direction_accuracy = (direction_correct / len(completed_predictions)) * 100 if completed_predictions else 0
+                        st.metric("Direction Accuracy", f"{direction_accuracy:.0f}%")
+                    
                     # Detailed accuracy breakdown
                     st.divider()
-                    st.subheader("🎯 Accuracy Breakdown")
+                    st.subheader("🎯 Price Accuracy Breakdown")
                     
                     col1, col2, col3, col4 = st.columns(4)
                     

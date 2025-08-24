@@ -1801,14 +1801,15 @@ def main():
             else:
                 st.info("No predictions to display on this page.")
         
-        # Footer with last update info
-        st.divider()
-        st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: GPT-5 | [GitHub](https://github.com/njwill/BitcoinPricePredictor)")
         
     except Exception as e:
         st.error(f"❌ An error occurred: {str(e)}")
         st.exception(e)
     
+    # Footer with last update info - always visible
+    st.divider()
+    st.caption(f"Last updated: {get_eastern_time().strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: GPT-5 | [GitHub](https://github.com/njwill/BitcoinPricePredictor)")
+
 
 if __name__ == "__main__":
     main()

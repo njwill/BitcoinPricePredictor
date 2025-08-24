@@ -1204,9 +1204,9 @@ def main():
                 analysis_db.update_analysis_accuracy()  # Uses historical prices automatically
             except:
                 pass  # Continue even if we can't update accuracy
-        
-        # Display fresh analysis message
-        current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Display fresh analysis message
+            current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
         if analysis and isinstance(analysis, dict) and 'probabilities' in analysis:
             probabilities = analysis['probabilities']
             if isinstance(probabilities, dict):

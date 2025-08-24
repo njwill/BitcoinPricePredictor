@@ -1810,15 +1810,12 @@ def main():
             else:
                 st.info("No predictions to display on this page.")
         
-        # Footer with last update info
-        display_footer()
-        
     except Exception as e:
         st.error(f"❌ An error occurred: {str(e)}")
         st.exception(e)
-        # Show footer even on error pages
-        display_footer()
     
+    # Always show footer at the very end, regardless of any logic above
+    display_footer()
 
 if __name__ == "__main__":
     main()

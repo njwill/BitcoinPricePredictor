@@ -114,10 +114,19 @@ class AIAnalyzer:
             # Derive legacy-like probabilities for downstream UI, if desired
             probs = self._extract_probabilities_from_json(parsed, self._last_current_price or current_price)
 
+            # Extract legacy fields for compatibility with app.py
+            technical_summary = ""
+            price_prediction = ""
+            if isinstance(parsed, dict):
+                technical_summary = parsed.get("technical_analysis", "")
+                price_prediction = parsed.get("price_prediction", "")
+
             return {
                 "status": parsed.get("status", "ok") if isinstance(parsed, dict) else "error",
                 "model_json": parsed,
                 "probabilities": probs,
+                "technical_summary": technical_summary,
+                "price_prediction": price_prediction,
                 "timestamp": datetime.now().isoformat(),
             }
 

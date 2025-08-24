@@ -952,8 +952,9 @@ def main():
                 else:
                     view_link = ""
                 
-                # Calculate direction confidence (the higher probability)
-                direction_confidence = max(prob_higher, prob_lower)
+                # Get AI confidence level from prediction data
+                confidence_level = pred.get('confidence_level', 0)
+                direction_confidence = confidence_level
                 
                 # Check if direction was correct
                 direction_correct = "Pending"
@@ -1655,8 +1656,9 @@ def main():
                 else:
                     view_link = ""
                 
-                # Calculate direction confidence (the higher probability)
-                direction_confidence = max(prob_higher, prob_lower)
+                # Get AI confidence level from prediction data
+                confidence_level = pred.get('confidence_level', 0)
+                direction_confidence = confidence_level
                 
                 # Check if direction was correct
                 direction_correct = "Pending"

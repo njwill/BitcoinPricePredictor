@@ -1140,16 +1140,16 @@ def main():
                         prediction_data, btc_3m, btc_1w, indicators_3m, indicators_1w, full_ai_text
                     )
                     
-                    # Generate social media image for sharing
+                    # Generate social media tweet text for sharing
                     try:
                         domain = get_current_domain()
-                        image_path = social_media_generator.save_prediction_image(
-                            prediction_data, analysis_hash, btc_1w, domain
+                        tweet_text = social_media_generator.generate_shareable_text(
+                            prediction_data, analysis_hash, domain
                         )
-                        st.session_state.social_media_image = image_path
+                        st.session_state.social_media_text = tweet_text
                     except Exception as e:
-                        print(f"Error generating social media image: {e}")
-                        st.session_state.social_media_image = None
+                        print(f"Error generating social media text: {e}")
+                        st.session_state.social_media_text = None
                     
                     # Also save to legacy JSON system for backward compatibility
                     save_prediction(prediction_data)
@@ -1488,25 +1488,25 @@ def main():
             st.markdown(f"[📋 Open this analysis link]({share_url})")
             st.caption("💡 Copy the full URL from your browser to share with others - works on any domain!")
             
-            # Display social media image if generated
-            if 'social_media_image' in st.session_state and st.session_state.social_media_image:
-                st.markdown("### 📱 Social Media Share Image")
+            # Display social media tweet text if generated
+            if 'social_media_text' in st.session_state and st.session_state.social_media_text:
+                st.markdown("### 🐦 Tweet This Analysis")
                 try:
-                    st.image(st.session_state.social_media_image, 
-                            caption="Share this image on social media with the analysis link!", 
-                            width=400)
+                    # Display the tweet text in a code block for easy copying
+                    st.code(st.session_state.social_media_text, language=None)
                     
-                    # Provide download button for the image
-                    with open(st.session_state.social_media_image, "rb") as file:
-                        st.download_button(
-                            label="📥 Download Image for Social Media",
-                            data=file.read(),
-                            file_name=f"bitcoin_prediction_{st.session_state.analysis_hash[:8]}.png",
-                            mime="image/png",
-                            help="Download this image to share on social media along with the analysis link"
-                        )
+                    # Provide copy button functionality
+                    st.success("📋 Copy the text above to share on Twitter/X or other social media!")
+                    
+                    # Show tweet character count
+                    tweet_length = len(st.session_state.social_media_text)
+                    if tweet_length <= 280:
+                        st.info(f"✅ Perfect for Twitter: {tweet_length}/280 characters")
+                    else:
+                        st.warning(f"⚠️ Tweet is {tweet_length} characters (over Twitter's 280 limit). Consider shortening.")
+                        
                 except Exception as e:
-                    st.warning(f"Could not display social media image: {e}")
+                    st.warning(f"Could not display social media text: {e}")
         
         # Update timestamp
         st.session_state.last_update = current_time

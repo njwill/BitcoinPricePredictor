@@ -544,10 +544,28 @@ class AIAnalyzer:
                 gpt5_1w_high = analysis_data["enhanced_chart_data"]["1w_data"]["period_highs_lows"]["period_high"]
                 gpt5_1w_low = analysis_data["enhanced_chart_data"]["1w_data"]["period_highs_lows"]["period_low"]
 
+            # Calculate time components for better prompt context
+            hours_until_target = analysis_data.get('hours_until_target', 0)
+            time_context = ""
+            if hours_until_target < 1:
+                time_context = "VERY SHORT-TERM (less than 1 hour) - Focus on immediate price action, order book dynamics, and very short-term momentum"
+            elif hours_until_target < 24:
+                time_context = f"SHORT-TERM ({hours_until_target:.1f} hours) - Consider intraday patterns, momentum shifts, and immediate technical levels"
+            elif hours_until_target < 168:  # 1 week
+                time_context = f"MEDIUM-TERM ({hours_until_target/24:.1f} days) - Factor in daily trends, weekly patterns, and developing technical formations"
+            else:
+                time_context = f"LONGER-TERM ({hours_until_target/24:.1f} days) - Consider broader market cycles, fundamental shifts, and major technical levels"
+
             # Enhanced prompt for GPT-5's advanced reasoning capabilities
             comprehensive_prompt = f"""You are a professional Bitcoin analyst providing comprehensive technical analysis and price predictions. Today is {current_date}. The data provided covers ONLY {start_date} through {end_date}. DO NOT REFERENCE ANY DATES OUTSIDE THIS RANGE.
 
 Bitcoin's current price is ${current_price:,.2f}. Always use ${current_price:,.2f} when referring to Bitcoin's current price.
+
+⚠️ CRITICAL PREDICTION CONTEXT ⚠️
+TIME TO TARGET: {hours_until_target:.1f} hours ({target_datetime_formatted})
+PREDICTION TIMEFRAME: {time_context}
+
+Your prediction MUST consider this specific time horizon. Shorter timeframes should focus on technical momentum and immediate patterns, while longer timeframes should consider broader trends and structural levels.
 
 PRICE PERFORMANCE:
 • 3-month change: {analysis_data.get('data_3m', {}).get('price_change_3m', 0):+.2f}%
@@ -608,22 +626,26 @@ Provide analysis in these exact sections:
 [PRICE_PREDICTION_START]
 **PREDICTED PRICE: I predict Bitcoin will be at $[XX,XXX] on {target_datetime_formatted}**
 
+⏰ **TIME-SPECIFIC ANALYSIS ({hours_until_target:.1f} hours until target):**
+- **Time Horizon Impact**: [Explain how this specific timeframe affects your prediction - short-term vs medium-term vs long-term considerations]
+- **Expected Price Movement Path**: [Describe how you expect price to move over this specific time period]
+
 1. **Probability HIGHER than ${current_price:,.2f}: [X]%**
 2. **Probability LOWER than ${current_price:,.2f}: [Y]%**
 3. **Overall Analysis Confidence: [Z]%**
 4. **Price Prediction Confidence: [W]%** (how confident in the specific price target)
 5. **Expected % Move: [+/-X.X]%** (percentage change from current price) **- [X]% confident**
 
-**Key Technical Factors Supporting This Assessment:**
-- [List 3-5 specific technical reasons for the prediction]
+**Key Technical Factors Supporting This {time_context.split(' - ')[0]} Assessment:**
+- [List 3-5 specific technical reasons for the prediction, considering the time horizon]
 
-**Potential Price Targets:**
-- Upside Target 1: $[amount] (reasoning)
-- Upside Target 2: $[amount] (reasoning)
-- Downside Target 1: $[amount] (reasoning)
-- Downside Target 2: $[amount] (reasoning)
+**Time-Appropriate Price Targets:**
+- Upside Target 1: $[amount] (reasoning for this timeframe)
+- Upside Target 2: $[amount] (reasoning for this timeframe)
+- Downside Target 1: $[amount] (reasoning for this timeframe)
+- Downside Target 2: $[amount] (reasoning for this timeframe)
 
-**Critical Levels to Watch:**
+**Critical Levels to Watch Over Next {hours_until_target:.1f} Hours:**
 - Bullish above: $[level]
 - Bearish below: $[level]
 

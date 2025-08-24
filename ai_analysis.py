@@ -8,17 +8,19 @@ import pytz
 import streamlit as st
 from typing import Dict, Any, Optional, List, Tuple
 from openai import OpenAI
+import re
 
 
 class AIAnalyzer:
     """
-    AIAnalyzer — strict, data-only technical analysis + point forecast.
+    AIAnalyzer — strict, data-only technical analysis + narrative + point forecast.
 
-    Returns fields your app expects:
-      - 'technical_summary' (markdown)
-      - 'price_prediction' (markdown)
-      - 'probabilities' (for your gauge)
-      - 'model_json' (structured JSON)
+    Outputs your app expects:
+      - 'technical_summary' (markdown, from [TECHNICAL_ANALYSIS_*] block)
+      - 'price_prediction' (markdown, from [PRICE_PREDICTION_*] block)
+      - 'probabilities' (numbers for your gauges)
+      - 'model_json' (parsed JSON block)
+      - 'status' ('ok' | 'insufficient_data' | 'error')
     """
 
     def __init__(self, debug: Optional[bool] = None):
@@ -66,7 +68,6 @@ class AIAnalyzer:
                 asset_name=asset_name,
             )
 
-            # Keep target_ts handy for nice messaging even if the model fails
             target_ts_fallback = analysis_data.get("target_time", "")
 
             if analysis_data.get("prep_status") == "insufficient_data":
@@ -81,33 +82,44 @@ class AIAnalyzer:
                     "timestamp": datetime.now().isoformat(),
                 }
 
-            # Strict JSON from model (no temperature/top_p/reasoning params)
-            response_json_text = self._generate_technical_analysis_gpt5(analysis_data)
-            parsed = self._parse_json_response(response_json_text, self._last_current_price or current_price)
+            # Ask for BOTH: JSON block + narrative section blocks
+            raw = self._generate_technical_analysis_gpt5(analysis_data)
 
-            # If the model call returned an error blob, surface it cleanly but keep the target
-            if parsed.get("status") == "insufficient_data" and parsed.get("notes"):
-                text_summary, text_pred = self._compose_text_when_insufficient(
-                    "; ".join([str(n) for n in parsed.get("notes", [])]), target_ts_fallback
-                )
-                return {
-                    "status": "insufficient_data",
-                    "model_json": parsed,
-                    "probabilities": self._default_probs(),
-                    "technical_summary": text_summary,
-                    "price_prediction": text_pred,
-                    "timestamp": datetime.now().isoformat(),
-                }
+            # Split/parse outputs
+            json_text, narrative_text = self._split_dual_output(raw)
+            parsed_json = self._parse_json_response(json_text, self._last_current_price or current_price)
 
-            # Gauges
-            probs = self._extract_probabilities_from_json(parsed, self._last_current_price or current_price)
+            # Extract rich sections (like your old script)
+            sections = self._parse_comprehensive_response(narrative_text) if narrative_text else {}
 
-            # Back-compat text for your UI
-            tech_md, pred_md = self._compose_text_from_model_json(parsed, current_price)
+            # Build probabilities
+            if parsed_json.get("status") == "ok":
+                probs = self._extract_probabilities_from_json(parsed_json, self._last_current_price or current_price)
+            else:
+                probs = self._extract_probabilities(sections.get("price_prediction", "") if sections else "")
+
+            # Text blocks to show in UI
+            tech_md = sections.get("technical_summary")
+            pred_md = sections.get("price_prediction")
+
+            # If model omitted narrative, synthesize from JSON so UI still looks good
+            if not tech_md or not pred_md:
+                synth_tech, synth_pred = self._compose_text_from_model_json(parsed_json, current_price)
+                tech_md = tech_md or synth_tech
+                pred_md = pred_md or synth_pred
+
+            # If the JSON says insufficient but narrative exists, honor JSON for status
+            status = parsed_json.get("status", "ok") if isinstance(parsed_json, dict) else "error"
+            if status != "ok" and status != "insufficient_data":
+                status = "insufficient_data"
+
+            # Ensure we never show empty target
+            if status != "ok" and ("`" in pred_md and "Target:" in pred_md and "``" in pred_md):
+                pred_md = f"**Target:** `{target_ts_fallback}`\n\n_No price prediction due to insufficient data._"
 
             return {
-                "status": parsed.get("status", "ok") if isinstance(parsed, dict) else "error",
-                "model_json": parsed,
+                "status": status,
+                "model_json": parsed_json,
                 "probabilities": probs,
                 "technical_summary": tech_md,
                 "price_prediction": pred_md,
@@ -116,7 +128,6 @@ class AIAnalyzer:
 
         except Exception as e:
             st.error(f"Error generating AI analysis: {str(e)}")
-            # Ensure we still output something readable with target included
             target_ts = target_datetime.isoformat() if target_datetime else ""
             tech, pred = self._compose_text_when_insufficient(str(e), target_ts)
             return {"status": "error", "error": str(e), "probabilities": self._default_probs(),
@@ -137,7 +148,7 @@ class AIAnalyzer:
             return df
         df = df.copy()
 
-        # If data_fetcher reset the index and left a 'Datetime' column
+        # If data_fetcher reset index and left a 'Datetime' column
         if df.index.dtype.kind in ['i', 'f']:
             df.reset_index(drop=True, inplace=True)
             date_cols = [c for c in df.columns if 'date' in c.lower() or 'time' in c.lower()]
@@ -242,7 +253,7 @@ class AIAnalyzer:
 
             actual_current_price = float(current_price)
 
-            # Optional debug
+            # Optional debug about current price mismatch
             if not window_1w.empty:
                 latest_close_1w = float(window_1w["Close"].iloc[-1])
                 if latest_close_1w > 0:
@@ -528,14 +539,15 @@ class AIAnalyzer:
 
     def _build_messages(self, analysis_data: Dict[str, Any], asset_name: str) -> Tuple[Dict[str, str], Dict[str, str]]:
         system_content = (
-            "You are a deterministic technical analyzer. Use ONLY the structured arrays provided. "
-            "Forbidden: news, macro, on-chain, session effects (market open/close), weekdays, etc. "
-            "If needed data is missing/empty, return status='insufficient_data' with notes."
+            "You are a deterministic technical analyst. Use ONLY the structured arrays provided. "
+            "Forbidden: news, macro, on-chain, session effects (market open/close), weekdays, seasonality, etc. "
+            "Do not infer beyond given timestamps. If required arrays are missing/empty, output status='insufficient_data'."
         )
 
         data_3m = analysis_data.get("data_3m", {})
         data_1w = analysis_data.get("data_1w", {})
 
+        # JSON schema
         output_schema = {
             "status": "ok or insufficient_data",
             "asset": asset_name,
@@ -546,7 +558,7 @@ class AIAnalyzer:
             "p_down": "float 0..1 (p_up + p_down = 1)",
             "conf_overall": "float 0..1",
             "conf_price": "float 0..1",
-            "expected_pct_move": "signed float percent",
+            "expected_pct_move": "signed float percent (optional; compute from predicted/current if omitted)",
             "critical_levels": {"bullish_above": "number or null", "bearish_below": "number or null"},
             "evidence": [
                 {"type":"rsi|macd|bb|ema|price|volume|structure",
@@ -554,6 +566,74 @@ class AIAnalyzer:
             ],
             "notes": ["if status=insufficient_data, list what's missing"]
         }
+
+        # Narrative section template (your original)
+        narrative_template = """
+[TECHNICAL_ANALYSIS_START]
+**COMPREHENSIVE TECHNICAL ANALYSIS**
+
+**Current Price: ${current_price:,.2f}**
+
+**1. MULTI-TIMEFRAME OVERVIEW**
+- 3-Month Chart Analysis: <facts only from arrays>
+- 1-Week Chart Analysis: <facts only from arrays>
+- Timeframe Alignment: <consistency or conflict>
+
+**2. TECHNICAL INDICATORS ANALYSIS**
+- RSI Analysis: <levels/divergences>
+- MACD Analysis: <crossovers/histogram>
+- Bollinger Bands: <within/upper/lower, squeeze/expansion>
+- EMA Analysis: <price vs EMA_20>
+
+**3. ADVANCED PATTERN ANALYSIS**
+- Patterns & Candles: <if evident in arrays; else 'none observed'>
+- Support/Resistance: <explicit levels from highs/lows>
+
+**4. DIVERGENCE & FAILURE SWINGS**
+- RSI/MACD divergences and failure swings: <only if visible>
+- Volume divergences: <only if visible>
+
+**5. TRENDLINE & STRUCTURE**
+- Higher highs/lows or lower highs/lows
+- Key levels
+
+**6. TRADING RECOMMENDATION**
+- Overall Bias: **BULLISH/BEARISH/NEUTRAL**
+- Entry/Stop/Targets: <levels based on arrays>
+[TECHNICAL_ANALYSIS_END]
+
+[PRICE_PREDICTION_START]
+**PREDICTED PRICE: I predict {asset} will be at $<PRICE> on {target_formatted}**
+
+⏰ **DATA-BASED TIME ANALYSIS:**
+- Exact Target: {target_ts}
+- Momentum Direction: <from RSI/MACD arrays>
+- Trend Strength: <from EMA/price action>
+- Volume Analysis: <from volume arrays>
+- Expected Path: <data-grounded path>
+
+1. **Probability HIGHER than ${current_price:,.2f}: <X>%**
+2. **Probability LOWER than ${current_price:,.2f}: <Y>%**
+3. **Overall Analysis Confidence: <Z>%**
+4. **Price Prediction Confidence: <W>%**
+5. **Expected % Move: <±M>%**
+
+**Key Technical Factors from the Actual Data:**
+- Factor 1…
+- Factor 2…
+- Factor 3…
+
+**Price Targets Based on Chart Analysis:**
+- Upside Target 1: $<amount>
+- Upside Target 2: $<amount>
+- Downside Target 1: $<amount>
+- Downside Target 2: $<amount>
+
+**Critical Levels from the Data:**
+- Bullish above: $<level>
+- Bearish below: $<level>
+[PRICE_PREDICTION_END]
+""".strip()
 
         user_content = f"""
 ASSET: {asset_name}
@@ -578,9 +658,24 @@ ENHANCED ARRAYS:
 STRICT RULES:
 - Use ONLY these arrays. Do NOT use session effects, news, or any outside info.
 - If required arrays are empty/missing, return status='insufficient_data' with 'notes'.
+- All levels/claims must be verifiable from these arrays.
 
-OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
+YOU MUST RETURN **TWO** BLOCKS, IN THIS ORDER:
+
+1) A VALID JSON object, in a fenced code block like:
+```json
 {json.dumps(output_schema, indent=2)}
+Fill all applicable fields with numbers (not strings) where appropriate.
+
+A narrative block using EXACTLY the following section markers and structure,
+filling in concrete values from the arrays. This is the display copy for the app:
+
+{narrative_template.format(
+current_price=analysis_data.get('current_price'),
+asset=asset_name,
+target_formatted=analysis_data.get('target_time'),
+target_ts=analysis_data.get('target_time')
+)}
 """.strip()
 
         return ({"role": "system", "content": system_content},
@@ -589,8 +684,7 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
     def _generate_technical_analysis_gpt5(self, analysis_data: Dict[str, Any]) -> str:
         """
         Call the model WITHOUT temperature/top_p/reasoning/text params.
-        Prefer Responses API; if it errors, fall back to Chat Completions JSON mode.
-        Always return a JSON string.
+        Ask for JSON + narrative blocks. Return raw text.
         """
         if not self.gpt5_client:
             return '{"status":"insufficient_data","notes":["no_client"]}'
@@ -598,31 +692,60 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
         asset_name = analysis_data.get("asset_name", "Asset")
         system_msg, user_msg = self._build_messages(analysis_data, asset_name)
 
-        # Try Responses API first
+        # Responses API
         try:
             resp = self.gpt5_client.responses.create(
                 model=self.model_name,
-                input=[system_msg, user_msg],  # messages-style input
+                input=[system_msg, user_msg],
             )
-            return resp.output_text  # should be JSON string
+            return resp.output_text  # raw text with both blocks
         except Exception as e:
             self._dbg("warning", f"Responses API failed, will try Chat Completions. Error: {e}")
 
-        # Fallback: Chat Completions with JSON mode
+        # Fallback: Chat Completions (text)
         try:
             chat = self.gpt5_client.chat.completions.create(
                 model=self.model_name,
                 messages=[system_msg, user_msg],
-                response_format={"type": "json_object"},  # forces valid JSON
             )
             return chat.choices[0].message.content
         except Exception as e:
-            # Return a JSON error payload so downstream stays robust
             return json.dumps({"status": "insufficient_data", "notes": [f"model_error:{str(e)}"]})
 
     # ---------- parsing + probabilities + text composition ----------
 
+    def _split_dual_output(self, raw: str) -> Tuple[str, str]:
+        """Extract a JSON fenced block (```json ... ```) and the rest (narrative)."""
+        if not raw:
+            return "", ""
+
+        # Prefer fenced ```json blocks
+        m = re.search(r"```json\s*(\{.*?\})\s*```", raw, flags=re.DOTALL | re.IGNORECASE)
+        if m:
+            json_block = m.group(1).strip()
+            narrative = raw[:m.start()] + raw[m.end():]
+            return json_block, narrative.strip()
+
+        # Fallback: first JSON object in text (greedy braces balance heuristic)
+        first_brace = raw.find("{")
+        last_brace = raw.rfind("}")
+        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+            candidate = raw[first_brace:last_brace+1]
+            # Quick sanity: try to loads
+            try:
+                json.loads(candidate)
+                narrative = raw[:first_brace] + raw[last_brace+1:]
+                return candidate.strip(), narrative.strip()
+            except Exception:
+                pass
+
+        # Nothing extractable; return raw as narrative
+        return "", raw.strip()
+
     def _parse_json_response(self, response_text: str, current_price: float) -> Dict[str, Any]:
+        if not response_text:
+            return {"status": "insufficient_data", "notes": ["no_json_block_found"]}
+
         try:
             data = json.loads(response_text)
             if not isinstance(data, dict):
@@ -630,7 +753,7 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
 
             data["status"] = data.get("status") if data.get("status") in ("ok","insufficient_data") else "insufficient_data"
 
-            # Clamp/normalize probs
+            # Normalize probabilities
             p_up = float(self._safe_num(data.get("p_up"), 0.5))
             p_down = float(self._safe_num(data.get("p_down"), 0.5))
             p_up = max(0.0, min(1.0, p_up))
@@ -655,6 +778,47 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
             return data
         except Exception as e:
             return {"status": "insufficient_data", "notes": [f"json_parse_error:{e}"]}
+
+    def _parse_comprehensive_response(self, response: str) -> Dict[str, str]:
+        """Parse narrative into sections using your original markers."""
+        try:
+            sections: Dict[str, str] = {}
+
+            tech_start = response.find("[TECHNICAL_ANALYSIS_START]")
+            tech_end = response.find("[TECHNICAL_ANALYSIS_END]")
+            if tech_start != -1 and tech_end != -1:
+                sections["technical_summary"] = response[tech_start + len("[TECHNICAL_ANALYSIS_START]") : tech_end].strip()
+
+            pred_start = response.find("[PRICE_PREDICTION_START]")
+            pred_end = response.find("[PRICE_PREDICTION_END]")
+            if pred_start != -1 and pred_end != -1:
+                sections["price_prediction"] = response[pred_start + len("[PRICE_PREDICTION_START]") : pred_end].strip()
+
+            if not sections:
+                # fallback parsing (very lenient)
+                lines = response.split("\n")
+                current_section = None
+                current_content = []
+                for line in lines:
+                    line_lower = line.lower().strip()
+                    if "technical analysis" in line_lower:
+                        if current_section and current_content:
+                            sections[current_section] = "\n".join(current_content).strip()
+                        current_section = "technical_summary"
+                        current_content = []
+                    elif "price prediction" in line_lower:
+                        if current_section and current_content:
+                            sections[current_section] = "\n".join(current_content).strip()
+                        current_section = "price_prediction"
+                        current_content = []
+                    elif current_section:
+                        current_content.append(line)
+                if current_section and current_content:
+                    sections[current_section] = "\n".join(current_content).strip()
+
+            return sections or {"technical_summary": response, "price_prediction": ""}
+        except Exception:
+            return {"technical_summary": response, "price_prediction": "Unable to parse prediction section"}
 
     def _extract_probabilities_from_json(self, data: Dict[str, Any], current_price: float) -> Dict[str, Any]:
         if not isinstance(data, dict) or data.get("status") != "ok":
@@ -698,7 +862,7 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
         except Exception:
             return default
 
-    # ---------- text composition ----------
+    # ---------- text composition + legacy regex fallback ----------
 
     def _compose_text_from_model_json(self, data: Dict[str, Any], current_price: float) -> Tuple[str, str]:
         if not isinstance(data, dict):
@@ -722,7 +886,6 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
                 f"**Target:** `{target_ts}`\n\n_No price prediction due to insufficient data._"
             )
 
-        # Technical summary
         bullets: List[str] = []
         if bull is not None:
             bullets.append(f"- **Bullish above:** ${bull:,.0f}")
@@ -731,13 +894,11 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
         if expected is not None:
             bullets.append(f"- **Expected move:** {expected:+.2f}% vs current (${current_price:,.0f})")
         ev = data.get("evidence", []) or []
-        for e in ev[:3]:
+        for e in ev[:6]:
             t = e.get("type","fact"); tf = e.get("timeframe",""); ts = e.get("ts",""); note = e.get("note","")
             bullets.append(f"- **{t.upper()} {tf} @ {ts}:** {note}")
 
         tech_md = f"**As of:** `{as_of}`\n\n" + ("\n".join(bullets) if bullets else "_No additional evidence provided._")
-
-        # Price prediction one-liner
         price_line = f"**Predicted price at `{target_ts}`:** " + (f"**${pred:,.0f}**" if pred is not None else "unavailable")
         pred_md = f"{price_line}\n\n- **P(higher)**: {p_up*100:.0f}%   - **P(lower)**: {p_down*100:.0f}%   - **AI confidence**: {data.get('conf_overall',0.5)*100:.0f}%"
         return tech_md, pred_md
@@ -746,3 +907,87 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
         tech = f"**Status:** _insufficient data_\n\n**Notes:** {reason or 'missing inputs'}"
         pred = f"**Target:** `{target_ts}`\n\n_No price prediction due to insufficient data._"
         return tech, pred
+
+    def _extract_probabilities(self, prediction_text: str) -> Dict[str, Any]:
+        """Legacy regex extraction from narrative price section."""
+        probs = {"higher_fraction": 0.5, "lower_fraction": 0.5, "confidence_fraction": 0.5,
+                 "higher_pct": 50.0, "lower_pct": 50.0, "confidence_pct": 50.0, "predicted_price": None,
+                 "price_confidence_pct": 50.0, "move_percentage": 0.0}
+        try:
+            patterns = {
+                "higher": [
+                    r"(\d+)%?\s*(?:probability|chance|likelihood).*?(?:higher|up|increase)",
+                    r"(?:higher|up|increase).*?(\d+)%",
+                    r"HIGHER.*?(\d+)%",
+                    r"(\d+)%.*?higher",
+                ],
+                "lower": [
+                    r"(\d+)%?\s*(?:probability|chance|likelihood).*?(?:lower|down|decrease)",
+                    r"(?:lower|down|decrease).*?(\d+)%",
+                    r"LOWER.*?(\d+)%",
+                    r"(\d+)%.*?lower",
+                ],
+                "confidence": [
+                    r"overall.*?confidence.*?(\d+)%",
+                    r"analysis.*?confidence.*?(\d+)%",
+                    r"confidence.*?(\d+)%",
+                    r"(\d+)%.*?confidence",
+                    r"confident.*?(\d+)%",
+                ],
+                "price_confidence": [
+                    r"price.*?confidence.*?(\d+)%",
+                    r"price.*?prediction.*?confidence.*?(\d+)%",
+                    r"target.*?confidence.*?(\d+)%",
+                ],
+                "move_percentage": [
+                    r"([+-]?\d+\.?\d*)%.*?move",
+                    r"move.*?([+-]?\d+\.?\d*)%",
+                    r"expected.*?([+-]?\d+\.?\d*)%",
+                    r"change.*?([+-]?\d+\.?\d*)%",
+                ],
+                "predicted_price": [
+                    r"predict.*?\$([\d,]+)(?:\.\d+)?",
+                    r"predicted price.*?\$([\d,]+)(?:\.\d+)?",
+                    r"will be.*?\$([\d,]+)(?:\.\d+)?",
+                    r"target.*?\$([\d,]+)(?:\.\d+)?",
+                    r"bitcoin.*?\$([\d,]+)(?:\.\d+)?",
+                ],
+            }
+
+            text_lower = prediction_text.lower()
+
+            for key in ["higher", "lower", "confidence", "price_confidence", "move_percentage", "predicted_price"]:
+                for pat in patterns[key]:
+                    m = re.findall(pat, text_lower, flags=re.IGNORECASE)
+                    if m:
+                        if key == "predicted_price":
+                            price_str = m[0].replace(',', '')
+                            probs["predicted_price"] = float(price_str)
+                        else:
+                            val = float(m[0])
+                            if key == "higher":
+                                probs["higher_pct"] = val
+                            elif key == "lower":
+                                probs["lower_pct"] = val
+                            elif key == "confidence":
+                                probs["confidence_pct"] = val
+                            elif key == "price_confidence":
+                                probs["price_confidence_pct"] = val
+                            elif key == "move_percentage":
+                                probs["move_percentage"] = val
+                        break
+
+            total = probs["higher_pct"] + probs["lower_pct"]
+            if total > 0:
+                probs["higher_pct"] = probs["higher_pct"] * 100.0 / total
+                probs["lower_pct"] = probs["lower_pct"] * 100.0 / total
+
+            # Fractions 0..1
+            probs["higher_fraction"] = probs["higher_pct"] / 100.0
+            probs["lower_fraction"] = probs["lower_pct"] / 100.0
+            probs["confidence_fraction"] = probs["confidence_pct"] / 100.0
+
+        except Exception as e:
+            self._dbg("warning", f"Error extracting probabilities: {str(e)}")
+
+        return probs

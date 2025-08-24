@@ -280,7 +280,7 @@ class AnalysisDatabase:
                 with conn.cursor() as cur:
                     cur.execute("""
                         SELECT analysis_hash, created_at, target_datetime, current_price_at_prediction,
-                               predicted_price, probability_higher, probability_lower,
+                               predicted_price, probability_higher, probability_lower, confidence_level,
                                technical_summary, prediction_reasoning, actual_price, accuracy_calculated
                         FROM bitcoin_analyses 
                         ORDER BY created_at DESC
@@ -299,10 +299,11 @@ class AnalysisDatabase:
                             'predicted_price': float(row[4]) if row[4] else None,
                             'probability_higher': row[5],
                             'probability_lower': row[6],
-                            'technical_summary': row[7],
-                            'prediction_reasoning': row[8],
-                            'actual_price': float(row[9]) if row[9] else None,
-                            'accuracy_calculated': row[10]
+                            'confidence_level': row[7],
+                            'technical_summary': row[8],
+                            'prediction_reasoning': row[9],
+                            'actual_price': float(row[10]) if row[10] else None,
+                            'accuracy_calculated': row[11]
                         })
                     
                     return analyses

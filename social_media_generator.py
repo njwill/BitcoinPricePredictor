@@ -40,39 +40,38 @@ class SocialMediaTextGenerator:
             else:
                 recommendation = "🟡 HODL"
             
-            # Target date
+            # Target date and time
             eastern_tz = pytz.timezone('US/Eastern')
             try:
                 target_time = datetime.fromisoformat(prediction_data.get('target_datetime', ''))
                 if target_time.tzinfo is not None:
                     target_time = target_time.astimezone(eastern_tz)
                 target_formatted = target_time.strftime('%b %d, %Y')
+                target_time_formatted = target_time.strftime('%I:%M %p ET')
             except:
                 target_formatted = "Unknown Date"
+                target_time_formatted = "Unknown Time"
             
-            # Build tweet text
+            # Build tweet text with new format
             tweet_parts = []
             
-            # Main prediction
+            # Opening line
+            tweet_parts.append("I just ran some advanced #Bitcoin TA and it says...")
+            
+            # Main prediction with time
             if predicted_price:
-                tweet_parts.append(f"🔮 #Bitcoin Prediction: ${predicted_price:,.0f} by {target_formatted}")
+                tweet_parts.append(f"🔮 ${predicted_price:,.0f} by {target_formatted} ({target_time_formatted})")
             
-            # Direction and probability with move %
-            direction_text = f"{arrow} {probability:.0f}% chance {direction}"
-            if move_percentage != 0:
-                move_sign = "+" if move_percentage > 0 else ""
-                direction_text += f" ({move_sign}{move_percentage:.1f}%)"
+            # Direction and probability - specify it will be HIGHER/LOWER than target date/time
+            direction_text = f"{arrow} {probability:.0f}% chance it will be {direction} than {target_formatted} {target_time_formatted}"
             tweet_parts.append(direction_text)
-            
-            # Recommendation
-            tweet_parts.append(f"Signal: {recommendation}")
             
             # Confidence levels
             if confidence_pct > 0:
-                tweet_parts.append(f"📊 AI Confidence: {confidence_pct:.0f}%")
+                tweet_parts.append(f"📊 Confidence Level: {confidence_pct:.0f}%")
             
-            if price_confidence_pct > 0:
-                tweet_parts.append(f"🎯 Price Target Confidence: {price_confidence_pct:.0f}%")
+            # Signal after confidence
+            tweet_parts.append(f"🚦 Signal: {recommendation}")
             
             # Add analysis link if provided
             if analysis_url:
@@ -86,10 +85,8 @@ class SocialMediaTextGenerator:
     def generate_shareable_text(self, prediction_data, analysis_hash, domain=""):
         """Generate shareable tweet text for a prediction"""
         try:
-            # Generate the full analysis URL with complete domain
-            if domain and not domain.endswith('/'):
-                domain += '/'
-            analysis_url = f"{domain}?analysis={analysis_hash}" if domain else f"?analysis={analysis_hash}"
+            # Hardcode the analysis URL to the specific domain
+            analysis_url = f"https://predict.thebtccourse.com/?analysis={analysis_hash}"
             
             # Generate the tweet text
             tweet_text = self.generate_tweet_text(prediction_data, analysis_url)

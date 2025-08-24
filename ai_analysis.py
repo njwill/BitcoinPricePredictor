@@ -239,9 +239,11 @@ class AIAnalyzer:
                 return {"prep_status": "insufficient_data", "prep_notes": ["no_price_data_after_trimming"]}
 
             # Determine timezone from data; fallback to ET
+            tz_1w = getattr(window_1w.index, "tz", None) if not window_1w.empty else None
+            tz_3m = getattr(window_3m.index, "tz", None) if not window_3m.empty else None
             tz = self._determine_timezone(
-                getattr(window_1w.index, "tz", None) and window_1w.index or None,
-                getattr(window_3m.index, "tz", None) and window_3m.index or None
+                window_1w.index if tz_1w is not None else None,
+                window_3m.index if tz_3m is not None else None
             )
             current_time = datetime.now(tz)
 

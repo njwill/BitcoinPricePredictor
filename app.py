@@ -13,7 +13,7 @@ from technical_analysis import TechnicalAnalyzer
 from ai_analysis import AIAnalyzer
 from database import analysis_db
 from social_media_generator import social_media_generator
-from utils import format_currency, get_eastern_time, calculate_time_until_update, should_update_analysis, save_analysis_cache, load_analysis_cache, save_prediction, load_predictions_history, update_prediction_accuracy
+from utils import format_currency, get_eastern_time, calculate_time_until_update, should_update_analysis, save_analysis_cache, load_analysis_cache
 
 # Configure page
 st.set_page_config(
@@ -851,7 +851,7 @@ def main():
         except:
             pass  # Continue even if we can't update accuracy
         
-        predictions = load_predictions_history()
+        predictions = analysis_db.get_all_predictions()
         
         if predictions:
             # Pagination setup

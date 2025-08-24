@@ -52,6 +52,17 @@ class SocialMediaTextGenerator:
                 target_formatted = "Unknown Date"
                 target_time_formatted = "Unknown Time"
             
+            # Analysis date and time (when the prediction was made)
+            try:
+                analysis_time = datetime.fromisoformat(prediction_data.get('prediction_timestamp', ''))
+                if analysis_time.tzinfo is not None:
+                    analysis_time = analysis_time.astimezone(eastern_tz)
+                analysis_formatted = analysis_time.strftime('%b %d, %Y')
+                analysis_time_formatted = analysis_time.strftime('%I:%M %p ET')
+            except:
+                analysis_formatted = "Unknown Date"
+                analysis_time_formatted = "Unknown Time"
+            
             # Build tweet text with new format
             tweet_parts = []
             
@@ -62,8 +73,8 @@ class SocialMediaTextGenerator:
             if predicted_price:
                 tweet_parts.append(f"🔮 ${predicted_price:,.0f} by {target_formatted} ({target_time_formatted})")
             
-            # Direction and probability - specify it will be HIGHER/LOWER than target date/time
-            direction_text = f"{arrow} {probability:.0f}% chance it will be {direction} than {target_formatted} {target_time_formatted}"
+            # Direction and probability - use analysis date/time, not target date/time
+            direction_text = f"{arrow} {probability:.0f}% chance it will be {direction} than {analysis_formatted} ({analysis_time_formatted})"
             tweet_parts.append(direction_text)
             
             # Confidence levels

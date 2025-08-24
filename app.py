@@ -1485,7 +1485,7 @@ def main():
             domain = get_current_domain()
             full_share_url = f"{domain}?analysis={st.session_state.analysis_hash}"
             st.success("Analysis saved! Share this link to recall the complete analysis:")
-            st.markdown(f"[📋 Open this analysis link]({full_share_url})")
+            st.markdown(f'<a href="{full_share_url}" style="color: #FF6B35; text-decoration: none;">📋 Open this analysis link</a>', unsafe_allow_html=True)
             
             # Display social media tweet text if generated
             if 'social_media_text' in st.session_state and st.session_state.social_media_text:

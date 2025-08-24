@@ -489,15 +489,6 @@ def load_stored_analysis(analysis_hash: str):
     if st.button("← Return to Main Page", type="secondary"):
         st.query_params.clear()
         st.rerun()
-    
-    # Add footer
-    display_footer()
-
-def display_footer():
-    """Display footer with timestamp, data source, AI model, and GitHub link"""
-    current_time = get_eastern_time()
-    st.divider()
-    st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: GPT-5 | [GitHub](https://github.com/njwill/BitcoinPricePredictor)")
 
 def main():
     # Check for analysis hash in URL parameters
@@ -1113,57 +1104,57 @@ def main():
         else:
             st.info("No prediction history available. Make your first prediction above!")
         
-        # Don't return here - let footer display at end
-    else:
-        # If analyze button was clicked, proceed with analysis (prediction history will only show at bottom)
+        return  # Exit early, don't run analysis
+    
+    # If analyze button was clicked, proceed with analysis (prediction history will only show at bottom)
 
-        # Initialize components (only when analyze button is pressed)
-        data_fetcher = BitcoinDataFetcher()
-        chart_generator = ChartGenerator()
-        technical_analyzer = TechnicalAnalyzer()
-        ai_analyzer = AIAnalyzer()
+    # Initialize components (only when analyze button is pressed)
+    data_fetcher = BitcoinDataFetcher()
+    chart_generator = ChartGenerator()
+    technical_analyzer = TechnicalAnalyzer()
+    ai_analyzer = AIAnalyzer()
+    
+    # Main content area (only runs when analyze button is pressed)
+    try:
+        # Fetch fresh data when user requests analysis
+        with st.spinner("📈 Fetching fresh Bitcoin data..."):
+            btc_3m = data_fetcher.get_bitcoin_data(period='3mo')
+            btc_1w = data_fetcher.get_bitcoin_data(period='1wk')
         
-        # Main content area (only runs when analyze button is pressed)
-        try:
-            # Fetch fresh data when user requests analysis
-            with st.spinner("📈 Fetching fresh Bitcoin data..."):
-                btc_3m = data_fetcher.get_bitcoin_data(period='3mo')
-                btc_1w = data_fetcher.get_bitcoin_data(period='1wk')
+        if btc_3m.empty or btc_1w.empty:
+            st.error("❌ Failed to fetch Bitcoin data. Please try again later.")
+            return
         
-            if btc_3m.empty or btc_1w.empty:
-                st.error("❌ Failed to fetch Bitcoin data. Please try again later.")
-                return
-            
-            # Calculate technical indicators
-            with st.spinner("🔍 Calculating technical indicators..."):
-                indicators_3m = technical_analyzer.calculate_all_indicators(btc_3m)
-                indicators_1w = technical_analyzer.calculate_all_indicators(btc_1w)
-            
-            # Generate fresh AI analysis every time
-            with st.spinner("🤖 Generating fresh AI analysis... usually takes a couple minutes..."):
-                current_price = btc_1w['Close'].iloc[-1]
-                analysis = ai_analyzer.generate_comprehensive_analysis(
-                    data_3m=btc_3m,
-                    data_1w=btc_1w,
-                    indicators_3m=indicators_3m,
-                    indicators_1w=indicators_1w,
-                    current_price=current_price,
-                    target_datetime=target_datetime
-                )
-            
-            # Update session state timestamp
-            current_time = get_eastern_time()
-            st.session_state.last_update = current_time
-            
-            # Format target for later use
-            target_formatted = target_datetime.strftime('%A, %B %d, %Y at %I:%M %p ET')
-            
-            # Save prediction to history (if analysis contains prediction data)
-            if analysis and isinstance(analysis, dict) and 'probabilities' in analysis:
-                try:
-                    probabilities = analysis['probabilities']
-                    if isinstance(probabilities, dict):
-                        prediction_data = {
+        # Calculate technical indicators
+        with st.spinner("🔍 Calculating technical indicators..."):
+            indicators_3m = technical_analyzer.calculate_all_indicators(btc_3m)
+            indicators_1w = technical_analyzer.calculate_all_indicators(btc_1w)
+        
+        # Generate fresh AI analysis every time
+        with st.spinner("🤖 Generating fresh AI analysis... usually takes a couple minutes..."):
+            current_price = btc_1w['Close'].iloc[-1]
+            analysis = ai_analyzer.generate_comprehensive_analysis(
+                data_3m=btc_3m,
+                data_1w=btc_1w,
+                indicators_3m=indicators_3m,
+                indicators_1w=indicators_1w,
+                current_price=current_price,
+                target_datetime=target_datetime
+            )
+        
+        # Update session state timestamp
+        current_time = get_eastern_time()
+        st.session_state.last_update = current_time
+        
+        # Format target for later use
+        target_formatted = target_datetime.strftime('%A, %B %d, %Y at %I:%M %p ET')
+        
+        # Save prediction to history (if analysis contains prediction data)
+        if analysis and isinstance(analysis, dict) and 'probabilities' in analysis:
+            try:
+                probabilities = analysis['probabilities']
+                if isinstance(probabilities, dict):
+                    prediction_data = {
                         'prediction_timestamp': get_eastern_time().isoformat(),
                         'target_datetime': target_datetime.isoformat(),
                         'current_price': float(current_price),
@@ -1194,22 +1185,22 @@ def main():
                     
                     # Analysis already saved to database above
                     
-                        # Store hash in session state for later display
-                        st.session_state.analysis_hash = analysis_hash
-                except Exception as e:
-                    st.warning(f"Note: Could not save prediction to history: {str(e)}")
-            
-            # Update any past predictions with current price if their target time has passed
-            try:
-                analysis_db.update_analysis_accuracy()  # Uses historical prices automatically
-            except:
-                pass  # Continue even if we can't update accuracy
-            
-            # Display fresh analysis message
-            current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
-            if analysis and isinstance(analysis, dict) and 'probabilities' in analysis:
-                probabilities = analysis['probabilities']
-                if isinstance(probabilities, dict):
+                    # Store hash in session state for later display
+                    st.session_state.analysis_hash = analysis_hash
+            except Exception as e:
+                st.warning(f"Note: Could not save prediction to history: {str(e)}")
+        
+        # Update any past predictions with current price if their target time has passed
+        try:
+            analysis_db.update_analysis_accuracy()  # Uses historical prices automatically
+        except:
+            pass  # Continue even if we can't update accuracy
+        
+        # Display fresh analysis message
+        current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
+        if analysis and isinstance(analysis, dict) and 'probabilities' in analysis:
+            probabilities = analysis['probabilities']
+            if isinstance(probabilities, dict):
                 higher_prob = probabilities.get('higher_fraction', 0)
                 lower_prob = probabilities.get('lower_fraction', 0)
                 predicted_price = probabilities.get('predicted_price', None)
@@ -1810,16 +1801,14 @@ def main():
             else:
                 st.info("No predictions to display on this page.")
         
-        except Exception as e:
-            st.error(f"❌ An error occurred during analysis: {str(e)}")
-            st.exception(e)
+        # Footer with last update info
+        st.divider()
+        st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: GPT-5")
         
     except Exception as e:
         st.error(f"❌ An error occurred: {str(e)}")
         st.exception(e)
     
-    # Always show footer at the very end, regardless of any logic above
-    display_footer()
 
 if __name__ == "__main__":
     main()

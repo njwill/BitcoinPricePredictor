@@ -188,11 +188,11 @@ class ChartGenerator:
                 
                 # RSI overbought/oversold levels
                 fig.add_hline(y=70, line_dash="dash", line_color="red", 
-                             annotation_text="Overbought", row=str(current_row), col="1")
+                             annotation_text="Overbought", row=current_row, col=1)
                 fig.add_hline(y=30, line_dash="dash", line_color="green", 
-                             annotation_text="Oversold", row=str(current_row), col="1")
+                             annotation_text="Oversold", row=current_row, col=1)
                 fig.add_hline(y=50, line_dash="dot", line_color="gray", 
-                             row=str(current_row), col="1")
+                             row=current_row, col=1)
                 
                 current_row += 1
             
@@ -223,7 +223,7 @@ class ChartGenerator:
                         opacity=0.6
                     ), row=current_row, col=1)
                 
-                fig.add_hline(y=0, line_color="gray", row=str(current_row), col="1")
+                fig.add_hline(y=0, line_color="gray", row=current_row, col=1)
             
             # Light theme colors
             bg_color = '#FFFFFF'

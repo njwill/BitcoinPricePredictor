@@ -1485,25 +1485,17 @@ def main():
             domain = get_current_domain()
             full_share_url = f"{domain}?analysis={st.session_state.analysis_hash}"
             st.success("Analysis saved! Share this link to recall the complete analysis:")
-            st.code(full_share_url, language="text")
             st.markdown(f"[📋 Open this analysis link]({full_share_url})")
             
             # Display social media tweet text if generated
             if 'social_media_text' in st.session_state and st.session_state.social_media_text:
-                st.markdown("### 🐦 Tweet This Analysis")
+                st.markdown("### 🐦 Share This Analysis")
                 try:
                     # Display the tweet text in a code block for easy copying
                     st.code(st.session_state.social_media_text, language=None)
                     
                     # Provide copy button functionality
-                    st.success("📋 Copy the text above to share on Twitter/X or other social media!")
-                    
-                    # Show tweet character count
-                    tweet_length = len(st.session_state.social_media_text)
-                    if tweet_length <= 280:
-                        st.info(f"✅ Perfect for Twitter: {tweet_length}/280 characters")
-                    else:
-                        st.warning(f"⚠️ Tweet is {tweet_length} characters (over Twitter's 280 limit). Consider shortening.")
+                    st.success("📋 Copy the text above to share on X or other social media!")
                         
                 except Exception as e:
                     st.warning(f"Could not display social media text: {e}")

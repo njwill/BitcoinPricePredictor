@@ -1163,7 +1163,7 @@ def main():
                 try:
                     probabilities = analysis['probabilities']
                     if isinstance(probabilities, dict):
-                    prediction_data = {
+                        prediction_data = {
                         'prediction_timestamp': get_eastern_time().isoformat(),
                         'target_datetime': target_datetime.isoformat(),
                         'current_price': float(current_price),

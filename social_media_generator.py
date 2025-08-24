@@ -86,7 +86,9 @@ class SocialMediaTextGenerator:
     def generate_shareable_text(self, prediction_data, analysis_hash, domain=""):
         """Generate shareable tweet text for a prediction"""
         try:
-            # Generate the full analysis URL
+            # Generate the full analysis URL with complete domain
+            if domain and not domain.endswith('/'):
+                domain += '/'
             analysis_url = f"{domain}?analysis={analysis_hash}" if domain else f"?analysis={analysis_hash}"
             
             # Generate the tweet text

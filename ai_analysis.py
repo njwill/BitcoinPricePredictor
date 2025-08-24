@@ -606,17 +606,13 @@ Provide analysis in these exact sections:
 [TECHNICAL_ANALYSIS_END]
 
 [PRICE_PREDICTION_START]
-**PRICE PREDICTION for {target_datetime_formatted}**
-
-Based on the comprehensive technical analysis above:
-
 **PREDICTED PRICE: I predict Bitcoin will be at $[XX,XXX] on {target_datetime_formatted}**
 
 1. **Probability HIGHER than ${current_price:,.2f}: [X]%**
 2. **Probability LOWER than ${current_price:,.2f}: [Y]%**
 3. **Overall Analysis Confidence: [Z]%**
 4. **Price Prediction Confidence: [W]%** (how confident in the specific price target)
-5. **Expected % Move: [+/-X.X]%** (percentage change from current price)
+5. **Expected % Move: [+/-X.X]%** (percentage change from current price) **- [X]% confident**
 
 **Key Technical Factors Supporting This Assessment:**
 - [List 3-5 specific technical reasons for the prediction]

@@ -489,6 +489,10 @@ def load_stored_analysis(analysis_hash: str):
     if st.button("← Return to Main Page", type="secondary"):
         st.query_params.clear()
         st.rerun()
+    
+    # Footer for stored analysis page
+    st.divider()
+    st.caption(f"Last updated: {get_eastern_time().strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: GPT-5 | [GitHub](https://github.com/njwill/BitcoinPricePredictor)")
 
 def main():
     # Check for analysis hash in URL parameters

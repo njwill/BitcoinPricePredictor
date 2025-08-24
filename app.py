@@ -1208,8 +1208,8 @@ def main():
             # Display fresh analysis message
             current_time_str = current_time.strftime('%Y-%m-%d %H:%M:%S')
             if analysis and isinstance(analysis, dict) and 'probabilities' in analysis:
-            probabilities = analysis['probabilities']
-            if isinstance(probabilities, dict):
+                probabilities = analysis['probabilities']
+                if isinstance(probabilities, dict):
                 higher_prob = probabilities.get('higher_fraction', 0)
                 lower_prob = probabilities.get('lower_fraction', 0)
                 predicted_price = probabilities.get('predicted_price', None)

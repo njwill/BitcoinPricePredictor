@@ -17,8 +17,8 @@ from utils import format_currency, get_eastern_time, calculate_time_until_update
 
 # Configure page
 st.set_page_config(
-    page_title="Bitcoin Analysis Dashboard",
-    page_icon="₿",
+    page_title="theBTCcourse.com - Bitcoin Price Prediction Tool",
+    page_icon="https://www.thebtccourse.com/wp-content/uploads/2023/02/thebtccourse-favicon.png",
     layout="wide"
 )
 

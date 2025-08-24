@@ -1816,6 +1816,8 @@ def main():
     except Exception as e:
         st.error(f"❌ An error occurred: {str(e)}")
         st.exception(e)
+        # Show footer even on error pages
+        display_footer()
     
 
 if __name__ == "__main__":

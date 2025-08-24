@@ -984,8 +984,33 @@ def main():
             if prediction_data:
                 # Prediction Dashboard Analytics (above the table)
                 completed_predictions = [p for p in predictions if p.get('actual_price') is not None]
-                if completed_predictions:
+                
+                # Filter completed predictions to only include 3-10 day predictions for dashboard metrics
+                dashboard_predictions = []
+                for pred in completed_predictions:
+                    try:
+                        # Parse timestamps
+                        pred_timestamp = datetime.fromisoformat(pred.get('prediction_timestamp', ''))
+                        target_timestamp = datetime.fromisoformat(pred.get('target_datetime', ''))
+                        
+                        # Calculate days between prediction and target
+                        if pred_timestamp.tzinfo is None:
+                            pred_timestamp = eastern_tz.localize(pred_timestamp)
+                        if target_timestamp.tzinfo is None:
+                            target_timestamp = eastern_tz.localize(target_timestamp)
+                        
+                        days_ahead = (target_timestamp - pred_timestamp).days
+                        
+                        # Only include predictions made 3-10 days in advance
+                        if 3 <= days_ahead <= 10:
+                            dashboard_predictions.append(pred)
+                    except:
+                        # Skip predictions with invalid timestamps
+                        continue
+                
+                if dashboard_predictions:
                     st.subheader("📈 Prediction Performance Dashboard")
+                    st.caption("📅 Showing metrics for predictions made 3-10 days in advance only")
                     
                     # Calculate comprehensive metrics
                     errors = []
@@ -995,7 +1020,7 @@ def main():
                     fair_predictions = 0
                     poor_predictions = 0
                     
-                    for pred in completed_predictions:
+                    for pred in dashboard_predictions:
                         if pred.get('predicted_price') and pred.get('actual_price'):
                             predicted = pred['predicted_price']
                             actual = pred['actual_price']
@@ -1028,10 +1053,10 @@ def main():
                         st.metric("Total Predictions", len(predictions))
                     
                     with col2:
-                        st.metric("Completed", len(completed_predictions))
+                        st.metric("Eligible (3-10 days)", len(dashboard_predictions))
                     
                     with col3:
-                        accuracy_rate = ((very_good_predictions + good_predictions) / len(completed_predictions)) * 100 if completed_predictions else 0
+                        accuracy_rate = ((very_good_predictions + good_predictions) / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
                         st.metric("Price Accuracy Rate (≤3%)", f"{accuracy_rate:.0f}%")
                     
                     with col4:
@@ -1039,7 +1064,7 @@ def main():
                         st.metric("Avg Error", f"{avg_error:.1f}%")
                     
                     with col5:
-                        direction_accuracy = (direction_correct / len(completed_predictions)) * 100 if completed_predictions else 0
+                        direction_accuracy = (direction_correct / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
                         st.metric("Direction Accuracy", f"{direction_accuracy:.0f}%")
                     
                     # Detailed accuracy breakdown
@@ -1049,19 +1074,19 @@ def main():
                     col1, col2, col3, col4 = st.columns(4)
                     
                     with col1:
-                        very_good_rate = (very_good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                        very_good_rate = (very_good_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
                         st.metric("✅ Very Good (≤1.5%)", f"{very_good_rate:.0f}%", help=f"{very_good_predictions} predictions")
                     
                     with col2:
-                        good_rate = (good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                        good_rate = (good_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
                         st.metric("✅ Good (1.5-3%)", f"{good_rate:.0f}%", help=f"{good_predictions} predictions")
                     
                     with col3:
-                        fair_rate = (fair_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                        fair_rate = (fair_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
                         st.metric("⚠️ Fair (3-5%)", f"{fair_rate:.0f}%", help=f"{fair_predictions} predictions")
                     
                     with col4:
-                        poor_rate = (poor_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                        poor_rate = (poor_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
                         st.metric("❌ Poor (>5%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
                     
 
@@ -1658,8 +1683,33 @@ def main():
             if prediction_data:
                 # Prediction Dashboard Analytics (above the table)
                 completed_predictions = [p for p in predictions if p.get('actual_price') is not None]
-                if completed_predictions:
+                
+                # Filter completed predictions to only include 3-10 day predictions for dashboard metrics
+                dashboard_predictions = []
+                for pred in completed_predictions:
+                    try:
+                        # Parse timestamps
+                        pred_timestamp = datetime.fromisoformat(pred.get('prediction_timestamp', ''))
+                        target_timestamp = datetime.fromisoformat(pred.get('target_datetime', ''))
+                        
+                        # Calculate days between prediction and target
+                        if pred_timestamp.tzinfo is None:
+                            pred_timestamp = eastern_tz.localize(pred_timestamp)
+                        if target_timestamp.tzinfo is None:
+                            target_timestamp = eastern_tz.localize(target_timestamp)
+                        
+                        days_ahead = (target_timestamp - pred_timestamp).days
+                        
+                        # Only include predictions made 3-10 days in advance
+                        if 3 <= days_ahead <= 10:
+                            dashboard_predictions.append(pred)
+                    except:
+                        # Skip predictions with invalid timestamps
+                        continue
+                
+                if dashboard_predictions:
                     st.subheader("📈 Prediction Performance Dashboard")
+                    st.caption("📅 Showing metrics for predictions made 3-10 days in advance only")
                     
                     # Calculate comprehensive metrics
                     errors = []
@@ -1669,7 +1719,7 @@ def main():
                     fair_predictions = 0
                     poor_predictions = 0
                     
-                    for pred in completed_predictions:
+                    for pred in dashboard_predictions:
                         if pred.get('predicted_price') and pred.get('actual_price'):
                             predicted = pred['predicted_price']
                             actual = pred['actual_price']
@@ -1702,10 +1752,10 @@ def main():
                         st.metric("Total Predictions", len(predictions))
                     
                     with col2:
-                        st.metric("Completed", len(completed_predictions))
+                        st.metric("Eligible (3-10 days)", len(dashboard_predictions))
                     
                     with col3:
-                        accuracy_rate = ((very_good_predictions + good_predictions) / len(completed_predictions)) * 100 if completed_predictions else 0
+                        accuracy_rate = ((very_good_predictions + good_predictions) / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
                         st.metric("Price Accuracy Rate (≤3%)", f"{accuracy_rate:.0f}%")
                     
                     with col4:
@@ -1713,7 +1763,7 @@ def main():
                         st.metric("Avg Error", f"{avg_error:.1f}%")
                     
                     with col5:
-                        direction_accuracy = (direction_correct / len(completed_predictions)) * 100 if completed_predictions else 0
+                        direction_accuracy = (direction_correct / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
                         st.metric("Direction Accuracy", f"{direction_accuracy:.0f}%")
                     
                     # Detailed accuracy breakdown
@@ -1723,19 +1773,19 @@ def main():
                     col1, col2, col3, col4 = st.columns(4)
                     
                     with col1:
-                        very_good_rate = (very_good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                        very_good_rate = (very_good_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
                         st.metric("✅ Very Good (≤1.5%)", f"{very_good_rate:.0f}%", help=f"{very_good_predictions} predictions")
                     
                     with col2:
-                        good_rate = (good_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                        good_rate = (good_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
                         st.metric("✅ Good (1.5-3%)", f"{good_rate:.0f}%", help=f"{good_predictions} predictions")
                     
                     with col3:
-                        fair_rate = (fair_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                        fair_rate = (fair_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
                         st.metric("⚠️ Fair (3-5%)", f"{fair_rate:.0f}%", help=f"{fair_predictions} predictions")
                     
                     with col4:
-                        poor_rate = (poor_predictions / len(completed_predictions)) * 100 if completed_predictions else 0
+                        poor_rate = (poor_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
                         st.metric("❌ Poor (>5%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
                     
 

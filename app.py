@@ -845,21 +845,15 @@ def main():
         # Prediction History Section (visible on front page only)
         st.divider()
         
+        # Automatically update expired predictions from database with historical prices
+        try:
+            analysis_db.update_analysis_accuracy()  # Uses historical prices automatically
+        except:
+            pass  # Continue even if we can't update accuracy
+        
         predictions = load_predictions_history()
+        
         if predictions:
-            # Update any past predictions with current price if their target time has passed
-            try:
-                # Get current Bitcoin price for accuracy updates
-                data_fetcher = BitcoinDataFetcher()
-                btc_data = data_fetcher.get_bitcoin_data(period='1d')
-                if not btc_data.empty:
-                    current_btc_price = btc_data['Close'].iloc[-1]
-                    update_prediction_accuracy(float(current_btc_price))
-                    # Reload predictions after potential updates
-                    predictions = load_predictions_history()
-            except:
-                pass  # Continue even if we can't update accuracy
-            
             # Pagination setup
             predictions_per_page = 50
             total_predictions = len(predictions)
@@ -1510,11 +1504,11 @@ def main():
         # Prediction History Section (moved to bottom after analysis)
         st.divider()
         
-        # Get predictions from database
+        # Get predictions from database and automatically update expired ones
         try:
-            # Update any past predictions with current price if their target time has passed
-            current_btc_price = btc_1w['Close'].iloc[-1]  # Use already fetched data
-            analysis_db.update_analysis_accuracy(float(current_btc_price))
+            # Always check and update expired predictions when viewing the page
+            # We'll fetch fresh Bitcoin data for accuracy updates
+            analysis_db.update_analysis_accuracy()  # Now fetches historical prices automatically
             
             # Get total count for pagination
             total_predictions = analysis_db.get_total_analyses_count()

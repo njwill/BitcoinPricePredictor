@@ -1113,56 +1113,56 @@ def main():
         else:
             st.info("No prediction history available. Make your first prediction above!")
         
-        return  # Exit early, don't run analysis
-    
-    # If analyze button was clicked, proceed with analysis (prediction history will only show at bottom)
+        # Don't return here - let footer display at end
+    else:
+        # If analyze button was clicked, proceed with analysis (prediction history will only show at bottom)
 
-    # Initialize components (only when analyze button is pressed)
-    data_fetcher = BitcoinDataFetcher()
-    chart_generator = ChartGenerator()
-    technical_analyzer = TechnicalAnalyzer()
-    ai_analyzer = AIAnalyzer()
-    
-    # Main content area (only runs when analyze button is pressed)
-    try:
-        # Fetch fresh data when user requests analysis
-        with st.spinner("📈 Fetching fresh Bitcoin data..."):
-            btc_3m = data_fetcher.get_bitcoin_data(period='3mo')
-            btc_1w = data_fetcher.get_bitcoin_data(period='1wk')
+        # Initialize components (only when analyze button is pressed)
+        data_fetcher = BitcoinDataFetcher()
+        chart_generator = ChartGenerator()
+        technical_analyzer = TechnicalAnalyzer()
+        ai_analyzer = AIAnalyzer()
         
-        if btc_3m.empty or btc_1w.empty:
-            st.error("❌ Failed to fetch Bitcoin data. Please try again later.")
-            return
+        # Main content area (only runs when analyze button is pressed)
+        try:
+            # Fetch fresh data when user requests analysis
+            with st.spinner("📈 Fetching fresh Bitcoin data..."):
+                btc_3m = data_fetcher.get_bitcoin_data(period='3mo')
+                btc_1w = data_fetcher.get_bitcoin_data(period='1wk')
         
-        # Calculate technical indicators
-        with st.spinner("🔍 Calculating technical indicators..."):
-            indicators_3m = technical_analyzer.calculate_all_indicators(btc_3m)
-            indicators_1w = technical_analyzer.calculate_all_indicators(btc_1w)
-        
-        # Generate fresh AI analysis every time
-        with st.spinner("🤖 Generating fresh AI analysis... usually takes a couple minutes..."):
-            current_price = btc_1w['Close'].iloc[-1]
-            analysis = ai_analyzer.generate_comprehensive_analysis(
-                data_3m=btc_3m,
-                data_1w=btc_1w,
-                indicators_3m=indicators_3m,
-                indicators_1w=indicators_1w,
-                current_price=current_price,
-                target_datetime=target_datetime
-            )
-        
-        # Update session state timestamp
-        current_time = get_eastern_time()
-        st.session_state.last_update = current_time
-        
-        # Format target for later use
-        target_formatted = target_datetime.strftime('%A, %B %d, %Y at %I:%M %p ET')
-        
-        # Save prediction to history (if analysis contains prediction data)
-        if analysis and isinstance(analysis, dict) and 'probabilities' in analysis:
-            try:
-                probabilities = analysis['probabilities']
-                if isinstance(probabilities, dict):
+            if btc_3m.empty or btc_1w.empty:
+                st.error("❌ Failed to fetch Bitcoin data. Please try again later.")
+                return
+            
+            # Calculate technical indicators
+            with st.spinner("🔍 Calculating technical indicators..."):
+                indicators_3m = technical_analyzer.calculate_all_indicators(btc_3m)
+                indicators_1w = technical_analyzer.calculate_all_indicators(btc_1w)
+            
+            # Generate fresh AI analysis every time
+            with st.spinner("🤖 Generating fresh AI analysis... usually takes a couple minutes..."):
+                current_price = btc_1w['Close'].iloc[-1]
+                analysis = ai_analyzer.generate_comprehensive_analysis(
+                    data_3m=btc_3m,
+                    data_1w=btc_1w,
+                    indicators_3m=indicators_3m,
+                    indicators_1w=indicators_1w,
+                    current_price=current_price,
+                    target_datetime=target_datetime
+                )
+            
+            # Update session state timestamp
+            current_time = get_eastern_time()
+            st.session_state.last_update = current_time
+            
+            # Format target for later use
+            target_formatted = target_datetime.strftime('%A, %B %d, %Y at %I:%M %p ET')
+            
+            # Save prediction to history (if analysis contains prediction data)
+            if analysis and isinstance(analysis, dict) and 'probabilities' in analysis:
+                try:
+                    probabilities = analysis['probabilities']
+                    if isinstance(probabilities, dict):
                     prediction_data = {
                         'prediction_timestamp': get_eastern_time().isoformat(),
                         'target_datetime': target_datetime.isoformat(),
@@ -1809,6 +1809,10 @@ def main():
                     st.caption(f"Showing {len(prediction_data)} of {total_predictions} predictions")
             else:
                 st.info("No predictions to display on this page.")
+        
+        except Exception as e:
+            st.error(f"❌ An error occurred during analysis: {str(e)}")
+            st.exception(e)
         
     except Exception as e:
         st.error(f"❌ An error occurred: {str(e)}")

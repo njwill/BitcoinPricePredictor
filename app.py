@@ -1803,7 +1803,7 @@ def main():
         
         # Footer with last update info
         st.divider()
-        st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: GPT-5")
+        st.caption(f"Last updated: {current_time.strftime('%Y-%m-%d %H:%M:%S')} ET | Data source: Yahoo Finance | AI: GPT-5 | [GitHub](https://github.com/njwill/BitcoinPricePredictor)")
         
     except Exception as e:
         st.error(f"❌ An error occurred: {str(e)}")

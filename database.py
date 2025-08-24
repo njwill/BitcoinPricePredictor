@@ -3,10 +3,12 @@ import json
 import hashlib
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import streamlit as st
 from typing import Dict, Optional, Tuple
+import yfinance as yf
+import pytz
 
 class AnalysisDatabase:
     """Handles database operations for storing and retrieving complete Bitcoin analyses"""
@@ -320,18 +322,96 @@ class AnalysisDatabase:
             st.error(f"Error counting analyses: {str(e)}")
             return 0
     
-    def update_analysis_accuracy(self, current_btc_price: float):
-        """Update accuracy for analyses whose target time has passed"""
+    def get_historical_btc_price(self, target_datetime):
+        """Get Bitcoin price at a specific historical datetime"""
+        try:
+            # Convert to UTC for yfinance
+            if target_datetime.tzinfo is not None:
+                target_utc = target_datetime.astimezone(pytz.UTC)
+            else:
+                # Assume Eastern Time if no timezone
+                eastern = pytz.timezone('US/Eastern')
+                target_et = eastern.localize(target_datetime)
+                target_utc = target_et.astimezone(pytz.UTC)
+            
+            # Get date range - fetch a few days around the target to ensure we get data
+            start_date = target_utc.date() - timedelta(days=2)
+            end_date = target_utc.date() + timedelta(days=2)
+            
+            # Fetch Bitcoin data
+            btc = yf.Ticker("BTC-USD")
+            hist_data = btc.history(start=start_date, end=end_date, interval="1h")
+            
+            if hist_data.empty:
+                print(f"No historical data available for {target_utc}")
+                return None
+            
+            # Find the closest time to our target
+            target_timestamp = target_utc.replace(second=0, microsecond=0)
+            
+            # Convert index to UTC timezone-aware if not already
+            if hist_data.index.tz is None:
+                hist_data.index = hist_data.index.tz_localize('UTC')
+            elif hist_data.index.tz != pytz.UTC:
+                hist_data.index = hist_data.index.tz_convert('UTC')
+            
+            # Find closest timestamp
+            time_diffs = abs(hist_data.index - target_timestamp)
+            closest_idx = time_diffs.argmin()
+            
+            # Get the closest price
+            closest_price = hist_data.iloc[closest_idx]['Close']
+            closest_time = hist_data.index[closest_idx]
+            
+            print(f"Target time: {target_timestamp}, Closest data: {closest_time}, Price: ${closest_price:.2f}")
+            return float(closest_price)
+            
+        except Exception as e:
+            print(f"Error fetching historical price for {target_datetime}: {e}")
+            return None
+
+    def update_analysis_accuracy(self, current_btc_price: float = None):
+        """Update accuracy for analyses whose target time has passed using historical prices"""
         try:
             with self.get_connection() as conn:
                 with conn.cursor() as cur:
+                    # Get all pending predictions that need accuracy updates
                     cur.execute("""
-                        UPDATE bitcoin_analyses 
-                        SET actual_price = %s, accuracy_calculated = TRUE
+                        SELECT id, analysis_hash, target_datetime
+                        FROM bitcoin_analyses 
                         WHERE target_datetime <= NOW() AND accuracy_calculated = FALSE
-                    """, (current_btc_price,))
+                        ORDER BY target_datetime
+                    """)
+                    
+                    pending_analyses = cur.fetchall()
+                    
+                    if not pending_analyses:
+                        return  # Nothing to update
+                    
+                    print(f"Updating accuracy for {len(pending_analyses)} expired predictions...")
+                    
+                    # Update each prediction with its historical price
+                    for analysis_id, analysis_hash, target_datetime in pending_analyses:
+                        # Get historical price at the target time
+                        historical_price = self.get_historical_btc_price(target_datetime)
+                        
+                        if historical_price is not None:
+                            # Update this specific prediction
+                            cur.execute("""
+                                UPDATE bitcoin_analyses 
+                                SET actual_price = %s, accuracy_calculated = TRUE
+                                WHERE id = %s
+                            """, (historical_price, analysis_id))
+                            
+                            print(f"Updated prediction {analysis_hash[:8]} - Target: {target_datetime}, Historical Price: ${historical_price:.2f}")
+                        else:
+                            print(f"Could not fetch historical price for prediction {analysis_hash[:8]} at {target_datetime}")
+                    
                     conn.commit()
+                    print(f"Accuracy update complete!")
+                    
         except Exception as e:
+            print(f"Error updating accuracy: {str(e)}")
             st.error(f"Error updating accuracy: {str(e)}")
 
 # Global instance

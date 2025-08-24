@@ -14,11 +14,11 @@ class AIAnalyzer:
     """
     AIAnalyzer — strict, data-only technical analysis + point forecast.
 
-    Adds BACK-COMPAT text fields:
-      - 'technical_summary'
-      - 'price_prediction'
-
-    Keeps strict JSON ('model_json') + 'probabilities' for your gauges.
+    Returns fields your app expects:
+      - 'technical_summary' (markdown)
+      - 'price_prediction' (markdown)
+      - 'probabilities' (for your gauge)
+      - 'model_json' (structured JSON)
     """
 
     def __init__(self, debug: Optional[bool] = None):
@@ -50,17 +50,6 @@ class AIAnalyzer:
         target_datetime: Optional[datetime] = None,
         asset_name: str = "BTCUSD",
     ) -> Dict[str, Any]:
-        """
-        Returns:
-        {
-          "status": "ok" | "insufficient_data" | "error",
-          "model_json": { ...strict JSON from model... },
-          "probabilities": {...},
-          "technical_summary": "markdown string",
-          "price_prediction": "markdown string",
-          "timestamp": iso8601
-        }
-        """
         if not self.gpt5_client:
             return {"status": "error", "error": "GPT-5 client not initialized"}
 
@@ -77,9 +66,12 @@ class AIAnalyzer:
                 asset_name=asset_name,
             )
 
+            # Keep target_ts handy for nice messaging even if the model fails
+            target_ts_fallback = analysis_data.get("target_time", "")
+
             if analysis_data.get("prep_status") == "insufficient_data":
                 msg = "; ".join(analysis_data.get("prep_notes", []))
-                text_summary, text_pred = self._compose_text_when_insufficient(msg)
+                text_summary, text_pred = self._compose_text_when_insufficient(msg, target_ts_fallback)
                 return {
                     "status": "insufficient_data",
                     "model_json": {"status": "insufficient_data", "notes": analysis_data.get("prep_notes", [])},
@@ -89,9 +81,23 @@ class AIAnalyzer:
                     "timestamp": datetime.now().isoformat(),
                 }
 
-            # Strict JSON from model
+            # Strict JSON from model (no temperature/top_p/reasoning params)
             response_json_text = self._generate_technical_analysis_gpt5(analysis_data)
             parsed = self._parse_json_response(response_json_text, self._last_current_price or current_price)
+
+            # If the model call returned an error blob, surface it cleanly but keep the target
+            if parsed.get("status") == "insufficient_data" and parsed.get("notes"):
+                text_summary, text_pred = self._compose_text_when_insufficient(
+                    "; ".join([str(n) for n in parsed.get("notes", [])]), target_ts_fallback
+                )
+                return {
+                    "status": "insufficient_data",
+                    "model_json": parsed,
+                    "probabilities": self._default_probs(),
+                    "technical_summary": text_summary,
+                    "price_prediction": text_pred,
+                    "timestamp": datetime.now().isoformat(),
+                }
 
             # Gauges
             probs = self._extract_probabilities_from_json(parsed, self._last_current_price or current_price)
@@ -110,7 +116,11 @@ class AIAnalyzer:
 
         except Exception as e:
             st.error(f"Error generating AI analysis: {str(e)}")
-            return {"status": "error", "error": str(e)}
+            # Ensure we still output something readable with target included
+            target_ts = target_datetime.isoformat() if target_datetime else ""
+            tech, pred = self._compose_text_when_insufficient(str(e), target_ts)
+            return {"status": "error", "error": str(e), "probabilities": self._default_probs(),
+                    "technical_summary": tech, "price_prediction": pred}
 
     # ---------- helpers: debug ----------
 
@@ -232,7 +242,7 @@ class AIAnalyzer:
 
             actual_current_price = float(current_price)
 
-            # Optional warning for UI debug
+            # Optional debug
             if not window_1w.empty:
                 latest_close_1w = float(window_1w["Close"].iloc[-1])
                 if latest_close_1w > 0:
@@ -519,9 +529,8 @@ class AIAnalyzer:
     def _build_messages(self, analysis_data: Dict[str, Any], asset_name: str) -> Tuple[Dict[str, str], Dict[str, str]]:
         system_content = (
             "You are a deterministic technical analyzer. Use ONLY the structured arrays provided. "
-            "Forbidden: news, macro, earnings, on-chain, funding/OI, order book/liquidity, ETF flows, "
-            "day-of-week, time-of-day/session effects, market open/close, weekends/holidays, or typical behavior. "
-            "If needed data is missing/empty, return status='insufficient_data' with required notes."
+            "Forbidden: news, macro, on-chain, session effects (market open/close), weekdays, etc. "
+            "If needed data is missing/empty, return status='insufficient_data' with notes."
         )
 
         data_3m = analysis_data.get("data_3m", {})
@@ -533,8 +542,8 @@ class AIAnalyzer:
             "as_of": analysis_data.get("current_time"),
             "target_ts": analysis_data.get("target_time"),
             "predicted_price": "number or null",
-            "p_up": "float 0..1 (prob target price > CURRENT_PRICE)",
-            "p_down": "float 0..1 (must satisfy p_up + p_down = 1)",
+            "p_up": "float 0..1",
+            "p_down": "float 0..1 (p_up + p_down = 1)",
             "conf_overall": "float 0..1",
             "conf_price": "float 0..1",
             "expected_pct_move": "signed float percent",
@@ -567,10 +576,8 @@ ENHANCED ARRAYS:
 {json.dumps(analysis_data.get('enhanced_chart_data', {}), indent=2)}
 
 STRICT RULES:
-- Do not reference sessions, market open/close, weekdays, or typical session behavior.
-- Do not use or imply any info outside the arrays.
-- All numeric levels must come from arrays/summaries/features above.
-- If any required array is empty or missing, return status='insufficient_data' with notes.
+- Use ONLY these arrays. Do NOT use session effects, news, or any outside info.
+- If required arrays are empty/missing, return status='insufficient_data' with 'notes'.
 
 OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
 {json.dumps(output_schema, indent=2)}
@@ -581,7 +588,8 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
 
     def _generate_technical_analysis_gpt5(self, analysis_data: Dict[str, Any]) -> str:
         """
-        Prefer Responses API; fall back to Chat Completions with response_format=json_object.
+        Call the model WITHOUT temperature/top_p/reasoning/text params.
+        Prefer Responses API; if it errors, fall back to Chat Completions JSON mode.
         Always return a JSON string.
         """
         if not self.gpt5_client:
@@ -590,31 +598,26 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
         asset_name = analysis_data.get("asset_name", "Asset")
         system_msg, user_msg = self._build_messages(analysis_data, asset_name)
 
-        # Try Responses API
+        # Try Responses API first
         try:
             resp = self.gpt5_client.responses.create(
                 model=self.model_name,
-                input=[system_msg, user_msg],
-                temperature=0.1,
-                top_p=1.0,
-                reasoning={"effort": "minimal"},
-                text={"verbosity": "low"},
+                input=[system_msg, user_msg],  # messages-style input
             )
-            return resp.output_text  # expected JSON
+            return resp.output_text  # should be JSON string
         except Exception as e:
-            self._dbg("warning", f"Responses API failed, falling back to Chat Completions: {e}")
+            self._dbg("warning", f"Responses API failed, will try Chat Completions. Error: {e}")
 
         # Fallback: Chat Completions with JSON mode
         try:
             chat = self.gpt5_client.chat.completions.create(
                 model=self.model_name,
                 messages=[system_msg, user_msg],
-                temperature=0.1,
-                top_p=1.0,
-                response_format={"type": "json_object"},
+                response_format={"type": "json_object"},  # forces valid JSON
             )
             return chat.choices[0].message.content
         except Exception as e:
+            # Return a JSON error payload so downstream stays robust
             return json.dumps({"status": "insufficient_data", "notes": [f"model_error:{str(e)}"]})
 
     # ---------- parsing + probabilities + text composition ----------
@@ -627,7 +630,7 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
 
             data["status"] = data.get("status") if data.get("status") in ("ok","insufficient_data") else "insufficient_data"
 
-            # Clamp probs and normalize
+            # Clamp/normalize probs
             p_up = float(self._safe_num(data.get("p_up"), 0.5))
             p_down = float(self._safe_num(data.get("p_down"), 0.5))
             p_up = max(0.0, min(1.0, p_up))
@@ -695,10 +698,9 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
         except Exception:
             return default
 
-    # ---------- text composition for your current UI ----------
+    # ---------- text composition ----------
 
     def _compose_text_from_model_json(self, data: Dict[str, Any], current_price: float) -> Tuple[str, str]:
-        """Create short markdown strings so your existing app.py fields populate."""
         if not isinstance(data, dict):
             return ("Analysis not available", "Prediction not available")
 
@@ -707,7 +709,6 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
         target_ts = data.get("target_ts", "")
         pred = data.get("predicted_price", None)
         p_up = data.get("p_up", 0.5); p_down = data.get("p_down", 0.5)
-        conf = data.get("conf_overall", 0.5)
         expected = data.get("expected_pct_move", None)
         crit = data.get("critical_levels", {}) or {}
         bull = crit.get("bullish_above", None)
@@ -721,7 +722,7 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
                 f"**Target:** `{target_ts}`\n\n_No price prediction due to insufficient data._"
             )
 
-        # Technical summary (short, data-only bullets)
+        # Technical summary
         bullets: List[str] = []
         if bull is not None:
             bullets.append(f"- **Bullish above:** ${bull:,.0f}")
@@ -729,7 +730,6 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
             bullets.append(f"- **Bearish below:** ${bear:,.0f}")
         if expected is not None:
             bullets.append(f"- **Expected move:** {expected:+.2f}% vs current (${current_price:,.0f})")
-        # Include up to 3 evidence bullets if present
         ev = data.get("evidence", []) or []
         for e in ev[:3]:
             t = e.get("type","fact"); tf = e.get("timeframe",""); ts = e.get("ts",""); note = e.get("note","")
@@ -738,21 +738,11 @@ OUTPUT FORMAT: Return EXACT, VALID JSON (no extra text). Schema example:
         tech_md = f"**As of:** `{as_of}`\n\n" + ("\n".join(bullets) if bullets else "_No additional evidence provided._")
 
         # Price prediction one-liner
-        if pred is not None:
-            price_line = f"**Predicted price at `{target_ts}`:** **${pred:,.0f}**"
-        else:
-            price_line = f"**Predicted price at `{target_ts}`:** unavailable"
-
-        pred_md = (
-            f"{price_line}\n\n"
-            f"- **P(higher)**: {p_up*100:.0f}%   "
-            f"- **P(lower)**: {p_down*100:.0f}%   "
-            f"- **AI confidence**: {data.get('conf_overall',0.5)*100:.0f}%"
-        )
-
+        price_line = f"**Predicted price at `{target_ts}`:** " + (f"**${pred:,.0f}**" if pred is not None else "unavailable")
+        pred_md = f"{price_line}\n\n- **P(higher)**: {p_up*100:.0f}%   - **P(lower)**: {p_down*100:.0f}%   - **AI confidence**: {data.get('conf_overall',0.5)*100:.0f}%"
         return tech_md, pred_md
 
-    def _compose_text_when_insufficient(self, reason: str) -> Tuple[str, str]:
+    def _compose_text_when_insufficient(self, reason: str, target_ts: str) -> Tuple[str, str]:
         tech = f"**Status:** _insufficient data_\n\n**Notes:** {reason or 'missing inputs'}"
-        pred = "_No price prediction due to insufficient data._"
+        pred = f"**Target:** `{target_ts}`\n\n_No price prediction due to insufficient data._"
         return tech, pred

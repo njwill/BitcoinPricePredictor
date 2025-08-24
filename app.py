@@ -1187,7 +1187,7 @@ def main():
                         )
                         st.session_state.social_media_text = tweet_text
                     except Exception as e:
-                        st.error(f"Error generating social media text: {e}")
+                        print(f"Error generating social media text: {e}")
                         st.session_state.social_media_text = None
                     
                     # Also save to legacy JSON system for backward compatibility

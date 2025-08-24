@@ -29,7 +29,7 @@ class AIAnalyzer:
 
     Config via environment:
       - OPENAI_API_KEY: required
-      - GPT5_MODEL: optional (default: "gpt-4o")
+      - GPT5_MODEL: optional (default: "gpt-5")
       - AI_ANALYZER_DEBUG: "1" to enable verbose Streamlit debug boxes
     """
 
@@ -42,7 +42,7 @@ class AIAnalyzer:
 
         # Initialize OpenAI GPT-5 for technical analysis
         self.openai_key = os.getenv("OPENAI_API_KEY", "")
-        self.model_name = os.getenv("GPT5_MODEL", "gpt-4o")
+        self.model_name = os.getenv("GPT5_MODEL", "gpt-5")
 
         if not self.openai_key:
             st.error("OpenAI API key not found. Please set OPENAI_API_KEY environment variable.")

@@ -1088,11 +1088,9 @@ def main():
                 with col4:
                     poor_rate = (poor_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
                     st.metric("❌ Poor (>5%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
-                    
-
-                    
-                    st.divider()
-                    st.subheader("📋 Detailed Prediction History")
+                
+                st.divider()
+                st.subheader("📋 Detailed Prediction History")
                 
                 df_predictions = pd.DataFrame(prediction_data)
                 st.dataframe(df_predictions, use_container_width=True, hide_index=True, 
@@ -1787,11 +1785,9 @@ def main():
                 with col4:
                     poor_rate = (poor_predictions / len(dashboard_predictions)) * 100 if dashboard_predictions else 0
                     st.metric("❌ Poor (>5%)", f"{poor_rate:.0f}%", help=f"{poor_predictions} predictions")
-                    
-
-                    
-                    st.divider()
-                    st.subheader("📋 Detailed Prediction History")
+                
+                st.divider()
+                st.subheader("📋 Detailed Prediction History")
                 
                 df_predictions = pd.DataFrame(prediction_data)
                 st.dataframe(df_predictions, use_container_width=True, hide_index=True, 

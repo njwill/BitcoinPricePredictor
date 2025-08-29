@@ -692,6 +692,20 @@ target_ts=analysis_data.get('target_time')
         asset_name = analysis_data.get("asset_name", "Asset")
         system_msg, user_msg = self._build_messages(analysis_data, asset_name)
 
+        # DEBUG: Print the full prompt being sent to OpenAI
+        print("\n" + "="*80)
+        print("🤖 FULL PROMPT BEING SENT TO OPENAI/CHATGPT")
+        print("="*80)
+        print("\n📋 SYSTEM MESSAGE:")
+        print("-" * 40)
+        print(system_msg["content"])
+        print("\n📊 USER MESSAGE (WITH ALL DATA POINTS):")
+        print("-" * 40)
+        print(user_msg["content"])
+        print("\n" + "="*80)
+        print("END OF PROMPT")
+        print("="*80 + "\n")
+
         # Responses API
         try:
             resp = self.gpt5_client.responses.create(

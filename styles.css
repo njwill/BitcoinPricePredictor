@@ -1,0 +1,166 @@
+/* Completely hide Streamlit header to remove whitespace */
+.stApp > header {
+    display: none !important;
+}
+
+/* Target the specific header element you found */
+.stAppHeader {
+    display: none !important;
+}
+
+.stApp {
+    padding-top: 0rem !important;
+    background-color: #FFFFFF !important;
+    color: #262730 !important;
+}
+
+/* Remove all top padding/margins from main content */
+.block-container {
+    padding-top: 1rem !important;
+    margin-top: 0rem !important;
+}
+
+[data-testid="column"] {
+    position: relative;
+    z-index: 1000;
+}
+
+/* Target only text elements, leave icons untouched */
+.stMarkdown, .stMarkdown p, .stMarkdown div, .stMarkdown span,
+.stMetric, .stMetric *,
+.stDataFrame, .stDataFrame *,
+h1, h2, h3, h4, h5, h6, p, span {
+    font-family: "Source Sans Pro", sans-serif !important;
+    color: #262730 !important;
+}
+
+/* Chart backgrounds */
+.js-plotly-plot .plotly .modebar {
+    background-color: #FFFFFF !important;
+}
+
+/* Disable KaTeX rendering for certain symbols */
+.katex {
+    display: none !important;
+}
+
+/* Hide the entire sidebar */
+[data-testid="stSidebar"] {
+    display: none !important;
+}
+
+/* Hide sidebar toggle controls */
+[data-testid="collapsedControl"] {
+    display: none !important;
+}
+
+/* Hide the entire Streamlit menu completely */
+[data-testid="stMainMenu"] {
+    display: none !important;
+}
+
+[data-testid="stToolbar"] {
+    display: none !important;
+}
+
+/* Bitcoin symbol styling - official Bitcoin orange */
+h1:first-letter {
+    color: #F7931A !important;
+}
+
+/* Header navigation bar */
+.header-nav {
+    background-color: #FFFFFF;
+    border-bottom: 2px solid #F7931A;
+    padding: 8px 0;
+    margin: -1rem -1rem 1rem -1rem;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(247, 147, 26, 0.1);
+}
+
+.nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    gap: 2rem;
+}
+
+.nav-logo {
+    height: 35px;
+    width: auto;
+    transition: opacity 0.2s ease;
+}
+
+.nav-logo:hover {
+    opacity: 0.8;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.nav-link {
+    color: #F7931A !important;
+    text-decoration: none !important;
+    font-weight: normal !important;
+    font-size: 0.9rem;
+    padding: 6px 12px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    white-space: nowrap !important;
+}
+
+.nav-link:hover {
+    background-color: #F7931A;
+    color: #FFFFFF !important;
+    text-decoration: none !important;
+    transform: translateY(-1px);
+}
+
+/* Mobile responsive styling */
+@media (max-width: 768px) {
+    .nav-container {
+        padding: 0 1rem;
+        gap: 1rem;
+    }
+    
+    .nav-logo {
+        height: 28px;
+    }
+    
+    .nav-links {
+        gap: 1rem;
+    }
+    
+    .nav-link {
+        font-size: 0.8rem !important;
+        padding: 4px 8px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-container {
+        padding: 0 0.5rem;
+        gap: 0.5rem;
+    }
+    
+    .nav-logo {
+        height: 25px;
+    }
+    
+    .nav-links {
+        gap: 0.5rem;
+    }
+    
+    .nav-link {
+        font-size: 0.75rem !important;
+        padding: 3px 6px !important;
+    }
+}

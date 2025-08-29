@@ -6,14 +6,39 @@ import pytz
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# Import our custom modules
-from data_fetcher import BitcoinDataFetcher
-from chart_generator import ChartGenerator
-from technical_analysis import TechnicalAnalyzer
-from ai_analysis import AIAnalyzer
-from database import analysis_db
-from social_media_generator import social_media_generator
+# Import lightweight utils only
 from utils import format_currency, get_eastern_time, calculate_time_until_update, should_update_analysis, save_analysis_cache, load_analysis_cache
+
+# Lazy import heavy modules only when needed
+@st.cache_resource
+def get_data_fetcher():
+    from data_fetcher import BitcoinDataFetcher
+    return BitcoinDataFetcher()
+
+@st.cache_resource
+def get_chart_generator():
+    from chart_generator import ChartGenerator
+    return ChartGenerator()
+
+@st.cache_resource
+def get_technical_analyzer():
+    from technical_analysis import TechnicalAnalyzer
+    return TechnicalAnalyzer()
+
+@st.cache_resource
+def get_ai_analyzer():
+    from ai_analysis import AIAnalyzer
+    return AIAnalyzer()
+
+@st.cache_resource
+def get_database():
+    from database import analysis_db
+    return analysis_db
+
+@st.cache_resource
+def get_social_media_generator():
+    from social_media_generator import social_media_generator
+    return social_media_generator
 
 # Configure page
 st.set_page_config(
@@ -21,6 +46,33 @@ st.set_page_config(
     page_icon="https://www.thebtccourse.com/wp-content/uploads/2023/02/thebtccourse-favicon.png",
     layout="wide"
 )
+
+# Load external CSS for better performance
+@st.cache_data
+def load_css():
+    try:
+        with open('styles.css') as f:
+            return f'<style>{f.read()}</style>'
+    except FileNotFoundError:
+        return '<style>/* CSS file not found */</style>'
+
+# Apply cached CSS
+st.markdown(load_css(), unsafe_allow_html=True)
+
+# Cached data fetching functions for better performance
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def get_cached_bitcoin_data(period):
+    """Cache Bitcoin data to avoid repeated API calls"""
+    data_fetcher = get_data_fetcher()
+    return data_fetcher.get_bitcoin_data(period=period)
+
+@st.cache_data(ttl=300)  # Cache for 5 minutes  
+def get_cached_indicators(data, timeframe):
+    """Cache technical indicators calculation"""
+    # Convert data hash to use as cache key
+    data_hash = hash(str(data.to_dict()) + timeframe)
+    technical_analyzer = get_technical_analyzer()
+    return technical_analyzer.calculate_all_indicators(data)
 
 # Initialize session state
 if 'last_update' not in st.session_state:
@@ -40,7 +92,7 @@ def load_stored_analysis(analysis_hash: str):
     
     try:
         # Load the stored analysis data
-        result = analysis_db.load_analysis_by_hash(analysis_hash)
+        result = get_database().load_analysis_by_hash(analysis_hash)
         if not result:
             st.error(f"Analysis with hash '{analysis_hash}' not found.")
             st.markdown("---")
@@ -850,12 +902,16 @@ def main():
         st.divider()
         
         # Automatically update expired predictions from database with historical prices
-        try:
-            analysis_db.update_analysis_accuracy()  # Uses historical prices automatically
-        except:
-            pass  # Continue even if we can't update accuracy
+        # Only run accuracy updates occasionally to avoid slowing down the app
+        if 'last_accuracy_update' not in st.session_state or \
+           (datetime.now() - st.session_state.last_accuracy_update).total_seconds() > 3600:  # Update once per hour
+            try:
+                get_database().update_analysis_accuracy()  # Uses historical prices automatically
+                st.session_state.last_accuracy_update = datetime.now()
+            except:
+                pass  # Continue even if we can't update accuracy
         
-        predictions = analysis_db.get_recent_analyses(limit=1000)  # Get all predictions
+        predictions = get_database().get_recent_analyses(limit=1000)  # Get all predictions
         
         if predictions:
             # Pagination setup
@@ -899,7 +955,7 @@ def main():
             
             # Get predictions for current page from database
             try:
-                predictions = analysis_db.get_recent_analyses(limit=predictions_per_page, offset=start_idx)
+                predictions = get_database().get_recent_analyses(limit=predictions_per_page, offset=start_idx)
             except Exception as e:
                 st.error(f"Error loading predictions: {str(e)}")
                 predictions = []
@@ -1127,8 +1183,8 @@ def main():
     try:
         # Fetch fresh data when user requests analysis
         with st.spinner("📈 Fetching fresh Bitcoin data..."):
-            btc_3m = data_fetcher.get_bitcoin_data(period='3mo')
-            btc_1w = data_fetcher.get_bitcoin_data(period='1wk')
+            btc_3m = get_cached_bitcoin_data('3mo')
+            btc_1w = get_cached_bitcoin_data('1wk')
         
         if btc_3m.empty or btc_1w.empty:
             st.error("❌ Failed to fetch Bitcoin data. Please try again later.")
@@ -1136,8 +1192,8 @@ def main():
         
         # Calculate technical indicators
         with st.spinner("🔍 Calculating technical indicators..."):
-            indicators_3m = technical_analyzer.calculate_all_indicators(btc_3m)
-            indicators_1w = technical_analyzer.calculate_all_indicators(btc_1w)
+            indicators_3m = get_cached_indicators(btc_3m, '3m')
+            indicators_1w = get_cached_indicators(btc_1w, '1w')
         
         # Generate fresh AI analysis every time
         with st.spinner("🤖 Generating fresh AI analysis... usually takes a couple minutes..."):
@@ -1177,7 +1233,7 @@ def main():
                     
                     # Save complete analysis to database and get hash
                     full_ai_text = str(analysis)  # Convert entire analysis to string
-                    analysis_hash = analysis_db.save_complete_analysis(
+                    analysis_hash = get_database().save_complete_analysis(
                         prediction_data, btc_3m, btc_1w, indicators_3m, indicators_1w, full_ai_text
                     )
                     
@@ -1201,7 +1257,7 @@ def main():
         
         # Update any past predictions with current price if their target time has passed
         try:
-            analysis_db.update_analysis_accuracy()  # Uses historical prices automatically
+            get_database().update_analysis_accuracy()  # Uses historical prices automatically
         except:
             pass  # Continue even if we can't update accuracy
         
@@ -1553,10 +1609,10 @@ def main():
         try:
             # Always check and update expired predictions when viewing the page
             # We'll fetch fresh Bitcoin data for accuracy updates
-            analysis_db.update_analysis_accuracy()  # Now fetches historical prices automatically
+            get_database().update_analysis_accuracy()  # Now fetches historical prices automatically
             
             # Get total count for pagination
-            total_predictions = analysis_db.get_total_analyses_count()
+            total_predictions = get_database().get_total_analyses_count()
         except Exception as e:
             st.warning(f"Database connection issue: {str(e)}")
             total_predictions = 0
@@ -1603,7 +1659,7 @@ def main():
             
             # Get predictions for current page from database
             try:
-                predictions = analysis_db.get_recent_analyses(limit=predictions_per_page, offset=start_idx)
+                predictions = get_database().get_recent_analyses(limit=predictions_per_page, offset=start_idx)
             except Exception as e:
                 st.error(f"Error loading predictions: {str(e)}")
                 predictions = []

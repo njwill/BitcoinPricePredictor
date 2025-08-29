@@ -1240,7 +1240,8 @@ def main():
                     # Generate social media tweet text for sharing
                     try:
                         domain = get_current_domain()
-                        tweet_text = social_media_generator.generate_shareable_text(
+                        social_generator = get_social_media_generator()
+                        tweet_text = social_generator.generate_shareable_text(
                             prediction_data, analysis_hash, domain
                         )
                         st.session_state.social_media_text = tweet_text

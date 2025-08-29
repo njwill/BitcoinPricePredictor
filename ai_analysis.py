@@ -181,7 +181,7 @@ class AIAnalyzer:
         df = self._ensure_datetime_index(df)
         try:
             max_val = df.index.max()
-            if pd.isna(max_val):
+            if pd.isnull(max_val) or str(max_val) == 'NaT':
                 end = pd.Timestamp('now')
             else:
                 end = pd.Timestamp(max_val)
@@ -251,7 +251,7 @@ class AIAnalyzer:
                     target = target_datetime.astimezone(tz)
                 else:
                     # Safe timezone localization
-                    if hasattr(tz, 'localize'):
+                    if hasattr(tz, 'localize') and callable(getattr(tz, 'localize', None)):
                         target = tz.localize(target_datetime)
                     else:
                         target = target_datetime.replace(tzinfo=tz)
@@ -262,7 +262,7 @@ class AIAnalyzer:
                     return {"prep_status": "insufficient_data", "prep_notes": ["no_target_and_cannot_infer_step"]}
                 try:
                     last_val = base_df.index[-1]
-                    if pd.isna(last_val):
+                    if pd.isnull(last_val) or str(last_val) == 'NaT':
                         target_ts = pd.Timestamp('now')
                     else:
                         target_ts = pd.Timestamp(last_val)
@@ -273,10 +273,22 @@ class AIAnalyzer:
                     target = target.tz_convert(tz)
                 else:
                     # Safe timezone localization
-                    if hasattr(tz, 'localize'):
-                        target = tz.localize(target.to_pydatetime())
+                    if hasattr(tz, 'localize') and callable(getattr(tz, 'localize', None)):
+                        if not pd.isnull(target) and str(target) != 'NaT':
+                            try:
+                                target = tz.localize(target.to_pydatetime())
+                            except (AttributeError, TypeError):
+                                target = pd.Timestamp('now', tz=tz)
+                        else:
+                            target = pd.Timestamp('now', tz=tz)
                     else:
-                        target = target.tz_localize(tz)
+                        if not pd.isnull(target) and str(target) != 'NaT':
+                            try:
+                                target = target.tz_localize(tz)
+                            except (AttributeError, TypeError):
+                                target = pd.Timestamp('now', tz=tz)
+                        else:
+                            target = pd.Timestamp('now', tz=tz)
 
             if (target - current_time).total_seconds() < 0:
                 return {"prep_status": "insufficient_data", "prep_notes": ["target_before_current_time"]}
@@ -327,7 +339,7 @@ class AIAnalyzer:
             return {
                 "asset_name": asset_name,
                 "current_time": current_time.isoformat(),
-                "target_time": target.isoformat(),
+                "target_time": target.isoformat() if target and not pd.isnull(target) and str(target) != 'NaT' else "",
                 "hours_until_target": (target - current_time).total_seconds() / 3600.0,
                 "data_3m": data_3m_summary,
                 "data_1w": data_1w_summary,
@@ -905,10 +917,10 @@ target_ts=analysis_data.get('target_time')
     def _safe_format_datetime(self, dt) -> str:
         """Safely format a datetime value, handling NaT and other edge cases."""
         try:
-            if pd.isna(dt):
+            if dt is None or pd.isnull(dt) or str(dt) == 'NaT':
                 return "N/A"
             ts = pd.Timestamp(dt)
-            if pd.isna(ts) or str(ts) == 'NaT':
+            if pd.isnull(ts) or str(ts) == 'NaT':
                 return "N/A"
             return ts.strftime("%Y-%m-%d %H:%M")
         except Exception:
@@ -917,11 +929,14 @@ target_ts=analysis_data.get('target_time')
     def _safe_format_daterange(self, start_dt, end_dt) -> str:
         """Safely format a date range, handling NaT and other edge cases."""
         try:
-            if pd.isna(start_dt) or pd.isna(end_dt):
+            if (start_dt is None or end_dt is None or 
+                pd.isnull(start_dt) or pd.isnull(end_dt) or 
+                str(start_dt) == 'NaT' or str(end_dt) == 'NaT'):
                 return "N/A"
             start_ts = pd.Timestamp(start_dt)
             end_ts = pd.Timestamp(end_dt)
-            if pd.isna(start_ts) or pd.isna(end_ts) or str(start_ts) == 'NaT' or str(end_ts) == 'NaT':
+            if (pd.isnull(start_ts) or pd.isnull(end_ts) or 
+                str(start_ts) == 'NaT' or str(end_ts) == 'NaT'):
                 return "N/A"
             return f"{start_ts.strftime('%B %d')} to {end_ts.strftime('%B %d, %Y')}"
         except Exception:

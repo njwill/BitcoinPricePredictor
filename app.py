@@ -344,8 +344,8 @@ def load_stored_analysis(analysis_hash: str):
         st.divider()
     
     # Initialize chart generator and technical analyzer
-    chart_generator = ChartGenerator()
-    technical_analyzer = TechnicalAnalyzer()
+    chart_generator = get_chart_generator()
+    technical_analyzer = get_technical_analyzer()
     
     # Default chart settings like main page
     show_indicators = True
@@ -1174,10 +1174,10 @@ def main():
     # If analyze button was clicked, proceed with analysis (prediction history will only show at bottom)
 
     # Initialize components (only when analyze button is pressed)
-    data_fetcher = BitcoinDataFetcher()
-    chart_generator = ChartGenerator()
-    technical_analyzer = TechnicalAnalyzer()
-    ai_analyzer = AIAnalyzer()
+    data_fetcher = get_data_fetcher()
+    chart_generator = get_chart_generator()
+    technical_analyzer = get_technical_analyzer()
+    ai_analyzer = get_ai_analyzer()
     
     # Main content area (only runs when analyze button is pressed)
     try:

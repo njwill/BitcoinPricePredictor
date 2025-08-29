@@ -179,9 +179,17 @@ class AIAnalyzer:
         if df is None or df.empty:
             return df
         df = self._ensure_datetime_index(df)
-        end = pd.Timestamp(df.index.max())
+        try:
+            max_val = df.index.max()
+            if pd.isna(max_val):
+                end = pd.Timestamp('now')
+            else:
+                end = pd.Timestamp(max_val)
+        except Exception:
+            end = pd.Timestamp('now')
         start = end - pd.Timedelta(days=days)
-        return df.loc[df.index >= start]
+        mask = df.index >= start
+        return df.loc[mask]
 
     def _annualization_sqrt(self, index: pd.Index) -> float:
         try:
@@ -205,9 +213,9 @@ class AIAnalyzer:
             return None
         return pd.to_timedelta(np.median(diffs.values))
 
-    def _determine_timezone(self, *indexes: pd.Index) -> pytz.BaseTzInfo:
+    def _determine_timezone(self, *indexes: Optional[pd.Index]):
         for idx in indexes:
-            if isinstance(idx, pd.DatetimeIndex) and idx.tz is not None:
+            if idx is not None and isinstance(idx, pd.DatetimeIndex) and idx.tz is not None:
                 return idx.tz
         return pytz.timezone("US/Eastern")
 
@@ -239,14 +247,36 @@ class AIAnalyzer:
 
             # Target handling
             if target_datetime:
-                target = target_datetime.astimezone(tz) if target_datetime.tzinfo else tz.localize(target_datetime)
+                if target_datetime.tzinfo:
+                    target = target_datetime.astimezone(tz)
+                else:
+                    # Safe timezone localization
+                    if hasattr(tz, 'localize'):
+                        target = tz.localize(target_datetime)
+                    else:
+                        target = target_datetime.replace(tzinfo=tz)
             else:
                 base_df = window_1w if not window_1w.empty else window_3m
                 step = self._infer_index_step(base_df.index)
                 if step is None:
                     return {"prep_status": "insufficient_data", "prep_notes": ["no_target_and_cannot_infer_step"]}
-                target = pd.Timestamp(base_df.index[-1]) + step
-                target = (target.tz_convert(tz) if target.tzinfo else tz.localize(target.to_pydatetime()))
+                try:
+                    last_val = base_df.index[-1]
+                    if pd.isna(last_val):
+                        target_ts = pd.Timestamp('now')
+                    else:
+                        target_ts = pd.Timestamp(last_val)
+                    target = target_ts + step
+                except Exception:
+                    target = pd.Timestamp('now') + step
+                if target.tzinfo:
+                    target = target.tz_convert(tz)
+                else:
+                    # Safe timezone localization
+                    if hasattr(tz, 'localize'):
+                        target = tz.localize(target.to_pydatetime())
+                    else:
+                        target = target.tz_localize(tz)
 
             if (target - current_time).total_seconds() < 0:
                 return {"prep_status": "insufficient_data", "prep_notes": ["target_before_current_time"]}
@@ -392,13 +422,11 @@ class AIAnalyzer:
             enhanced["3m_data"] = {
                 "timeframe": "3-month",
                 "full_range": (
-                    f"{pd.Timestamp(full_3m.index[0]).strftime('%B %d')} to "
-                    f"{pd.Timestamp(full_3m.index[-1]).strftime('%B %d, %Y')}"
-                ) if not full_3m.empty else "N/A",
+                    self._safe_format_daterange(full_3m.index[0], full_3m.index[-1]) if not full_3m.empty else "N/A"
+                ),
                 "data_range": (
-                    f"{pd.Timestamp(tail_3m.index[0]).strftime('%B %d')} to "
-                    f"{pd.Timestamp(tail_3m.index[-1]).strftime('%B %d, %Y')}"
-                ) if not tail_3m.empty else "N/A",
+                    self._safe_format_daterange(tail_3m.index[0], tail_3m.index[-1]) if not tail_3m.empty else "N/A"
+                ),
                 "period_highs_lows": {
                     "period_high": full_3m_high,
                     "period_low": full_3m_low,
@@ -407,7 +435,7 @@ class AIAnalyzer:
                 },
                 "recent_prices": (
                     {
-                        "dates": [pd.Timestamp(d).strftime("%Y-%m-%d %H:%M") for d in tail_3m.index],
+                        "dates": [self._safe_format_datetime(d) for d in tail_3m.index],
                         "open": tail_3m["Open"].round(2).tolist(),
                         "high": tail_3m["High"].round(2).tolist(),
                         "low": tail_3m["Low"].round(2).tolist(),
@@ -429,13 +457,11 @@ class AIAnalyzer:
             enhanced["1w_data"] = {
                 "timeframe": "1-week",
                 "full_range": (
-                    f"{pd.Timestamp(full_1w.index[0]).strftime('%B %d')} to "
-                    f"{pd.Timestamp(full_1w.index[-1]).strftime('%B %d, %Y')}"
-                ) if not full_1w.empty else "N/A",
+                    self._safe_format_daterange(full_1w.index[0], full_1w.index[-1]) if not full_1w.empty else "N/A"
+                ),
                 "data_range": (
-                    f"{pd.Timestamp(tail_1w.index[0]).strftime('%B %d')} to "
-                    f"{pd.Timestamp(tail_1w.index[-1]).strftime('%B %d, %Y')}"
-                ) if not tail_1w.empty else "N/A",
+                    self._safe_format_daterange(tail_1w.index[0], tail_1w.index[-1]) if not tail_1w.empty else "N/A"
+                ),
                 "period_highs_lows": {
                     "period_high": full_1w_high,
                     "period_low": full_1w_low,
@@ -444,7 +470,7 @@ class AIAnalyzer:
                 },
                 "recent_prices": (
                     {
-                        "dates": [pd.Timestamp(d).strftime("%Y-%m-%d %H:%M") for d in tail_1w.index],
+                        "dates": [self._safe_format_datetime(d) for d in tail_1w.index],
                         "open": tail_1w["Open"].round(2).tolist(),
                         "high": tail_1w["High"].round(2).tolist(),
                         "low": tail_1w["Low"].round(2).tolist(),
@@ -710,7 +736,7 @@ target_ts=analysis_data.get('target_time')
         try:
             resp = self.gpt5_client.responses.create(
                 model=self.model_name,
-                input=[system_msg, user_msg],
+                input=[{"role": "system", "content": system_msg["content"]}, {"role": "user", "content": user_msg["content"]}],
             )
             return resp.output_text  # raw text with both blocks
         except Exception as e:
@@ -720,9 +746,9 @@ target_ts=analysis_data.get('target_time')
         try:
             chat = self.gpt5_client.chat.completions.create(
                 model=self.model_name,
-                messages=[system_msg, user_msg],
+                messages=[{"role": "system", "content": system_msg["content"]}, {"role": "user", "content": user_msg["content"]}],
             )
-            return chat.choices[0].message.content
+            return chat.choices[0].message.content or ""
         except Exception as e:
             return json.dumps({"status": "insufficient_data", "notes": [f"model_error:{str(e)}"]})
 
@@ -768,8 +794,10 @@ target_ts=analysis_data.get('target_time')
             data["status"] = data.get("status") if data.get("status") in ("ok","insufficient_data") else "insufficient_data"
 
             # Normalize probabilities
-            p_up = float(self._safe_num(data.get("p_up"), 0.5))
-            p_down = float(self._safe_num(data.get("p_down"), 0.5))
+            p_up_val = self._safe_num(data.get("p_up"), 0.5)
+            p_down_val = self._safe_num(data.get("p_down"), 0.5)
+            p_up = float(p_up_val) if p_up_val is not None else 0.5
+            p_down = float(p_down_val) if p_down_val is not None else 0.5
             p_up = max(0.0, min(1.0, p_up))
             p_down = max(0.0, min(1.0, p_down))
             total = p_up + p_down
@@ -787,7 +815,8 @@ target_ts=analysis_data.get('target_time')
 
             for key in ("conf_overall", "conf_price"):
                 if key in data and data[key] is not None:
-                    data[key] = max(0.0, min(1.0, float(self._safe_num(data[key], 0.5))))
+                    safe_val = self._safe_num(data[key], 0.5)
+                    data[key] = max(0.0, min(1.0, float(safe_val) if safe_val is not None else 0.5))
 
             return data
         except Exception as e:
@@ -838,10 +867,15 @@ target_ts=analysis_data.get('target_time')
         if not isinstance(data, dict) or data.get("status") != "ok":
             return self._default_probs()
 
-        p_up = float(self._safe_num(data.get("p_up"), 0.5))
-        p_down = float(self._safe_num(data.get("p_down"), 0.5))
-        conf_overall = float(self._safe_num(data.get("conf_overall"), 0.5))
-        conf_price = float(self._safe_num(data.get("conf_price"), 0.5))
+        p_up_val = self._safe_num(data.get("p_up"), 0.5)
+        p_down_val = self._safe_num(data.get("p_down"), 0.5)
+        conf_overall_val = self._safe_num(data.get("conf_overall"), 0.5)
+        conf_price_val = self._safe_num(data.get("conf_price"), 0.5)
+        
+        p_up = float(p_up_val) if p_up_val is not None else 0.5
+        p_down = float(p_down_val) if p_down_val is not None else 0.5
+        conf_overall = float(conf_overall_val) if conf_overall_val is not None else 0.5
+        conf_price = float(conf_price_val) if conf_price_val is not None else 0.5
         pred = self._safe_num(data.get("predicted_price"), None)
 
         move_pct = 0.0
@@ -867,6 +901,31 @@ target_ts=analysis_data.get('target_time')
             "higher_pct": 50.0, "lower_pct": 50.0, "confidence_pct": 50.0,
             "predicted_price": None, "price_confidence_pct": 50.0, "move_percentage": 0.0
         }
+
+    def _safe_format_datetime(self, dt) -> str:
+        """Safely format a datetime value, handling NaT and other edge cases."""
+        try:
+            if pd.isna(dt):
+                return "N/A"
+            ts = pd.Timestamp(dt)
+            if pd.isna(ts) or str(ts) == 'NaT':
+                return "N/A"
+            return ts.strftime("%Y-%m-%d %H:%M")
+        except Exception:
+            return "N/A"
+    
+    def _safe_format_daterange(self, start_dt, end_dt) -> str:
+        """Safely format a date range, handling NaT and other edge cases."""
+        try:
+            if pd.isna(start_dt) or pd.isna(end_dt):
+                return "N/A"
+            start_ts = pd.Timestamp(start_dt)
+            end_ts = pd.Timestamp(end_dt)
+            if pd.isna(start_ts) or pd.isna(end_ts) or str(start_ts) == 'NaT' or str(end_ts) == 'NaT':
+                return "N/A"
+            return f"{start_ts.strftime('%B %d')} to {end_ts.strftime('%B %d, %Y')}"
+        except Exception:
+            return "N/A"
 
     def _safe_num(self, x: Any, default: Optional[float] = None) -> Optional[float]:
         try:

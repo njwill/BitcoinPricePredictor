@@ -337,68 +337,68 @@ class AIAnalyzer:
                         "current_price": actual_current_price,
                     }
 
-                except Exception as e:
-                    st.error(f"Error preparing analysis data: {str(e)}")
-                    return {"prep_status": "insufficient_data", "prep_notes": [str(e)]}
+        except Exception as e:
+            st.error(f"Error preparing analysis data: {str(e)}")
+            return {"prep_status": "insufficient_data", "prep_notes": [str(e)]}
 
-            def _compute_features(
-                self,
-                data_3m: pd.DataFrame,
-                data_1w: pd.DataFrame,
-                ind_3m: Dict[str, pd.Series],
-                ind_1w: Dict[str, pd.Series],
-            ) -> Dict[str, Any]:
-                feats: Dict[str, Any] = {}
+    def _compute_features(
+        self,
+        data_3m: pd.DataFrame,
+        data_1w: pd.DataFrame,
+        ind_3m: Dict[str, pd.Series],
+        ind_1w: Dict[str, pd.Series],
+    ) -> Dict[str, Any]:
+        feats: Dict[str, Any] = {}
 
-                def last_n_returns(df: pd.DataFrame, n: int) -> Optional[float]:
-                    try:
-                        return float(df["Close"].pct_change().tail(n).sum())
-                    except Exception:
-                        return None
+        def last_n_returns(df: pd.DataFrame, n: int) -> Optional[float]:
+            try:
+                return float(df["Close"].pct_change().tail(n).sum())
+            except Exception:
+                return None
 
-                def bb_width(ind: Dict[str, pd.Series]) -> Optional[float]:
-                    try:
-                        if "BB_Upper" in ind and "BB_Lower" in ind:
-                            return float(ind["BB_Upper"].iloc[-1] - ind["BB_Lower"].iloc[-1])
-                    except Exception:
-                        pass
-                    return None
+        def bb_width(ind: Dict[str, pd.Series]) -> Optional[float]:
+            try:
+                if "BB_Upper" in ind and "BB_Lower" in ind:
+                    return float(ind["BB_Upper"].iloc[-1] - ind["BB_Lower"].iloc[-1])
+            except Exception:
+                pass
+            return None
 
-                def ema_slope(ind: Dict[str, pd.Series], k: int = 5) -> Optional[float]:
-                    try:
-                        if "EMA_20" in ind and len(ind["EMA_20"]) > k:
-                            return float(ind["EMA_20"].iloc[-1] - ind["EMA_20"].iloc[-k-1])
-                    except Exception:
-                        pass
-                    return None
+        def ema_slope(ind: Dict[str, pd.Series], k: int = 5) -> Optional[float]:
+            try:
+                if "EMA_20" in ind and len(ind["EMA_20"]) > k:
+                    return float(ind["EMA_20"].iloc[-1] - ind["EMA_20"].iloc[-k-1])
+            except Exception:
+                pass
+            return None
 
-                if data_1w is not None and not data_1w.empty:
-                    feats["ret_1w_last5bars"] = last_n_returns(data_1w, 5)
-                    feats["vol_ann_1w_pct"] = float(data_1w["Close"].pct_change().std() * self._annualization_sqrt(data_1w.index) * 100.0)
-                if ind_1w:
-                    feats["bb_width_1w"] = bb_width(ind_1w)
-                    feats["ema20_slope_1w"] = ema_slope(ind_1w, 5)
-                    feats["rsi_last_1w"] = float(ind_1w["RSI"].iloc[-1]) if "RSI" in ind_1w and not np.isnan(ind_1w["RSI"].iloc[-1]) else None
+        if data_1w is not None and not data_1w.empty:
+            feats["ret_1w_last5bars"] = last_n_returns(data_1w, 5)
+            feats["vol_ann_1w_pct"] = float(data_1w["Close"].pct_change().std() * self._annualization_sqrt(data_1w.index) * 100.0)
+        if ind_1w:
+            feats["bb_width_1w"] = bb_width(ind_1w)
+            feats["ema20_slope_1w"] = ema_slope(ind_1w, 5)
+            feats["rsi_last_1w"] = float(ind_1w["RSI"].iloc[-1]) if "RSI" in ind_1w and not np.isnan(ind_1w["RSI"].iloc[-1]) else None
 
-                if data_3m is not None and not data_3m.empty:
-                    feats["ret_3m_last5bars"] = last_n_returns(data_3m, 5)
-                    feats["vol_ann_3m_pct"] = float(data_3m["Close"].pct_change().std() * self._annualization_sqrt(data_3m.index) * 100.0)
-                if ind_3m:
-                    feats["bb_width_3m"] = bb_width(ind_3m)
-                    feats["ema20_slope_3m"] = ema_slope(ind_3m, 5)
-                    feats["rsi_last_3m"] = float(ind_3m["RSI"].iloc[-1]) if "RSI" in ind_3m and not np.isnan(ind_3m["RSI"].iloc[-1]) else None
+        if data_3m is not None and not data_3m.empty:
+            feats["ret_3m_last5bars"] = last_n_returns(data_3m, 5)
+            feats["vol_ann_3m_pct"] = float(data_3m["Close"].pct_change().std() * self._annualization_sqrt(data_3m.index) * 100.0)
+        if ind_3m:
+            feats["bb_width_3m"] = bb_width(ind_3m)
+            feats["ema20_slope_3m"] = ema_slope(ind_3m, 5)
+            feats["rsi_last_3m"] = float(ind_3m["RSI"].iloc[-1]) if "RSI" in ind_3m and not np.isnan(ind_3m["RSI"].iloc[-1]) else None
 
-                return feats
+        return feats
 
-            # ---------- enhanced chart data ----------
+    # ---------- enhanced chart data ----------
 
-            def _prepare_enhanced_chart_data(
-                self,
-                data_3m: pd.DataFrame,
-                data_1w: pd.DataFrame,
-                indicators_3m: Dict[str, pd.Series],
-                indicators_1w: Dict[str, pd.Series],
-            ) -> Dict[str, Any]:
+    def _prepare_enhanced_chart_data(
+        self,
+        data_3m: pd.DataFrame,
+        data_1w: pd.DataFrame,
+        indicators_3m: Dict[str, pd.Series],
+        indicators_1w: Dict[str, pd.Series],
+    ) -> Dict[str, Any]:
                 try:
                     enhanced: Dict[str, Any] = {}
 

@@ -561,9 +561,9 @@ class AIAnalyzer:
 
         return summary
 
-            # ---------- prompt + model call ----------
+    # ---------- prompt + model call ----------
 
-            def _build_messages(self, analysis_data: Dict[str, Any], asset_name: str) -> Tuple[Dict[str, str], Dict[str, str]]:
+    def _build_messages(self, analysis_data: Dict[str, Any], asset_name: str) -> Tuple[Dict[str, str], Dict[str, str]]:
                 system_content = (
                     "You are a deterministic technical analyst. Use ONLY the structured arrays provided in the ENHANCED ARRAYS, FEATURES, INDICATOR SNAPSHOT, and VOLUME_ANALYSIS sections. "
                     "Analyze the FULL arrays (e.g., entire RSI, MACD, BB, EMA histories) to derive trends, slopes, peaks/troughs, divergences, and patterns. "

@@ -475,7 +475,14 @@ target_ts=analysis_data.get('target_time')
                 messages=[sys_msg, user_msg],
                 max_completion_tokens=4000,
             )
-            return response.choices[0].message.content
+            
+            content = response.choices[0].message.content
+            
+            # Debug logging to see what GPT-5 is actually returning
+            st.write("**DEBUG: GPT-5 Raw Response (first 500 chars):**")
+            st.text(content[:500] if content else "No content returned")
+            
+            return content
 
         except Exception as e:
             st.error(f"Error calling GPT-5: {str(e)}")

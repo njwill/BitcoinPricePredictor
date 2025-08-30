@@ -597,8 +597,8 @@ class AIAnalyzer:
             "notes": ["if status=insufficient_data, list what's missing; else optional warnings"]
         }
 
-                # Narrative section template (improved)
-                narrative_template = """
+        # Narrative section template (improved)
+        narrative_template = """
         [TECHNICAL_ANALYSIS_START]
         **COMPREHENSIVE TECHNICAL ANALYSIS**
 

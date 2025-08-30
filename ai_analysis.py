@@ -29,7 +29,7 @@ class AIAnalyzer:
             self.debug = bool(debug)
 
         self.openai_key = os.getenv("OPENAI_API_KEY", "")
-        self.model_name = os.getenv("GPT5_MODEL", "gpt-5")
+        self.model_name = os.getenv("GPT5_MODEL", "gpt-5-nano")
 
         if not self.openai_key:
             st.error("OpenAI API key not found. Please set OPENAI_API_KEY environment variable.")
@@ -470,19 +470,40 @@ target_ts=analysis_data.get('target_time')
 
             sys_msg, user_msg = self._build_messages(analysis_data, analysis_data.get("asset_name", "BTCUSD"))
 
+            # Debug: Show model being used
+            st.write(f"**DEBUG: Using model: {self.model_name}**")
+            
             response = self.gpt5_client.chat.completions.create(
                 model=self.model_name,
                 messages=[sys_msg, user_msg],
                 max_completion_tokens=4000,
             )
             
-            content = response.choices[0].message.content
+            # Debug: Show response details
+            st.write(f"**DEBUG: Response object type: {type(response)}**")
+            st.write(f"**DEBUG: Response has choices: {hasattr(response, 'choices') and len(response.choices) > 0}**")
+            
+            if hasattr(response, 'choices') and len(response.choices) > 0:
+                choice = response.choices[0]
+                st.write(f"**DEBUG: Choice type: {type(choice)}**")
+                st.write(f"**DEBUG: Choice has message: {hasattr(choice, 'message')}**")
+                
+                if hasattr(choice, 'message'):
+                    message = choice.message
+                    st.write(f"**DEBUG: Message type: {type(message)}**")
+                    content = message.content
+                    st.write(f"**DEBUG: Content type: {type(content)}**")
+                    st.write(f"**DEBUG: Content length: {len(content) if content else 0}**")
+                else:
+                    content = None
+            else:
+                content = None
             
             # Debug logging to see what GPT-5 is actually returning
             st.write("**DEBUG: GPT-5 Raw Response (first 500 chars):**")
             st.text(content[:500] if content else "No content returned")
             
-            return content
+            return content or "No content in response"
 
         except Exception as e:
             st.error(f"Error calling GPT-5: {str(e)}")

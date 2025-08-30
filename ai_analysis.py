@@ -231,111 +231,111 @@ class AIAnalyzer:
         target_datetime: Optional[datetime],
         asset_name: str,
     ) -> Dict[str, Any]:
-                try:
-                    data_3m = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_3m))
-                    data_1w = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_1w))
+        try:
+            data_3m = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_3m))
+            data_1w = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_1w))
 
-                    window_3m = self._limit_to_days(data_3m, 92) if data_3m is not None else pd.DataFrame()
-                    window_1w = self._limit_to_days(data_1w, 7) if data_1w is not None else pd.DataFrame()
+            window_3m = self._limit_to_days(data_3m, 92) if data_3m is not None else pd.DataFrame()
+            window_1w = self._limit_to_days(data_1w, 7) if data_1w is not None else pd.DataFrame()
 
-                    if (window_3m is None or window_3m.empty) and (window_1w is None or window_1w.empty):
-                        return {"prep_status": "insufficient_data", "prep_notes": ["no_price_data_after_trimming"]}
+            if (window_3m is None or window_3m.empty) and (window_1w is None or window_1w.empty):
+                return {"prep_status": "insufficient_data", "prep_notes": ["no_price_data_after_trimming"]}
 
-                    tz = self._determine_timezone(window_1w.index if not window_1w.empty else None,
-                                                  window_3m.index if not window_3m.empty else None)
-                    current_time = datetime.now(tz)
+            tz = self._determine_timezone(window_1w.index if not window_1w.empty else None,
+                                          window_3m.index if not window_3m.empty else None)
+            current_time = datetime.now(tz)
 
-                    # Target handling
-                    if target_datetime:
-                        if target_datetime.tzinfo:
-                            target = target_datetime.astimezone(tz)
-                        else:
-                            # Safe timezone localization
-                            if hasattr(tz, 'localize'):
-                                target = tz.localize(target_datetime)
-                            else:
-                                target = target_datetime.replace(tzinfo=tz)
+            # Target handling
+            if target_datetime:
+                if target_datetime.tzinfo:
+                    target = target_datetime.astimezone(tz)
+                else:
+                    # Safe timezone localization
+                    if hasattr(tz, 'localize'):
+                        target = tz.localize(target_datetime)
                     else:
-                        base_df = window_1w if not window_1w.empty else window_3m
-                        step = self._infer_index_step(base_df.index)
-                        if step is None:
-                            return {"prep_status": "insufficient_data", "prep_notes": ["no_target_and_cannot_infer_step"]}
-                        try:
-                            last_val = base_df.index[-1]
-                            if pd.isna(last_val):
-                                target_ts = pd.Timestamp('now')
-                            else:
-                                target_ts = pd.Timestamp(last_val)
-                            target = target_ts + step
-                        except Exception:
-                            target = pd.Timestamp('now') + step
-                        if target.tzinfo:
-                            target = target.tz_convert(tz)
-                        else:
-                            # Safe timezone localization
-                            if hasattr(tz, 'localize'):
-                                target = tz.localize(target.to_pydatetime())
-                            else:
-                                target = target.tz_localize(tz)
+                        target = target_datetime.replace(tzinfo=tz)
+            else:
+                base_df = window_1w if not window_1w.empty else window_3m
+                step = self._infer_index_step(base_df.index)
+                if step is None:
+                    return {"prep_status": "insufficient_data", "prep_notes": ["no_target_and_cannot_infer_step"]}
+                try:
+                    last_val = base_df.index[-1]
+                    if pd.isna(last_val):
+                        target_ts = pd.Timestamp('now')
+                    else:
+                        target_ts = pd.Timestamp(last_val)
+                    target = target_ts + step
+                except Exception:
+                    target = pd.Timestamp('now') + step
+                if target.tzinfo:
+                    target = target.tz_convert(tz)
+                else:
+                    # Safe timezone localization
+                    if hasattr(tz, 'localize'):
+                        target = tz.localize(target.to_pydatetime())
+                    else:
+                        target = target.tz_localize(tz)
 
-                    if (target - current_time).total_seconds() < 0:
-                        return {"prep_status": "insufficient_data", "prep_notes": ["target_before_current_time"]}
+            if (target - current_time).total_seconds() < 0:
+                return {"prep_status": "insufficient_data", "prep_notes": ["target_before_current_time"]}
 
-                    actual_current_price = float(current_price)
+            actual_current_price = float(current_price)
 
-                    # Optional debug about current price mismatch
-                    if not window_1w.empty:
-                        latest_close_1w = float(window_1w["Close"].iloc[-1])
-                        if latest_close_1w > 0:
-                            rel_diff = abs(latest_close_1w - actual_current_price) / latest_close_1w
-                            if rel_diff > 0.02:
-                                self._dbg("warning", f"⚠️ current_price {actual_current_price:,.2f} differs from latest 1w close "
-                                                     f"{latest_close_1w:,.2f} by {rel_diff*100:.1f}%.")
+            # Optional debug about current price mismatch
+            if not window_1w.empty:
+                latest_close_1w = float(window_1w["Close"].iloc[-1])
+                if latest_close_1w > 0:
+                    rel_diff = abs(latest_close_1w - actual_current_price) / latest_close_1w
+                    if rel_diff > 0.02:
+                        self._dbg("warning", f"⚠️ current_price {actual_current_price:,.2f} differs from latest 1w close "
+                                             f"{latest_close_1w:,.2f} by {rel_diff*100:.1f}%.")
 
-                    def _summary(df: pd.DataFrame, label: str) -> Dict[str, Any]:
-                        if df is None or df.empty:
-                            return {}
-                        start_price = float(df["Close"].iloc[0])
-                        ann_sqrt = self._annualization_sqrt(df.index)
-                        return {
-                            "period": label,
-                            "start_price": start_price,
-                            "high": float(df["High"].max()),
-                            "low": float(df["Low"].min()),
-                            "price_change_pct": float((actual_current_price - start_price) / max(1e-9, start_price) * 100.0),
-                            "volatility_ann_pct": float(df["Close"].pct_change().std() * ann_sqrt * 100.0),
-                            "avg_volume": float(df["Volume"].mean()),
-                            "start_date": str(df.index[0]),
-                            "end_date": str(df.index[-1]),
-                        }
+            def _summary(df: pd.DataFrame, label: str) -> Dict[str, Any]:
+                if df is None or df.empty:
+                    return {}
+                start_price = float(df["Close"].iloc[0])
+                ann_sqrt = self._annualization_sqrt(df.index)
+                return {
+                    "period": label,
+                    "start_price": start_price,
+                    "high": float(df["High"].max()),
+                    "low": float(df["Low"].min()),
+                    "price_change_pct": float((actual_current_price - start_price) / max(1e-9, start_price) * 100.0),
+                    "volatility_ann_pct": float(df["Close"].pct_change().std() * ann_sqrt * 100.0),
+                    "avg_volume": float(df["Volume"].mean()),
+                    "start_date": str(df.index[0]),
+                    "end_date": str(df.index[-1]),
+                }
 
-                    data_3m_summary = _summary(window_3m, "3 months") if not window_3m.empty else {}
-                    data_1w_summary = _summary(window_1w, "1 week") if not window_1w.empty else {}
+            data_3m_summary = _summary(window_3m, "3 months") if not window_3m.empty else {}
+            data_1w_summary = _summary(window_1w, "1 week") if not window_1w.empty else {}
 
-                    indicators_summary = self._summarize_indicators(indicators_3m, indicators_1w, actual_current_price)
-                    enhanced_data = self._prepare_enhanced_chart_data(window_3m, window_1w, indicators_3m, indicators_1w)
+            indicators_summary = self._summarize_indicators(indicators_3m, indicators_1w, actual_current_price)
+            enhanced_data = self._prepare_enhanced_chart_data(window_3m, window_1w, indicators_3m, indicators_1w)
 
-                    if enhanced_data.get("3m_data", {}).get("period_highs_lows"):
-                        data_3m_summary["high"] = enhanced_data["3m_data"]["period_highs_lows"]["period_high"]
-                        data_3m_summary["low"] = enhanced_data["3m_data"]["period_highs_lows"]["period_low"]
-                    if enhanced_data.get("1w_data", {}).get("period_highs_lows"):
-                        data_1w_summary["high"] = enhanced_data["1w_data"]["period_highs_lows"]["period_high"]
-                        data_1w_summary["low"] = enhanced_data["1w_data"]["period_highs_lows"]["period_low"]
+            if enhanced_data.get("3m_data", {}).get("period_highs_lows"):
+                data_3m_summary["high"] = enhanced_data["3m_data"]["period_highs_lows"]["period_high"]
+                data_3m_summary["low"] = enhanced_data["3m_data"]["period_highs_lows"]["period_low"]
+            if enhanced_data.get("1w_data", {}).get("period_highs_lows"):
+                data_1w_summary["high"] = enhanced_data["1w_data"]["period_highs_lows"]["period_high"]
+                data_1w_summary["low"] = enhanced_data["1w_data"]["period_highs_lows"]["period_low"]
 
-                    features = self._compute_features(window_3m, window_1w, indicators_3m, indicators_1w)
+            features = self._compute_features(window_3m, window_1w, indicators_3m, indicators_1w)
 
-                    return {
-                        "asset_name": asset_name,
-                        "current_time": current_time.isoformat(),
-                        "target_time": target.isoformat(),
-                        "hours_until_target": (target - current_time).total_seconds() / 3600.0,
-                        "data_3m": data_3m_summary,
-                        "data_1w": data_1w_summary,
-                        "indicators": indicators_summary,
-                        "enhanced_chart_data": enhanced_data,
-                        "features": features,
-                        "current_price": actual_current_price,
-                    }
+            return {
+                "asset_name": asset_name,
+                "current_time": current_time.isoformat(),
+                "target_time": target.isoformat(),
+                "hours_until_target": (target - current_time).total_seconds() / 3600.0,
+                "data_3m": data_3m_summary,
+                "data_1w": data_1w_summary,
+                "indicators": indicators_summary,
+                "enhanced_chart_data": enhanced_data,
+                "features": features,
+                "current_price": actual_current_price,
+            }
 
         except Exception as e:
             st.error(f"Error preparing analysis data: {str(e)}")

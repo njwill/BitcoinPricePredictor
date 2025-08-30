@@ -29,7 +29,7 @@ class AIAnalyzer:
             self.debug = bool(debug)
 
         self.openai_key = os.getenv("OPENAI_API_KEY", "")
-        self.model_name = os.getenv("GPT5_MODEL", "gpt-5-nano")
+        self.model_name = os.getenv("GPT5_MODEL", "gpt-4o")
 
         if not self.openai_key:
             st.error("OpenAI API key not found. Please set OPENAI_API_KEY environment variable.")

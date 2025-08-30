@@ -473,7 +473,6 @@ target_ts=analysis_data.get('target_time')
             response = self.gpt5_client.chat.completions.create(
                 model=self.model_name,
                 messages=[sys_msg, user_msg],
-                temperature=0.1,
                 max_completion_tokens=4000,
             )
             return response.choices[0].message.content

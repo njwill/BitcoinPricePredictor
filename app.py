@@ -1452,8 +1452,10 @@ def main():
                     # Remove any problematic characters and ensure proper formatting
                     cleaned_summary = technical_summary.replace('\\n', '\n').strip()
                     
-                    # Display the full content using st.write which handles long content better
-                    st.write(cleaned_summary)
+                    # Display the full content using st.markdown to properly render formatting
+                    # Escape potential math symbols to avoid KaTeX rendering
+                    escaped_summary = cleaned_summary.replace('$', '\$').replace('_', '\_')
+                    st.markdown(escaped_summary)
                 else:
                     st.write("Analysis not available")
                 
@@ -1463,8 +1465,10 @@ def main():
                 if isinstance(price_prediction, str) and price_prediction.strip():
                     cleaned_prediction = price_prediction.replace('\\n', '\n').strip()
                     
-                    # Display the full content using st.write which handles long content better
-                    st.write(cleaned_prediction)
+                    # Display the full content using st.markdown to properly render formatting
+                    # Escape potential math symbols to avoid KaTeX rendering
+                    escaped_prediction = cleaned_prediction.replace('$', '\$').replace('_', '\_')
+                    st.markdown(escaped_prediction)
                 else:
                     st.write("Prediction not available")
             

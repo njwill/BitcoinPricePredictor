@@ -68,70 +68,70 @@ class AIAnalyzer:
                 asset_name=asset_name,
             )
 
-                    target_ts_fallback = analysis_data.get("target_time", "")
+            target_ts_fallback = analysis_data.get("target_time", "")
 
-                    if analysis_data.get("prep_status") == "insufficient_data":
-                        msg = "; ".join(analysis_data.get("prep_notes", []))
-                        text_summary, text_pred = self._compose_text_when_insufficient(msg, target_ts_fallback)
-                        return {
-                            "status": "insufficient_data",
-                            "model_json": {"status": "insufficient_data", "notes": analysis_data.get("prep_notes", [])},
-                            "probabilities": self._default_probs(),
-                            "technical_summary": text_summary,
-                            "price_prediction": text_pred,
-                            "timestamp": datetime.now().isoformat(),
-                        }
+            if analysis_data.get("prep_status") == "insufficient_data":
+                msg = "; ".join(analysis_data.get("prep_notes", []))
+                text_summary, text_pred = self._compose_text_when_insufficient(msg, target_ts_fallback)
+                return {
+                    "status": "insufficient_data",
+                    "model_json": {"status": "insufficient_data", "notes": analysis_data.get("prep_notes", [])},
+                    "probabilities": self._default_probs(),
+                    "technical_summary": text_summary,
+                    "price_prediction": text_pred,
+                    "timestamp": datetime.now().isoformat(),
+                }
 
-                    # Ask for BOTH: JSON block + narrative section blocks
-                    raw = self._generate_technical_analysis_gpt5(analysis_data)
+            # Ask for BOTH: JSON block + narrative section blocks
+            raw = self._generate_technical_analysis_gpt5(analysis_data)
 
-                    # Split/parse outputs
-                    json_text, narrative_text = self._split_dual_output(raw)
-                    parsed_json = self._parse_json_response(json_text, self._last_current_price or current_price)
+            # Split/parse outputs
+            json_text, narrative_text = self._split_dual_output(raw)
+            parsed_json = self._parse_json_response(json_text, self._last_current_price or current_price)
 
-                    # Extract rich sections (like your old script)
-                    sections = self._parse_comprehensive_response(narrative_text) if narrative_text else {}
+            # Extract rich sections (like your old script)
+            sections = self._parse_comprehensive_response(narrative_text) if narrative_text else {}
 
-                    # Build probabilities
-                    if parsed_json.get("status") == "ok":
-                        probs = self._extract_probabilities_from_json(parsed_json, self._last_current_price or current_price)
-                    else:
-                        probs = self._extract_probabilities(sections.get("price_prediction", "") if sections else "")
+            # Build probabilities
+            if parsed_json.get("status") == "ok":
+                probs = self._extract_probabilities_from_json(parsed_json, self._last_current_price or current_price)
+            else:
+                probs = self._extract_probabilities(sections.get("price_prediction", "") if sections else "")
 
-                    # Text blocks to show in UI
-                    tech_md = sections.get("technical_summary")
-                    pred_md = sections.get("price_prediction")
+            # Text blocks to show in UI
+            tech_md = sections.get("technical_summary")
+            pred_md = sections.get("price_prediction")
 
-                    # If model omitted narrative, synthesize from JSON so UI still looks good
-                    if not tech_md or not pred_md:
-                        synth_tech, synth_pred = self._compose_text_from_model_json(parsed_json, current_price)
-                        tech_md = tech_md or synth_tech
-                        pred_md = pred_md or synth_pred
+            # If model omitted narrative, synthesize from JSON so UI still looks good
+            if not tech_md or not pred_md:
+                synth_tech, synth_pred = self._compose_text_from_model_json(parsed_json, current_price)
+                tech_md = tech_md or synth_tech
+                pred_md = pred_md or synth_pred
 
-                    # If the JSON says insufficient but narrative exists, honor JSON for status
-                    status = parsed_json.get("status", "ok") if isinstance(parsed_json, dict) else "error"
-                    if status != "ok" and status != "insufficient_data":
-                        status = "insufficient_data"
+            # If the JSON says insufficient but narrative exists, honor JSON for status
+            status = parsed_json.get("status", "ok") if isinstance(parsed_json, dict) else "error"
+            if status != "ok" and status != "insufficient_data":
+                status = "insufficient_data"
 
-                    # Ensure we never show empty target
-                    if status != "ok" and ("`" in pred_md and "Target:" in pred_md and "``" in pred_md):
-                        pred_md = f"**Target:** `{target_ts_fallback}`\n\n_No price prediction due to insufficient data._"
+            # Ensure we never show empty target
+            if status != "ok" and ("`" in pred_md and "Target:" in pred_md and "``" in pred_md):
+                pred_md = f"**Target:** `{target_ts_fallback}`\n\n_No price prediction due to insufficient data._"
 
-                    return {
-                        "status": status,
-                        "model_json": parsed_json,
-                        "probabilities": probs,
-                        "technical_summary": tech_md,
-                        "price_prediction": pred_md,
-                        "timestamp": datetime.now().isoformat(),
-                    }
+            return {
+                "status": status,
+                "model_json": parsed_json,
+                "probabilities": probs,
+                "technical_summary": tech_md,
+                "price_prediction": pred_md,
+                "timestamp": datetime.now().isoformat(),
+            }
 
-                except Exception as e:
-                    st.error(f"Error generating AI analysis: {str(e)}")
-                    target_ts = target_datetime.isoformat() if target_datetime else ""
-                    tech, pred = self._compose_text_when_insufficient(str(e), target_ts)
-                    return {"status": "error", "error": str(e), "probabilities": self._default_probs(),
-                            "technical_summary": tech, "price_prediction": pred}
+        except Exception as e:
+            st.error(f"Error generating AI analysis: {str(e)}")
+            target_ts = target_datetime.isoformat() if target_datetime else ""
+            tech, pred = self._compose_text_when_insufficient(str(e), target_ts)
+            return {"status": "error", "error": str(e), "probabilities": self._default_probs(),
+                    "technical_summary": tech, "price_prediction": pred}
 
             # ---------- helpers: debug ----------
 

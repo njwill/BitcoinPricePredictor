@@ -665,7 +665,7 @@ class AIAnalyzer:
         [PRICE_PREDICTION_END]
         """.strip()
 
-                user_content = f"""
+        user_content = f"""
         ASSET: {asset_name}
 
         DATA WINDOWS (do not infer beyond them):

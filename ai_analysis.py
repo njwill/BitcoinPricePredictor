@@ -564,38 +564,38 @@ class AIAnalyzer:
     # ---------- prompt + model call ----------
 
     def _build_messages(self, analysis_data: Dict[str, Any], asset_name: str) -> Tuple[Dict[str, str], Dict[str, str]]:
-                system_content = (
-                    "You are a deterministic technical analyst. Use ONLY the structured arrays provided in the ENHANCED ARRAYS, FEATURES, INDICATOR SNAPSHOT, and VOLUME_ANALYSIS sections. "
-                    "Analyze the FULL arrays (e.g., entire RSI, MACD, BB, EMA histories) to derive trends, slopes, peaks/troughs, divergences, and patterns. "
-                    "Explicitly compare 1-week (1w) and 3-month (3m) arrays for each indicator, noting alignments, conflicts, and how short-term momentum influences longer-term trends. "
-                    "Forbidden: news, macro, on-chain, session effects (market open/close), weekdays, seasonality, or inferences beyond given timestamps and data. "
-                    "All claims must be quantitatively verifiable from the arrays (e.g., compute averages, slopes, or crossovers directly). "
-                    "If any required arrays are missing, empty, or insufficient for full analysis (e.g., no full RSI array for divergence detection), output status='insufficient_data' with detailed 'notes'. "
-                    "Prioritize depth: synthesize across indicators and timeframes for the most comprehensive, evidence-based analysis possible."
-                )
+        system_content = (
+            "You are a deterministic technical analyst. Use ONLY the structured arrays provided in the ENHANCED ARRAYS, FEATURES, INDICATOR SNAPSHOT, and VOLUME_ANALYSIS sections. "
+            "Analyze the FULL arrays (e.g., entire RSI, MACD, BB, EMA histories) to derive trends, slopes, peaks/troughs, divergences, and patterns. "
+            "Explicitly compare 1-week (1w) and 3-month (3m) arrays for each indicator, noting alignments, conflicts, and how short-term momentum influences longer-term trends. "
+            "Forbidden: news, macro, on-chain, session effects (market open/close), weekdays, seasonality, or inferences beyond given timestamps and data. "
+            "All claims must be quantitatively verifiable from the arrays (e.g., compute averages, slopes, or crossovers directly). "
+            "If any required arrays are missing, empty, or insufficient for full analysis (e.g., no full RSI array for divergence detection), output status='insufficient_data' with detailed 'notes'. "
+            "Prioritize depth: synthesize across indicators and timeframes for the most comprehensive, evidence-based analysis possible."
+        )
 
-                data_3m = analysis_data.get("data_3m", {})
-                data_1w = analysis_data.get("data_1w", {})
+        data_3m = analysis_data.get("data_3m", {})
+        data_1w = analysis_data.get("data_1w", {})
 
-                # JSON schema
-                output_schema = {
-                    "status": "ok or insufficient_data",
-                    "asset": asset_name,
-                    "as_of": analysis_data.get("current_time"),
-                    "target_ts": analysis_data.get("target_time"),
-                    "predicted_price": "number or null",
-                    "p_up": "float 0..1",
-                    "p_down": "float 0..1 (p_up + p_down = 1)",
-                    "conf_overall": "float 0..1",
-                    "conf_price": "float 0..1",
-                    "expected_pct_move": "signed float percent (optional; compute from predicted/current if omitted)",
-                    "critical_levels": {"bullish_above": "number or null", "bearish_below": "number or null"},
-                    "evidence": [
-                        {"type":"rsi|macd|bb|ema|price|volume|structure",
-                         "timeframe":"3m|1w","ts":"YYYY-MM-DD HH:MM" or "recent","value":"number or object","note":"short factual note, e.g., 'RSI divergence: price low at 98286 with RSI 37.9 vs prior low RSI 37.8'"}
-                    ],
-                    "notes": ["if status=insufficient_data, list what's missing; else optional warnings"]
-                }
+        # JSON schema
+        output_schema = {
+            "status": "ok or insufficient_data",
+            "asset": asset_name,
+            "as_of": analysis_data.get("current_time"),
+            "target_ts": analysis_data.get("target_time"),
+            "predicted_price": "number or null",
+            "p_up": "float 0..1",
+            "p_down": "float 0..1 (p_up + p_down = 1)",
+            "conf_overall": "float 0..1",
+            "conf_price": "float 0..1",
+            "expected_pct_move": "signed float percent (optional; compute from predicted/current if omitted)",
+            "critical_levels": {"bullish_above": "number or null", "bearish_below": "number or null"},
+            "evidence": [
+                {"type":"rsi|macd|bb|ema|price|volume|structure",
+                 "timeframe":"3m|1w","ts":"YYYY-MM-DD HH:MM" or "recent","value":"number or object","note":"short factual note, e.g., 'RSI divergence: price low at 98286 with RSI 37.9 vs prior low RSI 37.8'"}
+            ],
+            "notes": ["if status=insufficient_data, list what's missing; else optional warnings"]
+        }
 
                 # Narrative section template (improved)
                 narrative_template = """

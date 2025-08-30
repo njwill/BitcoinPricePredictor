@@ -509,57 +509,57 @@ class AIAnalyzer:
                     st.warning(f"Error preparing enhanced chart data: {str(e)}")
                     return {}
 
-            def _summarize_indicators(
-                self,
-                indicators_3m: Dict[str, pd.Series],
-                indicators_1w: Dict[str, pd.Series],
-                current_price: float,
-            ) -> Dict[str, Any]:
-                summary: Dict[str, Any] = {"current_price": float(current_price)}
-                try:
-                    rsi_3m_last = indicators_3m["RSI"].iloc[-1] if indicators_3m and "RSI" in indicators_3m and not indicators_3m["RSI"].empty else np.nan
-                    rsi_1w_last = indicators_1w["RSI"].iloc[-1] if indicators_1w and "RSI" in indicators_1w and not indicators_1w["RSI"].empty else np.nan
-                    summary["RSI"] = {
-                        "3m_current": float(rsi_3m_last) if not np.isnan(rsi_3m_last) else None,
-                        "1w_current": float(rsi_1w_last) if not np.isnan(rsi_1w_last) else None,
-                    }
+    def _summarize_indicators(
+        self,
+        indicators_3m: Dict[str, pd.Series],
+        indicators_1w: Dict[str, pd.Series],
+        current_price: float,
+    ) -> Dict[str, Any]:
+        summary: Dict[str, Any] = {"current_price": float(current_price)}
+        try:
+            rsi_3m_last = indicators_3m["RSI"].iloc[-1] if indicators_3m and "RSI" in indicators_3m and not indicators_3m["RSI"].empty else np.nan
+            rsi_1w_last = indicators_1w["RSI"].iloc[-1] if indicators_1w and "RSI" in indicators_1w and not indicators_1w["RSI"].empty else np.nan
+            summary["RSI"] = {
+                "3m_current": float(rsi_3m_last) if not np.isnan(rsi_3m_last) else None,
+                "1w_current": float(rsi_1w_last) if not np.isnan(rsi_1w_last) else None,
+            }
 
-                    if indicators_3m and "MACD" in indicators_3m and "MACD_Signal" in indicators_3m:
-                        macd_3m = indicators_3m["MACD"].iloc[-1]
-                        signal_3m = indicators_3m["MACD_Signal"].iloc[-1]
-                        if not np.isnan(macd_3m) and not np.isnan(signal_3m):
-                            summary["MACD_3m"] = {"macd": float(macd_3m), "signal": float(signal_3m),
-                                                  "crossover": "bullish" if macd_3m > signal_3m else "bearish"}
+            if indicators_3m and "MACD" in indicators_3m and "MACD_Signal" in indicators_3m:
+                macd_3m = indicators_3m["MACD"].iloc[-1]
+                signal_3m = indicators_3m["MACD_Signal"].iloc[-1]
+                if not np.isnan(macd_3m) and not np.isnan(signal_3m):
+                    summary["MACD_3m"] = {"macd": float(macd_3m), "signal": float(signal_3m),
+                                          "crossover": "bullish" if macd_3m > signal_3m else "bearish"}
 
-                    if indicators_1w and "MACD" in indicators_1w and "MACD_Signal" in indicators_1w:
-                        macd_1w = indicators_1w["MACD"].iloc[-1]
-                        signal_1w = indicators_1w["MACD_Signal"].iloc[-1]
-                        if not np.isnan(macd_1w) and not np.isnan(signal_1w):
-                            summary["MACD_1w"] = {"macd": float(macd_1w), "signal": float(signal_1w),
-                                                  "crossover": "bullish" if macd_1w > signal_1w else "bearish"}
+            if indicators_1w and "MACD" in indicators_1w and "MACD_Signal" in indicators_1w:
+                macd_1w = indicators_1w["MACD"].iloc[-1]
+                signal_1w = indicators_1w["MACD_Signal"].iloc[-1]
+                if not np.isnan(macd_1w) and not np.isnan(signal_1w):
+                    summary["MACD_1w"] = {"macd": float(macd_1w), "signal": float(signal_1w),
+                                          "crossover": "bullish" if macd_1w > signal_1w else "bearish"}
 
-                    for timeframe, inds in [("3m", indicators_3m), ("1w", indicators_1w)]:
-                        if inds and all(k in inds for k in ["BB_Upper", "BB_Lower", "BB_Middle"]):
-                            upper = inds["BB_Upper"].iloc[-1]; lower = inds["BB_Lower"].iloc[-1]; middle = inds["BB_Middle"].iloc[-1]
-                            if not any(np.isnan([upper, lower, middle])):
-                                cp = summary["current_price"]
-                                summary[f"BB_{timeframe}"] = {
-                                    "upper": float(upper), "lower": float(lower), "middle": float(middle),
-                                    "position": "above_upper" if cp > upper else ("below_lower" if cp < lower else "within_bands"),
-                                }
+            for timeframe, inds in [("3m", indicators_3m), ("1w", indicators_1w)]:
+                if inds and all(k in inds for k in ["BB_Upper", "BB_Lower", "BB_Middle"]):
+                    upper = inds["BB_Upper"].iloc[-1]; lower = inds["BB_Lower"].iloc[-1]; middle = inds["BB_Middle"].iloc[-1]
+                    if not any(np.isnan([upper, lower, middle])):
+                        cp = summary["current_price"]
+                        summary[f"BB_{timeframe}"] = {
+                            "upper": float(upper), "lower": float(lower), "middle": float(middle),
+                            "position": "above_upper" if cp > upper else ("below_lower" if cp < lower else "within_bands"),
+                        }
 
-                    for timeframe, inds in [("3m", indicators_3m), ("1w", indicators_1w)]:
-                        if inds and "EMA_20" in inds:
-                            ema_20 = inds["EMA_20"].iloc[-1]
-                            if not np.isnan(ema_20):
-                                cp = summary["current_price"]
-                                summary[f"EMA_20_{timeframe}"] = {"value": float(ema_20),
-                                                                  "trend": "bullish" if cp > ema_20 else "bearish"}
+            for timeframe, inds in [("3m", indicators_3m), ("1w", indicators_1w)]:
+                if inds and "EMA_20" in inds:
+                    ema_20 = inds["EMA_20"].iloc[-1]
+                    if not np.isnan(ema_20):
+                        cp = summary["current_price"]
+                        summary[f"EMA_20_{timeframe}"] = {"value": float(ema_20),
+                                                          "trend": "bullish" if cp > ema_20 else "bearish"}
 
-                except Exception as e:
-                    st.warning(f"Error summarizing indicators: {str(e)}")
+        except Exception as e:
+            st.warning(f"Error summarizing indicators: {str(e)}")
 
-                return summary
+        return summary
 
             # ---------- prompt + model call ----------
 

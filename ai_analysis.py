@@ -1,72 +1,72 @@
-        # ai_analysis.py
-        import os
-        import json
-        import pandas as pd
-        import numpy as np
-        from datetime import datetime, timedelta
-        import pytz
-        import streamlit as st
-        from typing import Dict, Any, Optional, List, Tuple
-        from openai import OpenAI
-        import re
+# ai_analysis.py
+import os
+import json
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+import pytz
+import streamlit as st
+from typing import Dict, Any, Optional, List, Tuple
+from openai import OpenAI
+import re
 
 
-        class AIAnalyzer:
-            """
-            AIAnalyzer — strict, data-only technical analysis + narrative + point forecast.
+class AIAnalyzer:
+    """
+    AIAnalyzer — strict, data-only technical analysis + narrative + point forecast.
 
-            Outputs your app expects:
-              - 'technical_summary' (markdown, from [TECHNICAL_ANALYSIS_*] block)
-              - 'price_prediction' (markdown, from [PRICE_PREDICTION_*] block)
-              - 'probabilities' (numbers for your gauges)
-              - 'model_json' (parsed JSON block)
-              - 'status' ('ok' | 'insufficient_data' | 'error')
-            """
+    Outputs your app expects:
+      - 'technical_summary' (markdown, from [TECHNICAL_ANALYSIS_*] block)
+      - 'price_prediction' (markdown, from [PRICE_PREDICTION_*] block)
+      - 'probabilities' (numbers for your gauges)
+      - 'model_json' (parsed JSON block)
+      - 'status' ('ok' | 'insufficient_data' | 'error')
+    """
 
-            def __init__(self, debug: Optional[bool] = None):
-                if debug is None:
-                    self.debug = os.getenv("AI_ANALYZER_DEBUG", "0") == "1"
-                else:
-                    self.debug = bool(debug)
+    def __init__(self, debug: Optional[bool] = None):
+        if debug is None:
+            self.debug = os.getenv("AI_ANALYZER_DEBUG", "0") == "1"
+        else:
+            self.debug = bool(debug)
 
-                self.openai_key = os.getenv("OPENAI_API_KEY", "")
-                self.model_name = os.getenv("GPT5_MODEL", "gpt-5")
+        self.openai_key = os.getenv("OPENAI_API_KEY", "")
+        self.model_name = os.getenv("GPT5_MODEL", "gpt-5")
 
-                if not self.openai_key:
-                    st.error("OpenAI API key not found. Please set OPENAI_API_KEY environment variable.")
-                    self.gpt5_client = None
-                else:
-                    self.gpt5_client = OpenAI(api_key=self.openai_key)
+        if not self.openai_key:
+            st.error("OpenAI API key not found. Please set OPENAI_API_KEY environment variable.")
+            self.gpt5_client = None
+        else:
+            self.gpt5_client = OpenAI(api_key=self.openai_key)
 
-                self._last_current_price: Optional[float] = None
+        self._last_current_price: Optional[float] = None
 
-            # ---------- public API ----------
+    # ---------- public API ----------
 
-            def generate_comprehensive_analysis(
-                self,
-                data_3m: pd.DataFrame,
-                data_1w: pd.DataFrame,
-                indicators_3m: Dict[str, pd.Series],
-                indicators_1w: Dict[str, pd.Series],
-                current_price: float,
-                target_datetime: Optional[datetime] = None,
-                asset_name: str = "BTCUSD",
-            ) -> Dict[str, Any]:
-                if not self.gpt5_client:
-                    return {"status": "error", "error": "GPT-5 client not initialized"}
+    def generate_comprehensive_analysis(
+        self,
+        data_3m: pd.DataFrame,
+        data_1w: pd.DataFrame,
+        indicators_3m: Dict[str, pd.Series],
+        indicators_1w: Dict[str, pd.Series],
+        current_price: float,
+        target_datetime: Optional[datetime] = None,
+        asset_name: str = "BTCUSD",
+    ) -> Dict[str, Any]:
+        if not self.gpt5_client:
+            return {"status": "error", "error": "GPT-5 client not initialized"}
 
-                self._last_current_price = float(current_price)
+        self._last_current_price = float(current_price)
 
-                try:
-                    analysis_data = self._prepare_analysis_data(
-                        data_3m=data_3m,
-                        data_1w=data_1w,
-                        indicators_3m=indicators_3m,
-                        indicators_1w=indicators_1w,
-                        current_price=current_price,
-                        target_datetime=target_datetime,
-                        asset_name=asset_name,
-                    )
+        try:
+            analysis_data = self._prepare_analysis_data(
+                data_3m=data_3m,
+                data_1w=data_1w,
+                indicators_3m=indicators_3m,
+                indicators_1w=indicators_1w,
+                current_price=current_price,
+                target_datetime=target_datetime,
+                asset_name=asset_name,
+            )
 
                     target_ts_fallback = analysis_data.get("target_time", "")
 
@@ -711,319 +711,355 @@ asset=asset_name,
 target_formatted=analysis_data.get('target_time'),
 target_ts=analysis_data.get('target_time')
 )}
-""".strip()
-return ({"role": "system", "content": system_content},
-{"role": "user", "content": user_content})
-def _generate_technical_analysis_gpt5(self, analysis_data: Dict[str, Any]) -> str:
-"""
-Call the model WITHOUT temperature/top_p/reasoning/text params.
-Ask for JSON + narrative blocks. Return raw text.
-"""
-if not self.gpt5_client:
-return '{"status":"insufficient_data","notes":["no_client"]}'
-asset_name = analysis_data.get("asset_name", "Asset")
-system_msg, user_msg = self._build_messages(analysis_data, asset_name)
-DEBUG: Print the full prompt being sent to OpenAI
-print("\n" + "="*80)
-print("🤖 FULL PROMPT BEING SENT TO OPENAI/CHATGPT")
-print("="*80)
-print("\n📋 SYSTEM MESSAGE:")
-print("-" * 40)
-print(system_msg["content"])
-print("\n📊 USER MESSAGE (WITH ALL DATA POINTS):")
-print("-" * 40)
-print(user_msg["content"])
-print("\n" + "="*80)
-print("END OF PROMPT")
-print("="*80 + "\n")
-Responses API
-try:
-resp = self.gpt5_client.responses.create(
-model=self.model_name,
-input=[{"role": "system", "content": system_msg["content"]}, {"role": "user", "content": user_msg["content"]}],
-)
-return resp.output_text  # raw text with both blocks
-except Exception as e:
-self._dbg("warning", f"Responses API failed, will try Chat Completions. Error: {e}")
-Fallback: Chat Completions (text)
-try:
-chat = self.gpt5_client.chat.completions.create(
-model=self.model_name,
-messages=[{"role": "system", "content": system_msg["content"]}, {"role": "user", "content": user_msg["content"]}],
-)
-return chat.choices[0].message.content or ""
-except Exception as e:
-return json.dumps({"status": "insufficient_data", "notes": [f"model_error:{str(e)}"]})
----------- parsing + probabilities + text composition ----------
-def _split_dual_output(self, raw: str) -> Tuple[str, str]:
-"""Extract a JSON fenced block (json ... ) and the rest (narrative)."""
-if not raw:
-return "", ""
-Prefer fenced ```json blocks
-m = re.search(r"```json
-if m:
-json_block = m.group(1).strip()
-narrative = raw[:m.start()] + raw[m.end():]
-return json_block, narrative.strip()
-Fallback: first JSON object in text (greedy braces balance heuristic)
-first_brace = raw.find("{")
-last_brace = raw.rfind("}")
-if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
-candidate = raw[first_brace:last_brace+1]
-Quick sanity: try to loads
-try:
-json.loads(candidate)
-narrative = raw[:first_brace] + raw[last_brace+1:]
-return candidate.strip(), narrative.strip()
-except Exception:
-pass
-Nothing extractable; return raw as narrative
-return "", raw.strip()
-def _parse_json_response(self, response_text: str, current_price: float) -> Dict[str, Any]:
-if not response_text:
-return {"status": "insufficient_data", "notes": ["no_json_block_found"]}
-try:
-data = json.loads(response_text)
-if not isinstance(data, dict):
-return {"status": "insufficient_data", "notes": ["non_dict_json"]}
-data["status"] = data.get("status") if data.get("status") in ("ok","insufficient_data") else "insufficient_data"
-Normalize probabilities
-p_up_val = self._safe_num(data.get("p_up"), 0.5)
-p_down_val = self._safe_num(data.get("p_down"), 0.5)
-p_up = float(p_up_val) if p_up_val is not None else 0.5
-p_down = float(p_down_val) if p_down_val is not None else 0.5
-p_up = max(0.0, min(1.0, p_up))
-p_down = max(0.0, min(1.0, p_down))
-total = p_up + p_down
-if total == 0:
-p_up, p_down = 0.5, 0.5
-else:
-p_up, p_down = p_up/total, p_down/total
-data["p_up"], data["p_down"] = p_up, p_down
-Compute expected % move if we have predicted_price
-cp = float(current_price) if current_price is not None else None
-pred = self._safe_num(data.get("predicted_price"), None)
-if pred is not None and cp and cp > 0:
-data["expected_pct_move"] = (float(pred) - cp) / cp * 100.0
-for key in ("conf_overall", "conf_price"):
-if key in data and data[key] is not None:
-safe_val = self._safe_num(data[key], 0.5)
-data[key] = max(0.0, min(1.0, float(safe_val) if safe_val is not None else 0.5))
-return data
-except Exception as e:
-return {"status": "insufficient_data", "notes": [f"json_parse_error:{e}"]}
-def _parse_comprehensive_response(self, response: str) -> Dict[str, str]:
-"""Parse narrative into sections using your original markers."""
-try:
-sections: Dict[str, str] = {}
-tech_start = response.find("[TECHNICAL_ANALYSIS_START]")
-tech_end = response.find("[TECHNICAL_ANALYSIS_END]")
-if tech_start != -1 and tech_end != -1:
-sections["technical_summary"] = response[tech_start + len("[TECHNICAL_ANALYSIS_START]") : tech_end].strip()
-pred_start = response.find("[PRICE_PREDICTION_START]")
-pred_end = response.find("[PRICE_PREDICTION_END]")
-if pred_start != -1 and pred_end != -1:
-sections["price_prediction"] = response[pred_start + len("[PRICE_PREDICTION_START]") : pred_end].strip()
-if not sections:
-fallback parsing (very lenient)
-lines = response.split("\n")
-current_section = None
-current_content = []
-for line in lines:
-line_lower = line.lower().strip()
-if "technical analysis" in line_lower:
-if current_section and current_content:
-sections[current_section] = "\n".join(current_content).strip()
-current_section = "technical_summary"
-current_content = []
-elif "price prediction" in line_lower:
-if current_section and current_content:
-sections[current_section] = "\n".join(current_content).strip()
-current_section = "price_prediction"
-current_content = []
-elif current_section:
-current_content.append(line)
-if current_section and current_content:
-sections[current_section] = "\n".join(current_content).strip()
-return sections or {"technical_summary": response, "price_prediction": ""}
-except Exception:
-return {"technical_summary": response, "price_prediction": "Unable to parse prediction section"}
-def _extract_probabilities_from_json(self, data: Dict[str, Any], current_price: float) -> Dict[str, Any]:
-if not isinstance(data, dict) or data.get("status") != "ok":
-return self._default_probs()
-p_up_val = self._safe_num(data.get("p_up"), 0.5)
-p_down_val = self._safe_num(data.get("p_down"), 0.5)
-conf_overall_val = self._safe_num(data.get("conf_overall"), 0.5)
-conf_price_val = self._safe_num(data.get("conf_price"), 0.5)
-p_up = float(p_up_val) if p_up_val is not None else 0.5
-p_down = float(p_down_val) if p_down_val is not None else 0.5
-conf_overall = float(conf_overall_val) if conf_overall_val is not None else 0.5
-conf_price = float(conf_price_val) if conf_price_val is not None else 0.5
-pred = self._safe_num(data.get("predicted_price"), None)
-move_pct = 0.0
-cp = float(current_price) if current_price else None
-if pred is not None and cp and cp > 0:
-move_pct = (float(pred) - cp) / cp * 100.0
-return {
-"higher_fraction": p_up,
-"lower_fraction": p_down,
-"confidence_fraction": conf_overall,
-"higher_pct": p_up * 100.0,
-"lower_pct": p_down * 100.0,
-"confidence_pct": conf_overall * 100.0,
-"predicted_price": float(pred) if pred is not None else None,
-"price_confidence_pct": conf_price * 100.0,
-"move_percentage": float(move_pct),
-}
-def _default_probs(self) -> Dict[str, Any]:
-return {
-"higher_fraction": 0.5, "lower_fraction": 0.5, "confidence_fraction": 0.5,
-"higher_pct": 50.0, "lower_pct": 50.0, "confidence_pct": 50.0,
-"predicted_price": None, "price_confidence_pct": 50.0, "move_percentage": 0.0
-}
-def _safe_format_datetime(self, dt) -> str:
-"""Safely format a datetime value, handling NaT and other edge cases."""
-try:
-if pd.isna(dt):
-return "N/A"
-ts = pd.Timestamp(dt)
-if pd.isna(ts) or str(ts) == 'NaT':
-return "N/A"
-return ts.strftime("%Y-%m-%d %H:%M")
-except Exception:
-return "N/A"
-def _safe_format_daterange(self, start_dt, end_dt) -> str:
-"""Safely format a date range, handling NaT and other edge cases."""
-try:
-if pd.isna(start_dt) or pd.isna(end_dt):
-return "N/A"
-start_ts = pd.Timestamp(start_dt)
-end_ts = pd.Timestamp(end_dt)
-if pd.isna(start_ts) or pd.isna(end_ts) or str(start_ts) == 'NaT' or str(end_ts) == 'NaT':
-return "N/A"
-return f"{start_ts.strftime('%B %d')} to {end_ts.strftime('%B %d, %Y')}"
-except Exception:
-return "N/A"
-def _safe_num(self, x: Any, default: Optional[float] = None) -> Optional[float]:
-try:
-if x is None:
-return default
-return float(x)
-except Exception:
-return default
----------- text composition + legacy regex fallback ----------
-def _compose_text_from_model_json(self, data: Dict[str, Any], current_price: float) -> Tuple[str, str]:
-if not isinstance(data, dict):
-return ("Analysis not available", "Prediction not available")
-status = data.get("status", "insufficient_data")
-as_of = data.get("as_of", "")
-target_ts = data.get("target_ts", "")
-pred = data.get("predicted_price", None)
-p_up = data.get("p_up", 0.5); p_down = data.get("p_down", 0.5)
-expected = data.get("expected_pct_move", None)
-crit = data.get("critical_levels", {}) or {}
-bull = crit.get("bullish_above", None)
-bear = crit.get("bearish_below", None)
-if status != "ok":
-notes = data.get("notes", [])
-msg = "; ".join([str(n) for n in notes]) if notes else "insufficient data"
-return (
-f"Status: insufficient data\n\nNotes: {msg}",
-f"Target: {target_ts}\n\n_No price prediction due to insufficient data._"
-)
-bullets: List[str] = []
-if bull is not None:
-bullets.append(f"- Bullish above: ${bull:,.0f}")
-if bear is not None:
-bullets.append(f"- Bearish below: ${bear:,.0f}")
-if expected is not None:
-bullets.append(f"- Expected move: {expected:+.2f}% vs current (${current_price:,.0f})")
-ev = data.get("evidence", []) or []
-for e in ev[:6]:
-t = e.get("type","fact"); tf = e.get("timeframe",""); ts = e.get("ts",""); note = e.get("note","")
-bullets.append(f"- {t.upper()} {tf} @ {ts}: {note}")
-tech_md = f"As of: {as_of}\n\n" + ("\n".join(bullets) if bullets else "No additional evidence provided.")
-price_line = f"Predicted price at {target_ts}: " + (f"${pred:,.0f}" if pred is not None else "unavailable")
-pred_md = f"{price_line}\n\n- P(higher): {p_up100:.0f}%   - P(lower): {p_down100:.0f}%   - AI confidence: {data.get('conf_overall',0.5)*100:.0f}%"
-return tech_md, pred_md
-def compose_text_when_insufficient(self, reason: str, target_ts: str) -> Tuple[str, str]:
-tech = f"Status: insufficient data\n\nNotes: {reason or 'missing inputs'}"
-pred = f"Target: {target_ts}\n\n_No price prediction due to insufficient data."
-return tech, pred
-def _extract_probabilities(self, prediction_text: str) -> Dict[str, Any]:
-"""Legacy regex extraction from narrative price section."""
-probs = {"higher_fraction": 0.5, "lower_fraction": 0.5, "confidence_fraction": 0.5,
-"higher_pct": 50.0, "lower_pct": 50.0, "confidence_pct": 50.0, "predicted_price": None,
-"price_confidence_pct": 50.0, "move_percentage": 0.0}
-try:
-patterns = {
-"higher": [
-r"(\d+)%?\s*(?:probability|chance|likelihood).?(?:higher|up|increase)",
-r"(?:higher|up|increase).?(\d+)%",
-r"HIGHER.?(\d+)%",
-r"(\d+)%.?higher",
-],
-"lower": [
-r"(\d+)%?\s*(?:probability|chance|likelihood).?(?:lower|down|decrease)",
-r"(?:lower|down|decrease).?(\d+)%",
-r"LOWER.?(\d+)%",
-r"(\d+)%.?lower",
-],
-"confidence": [
-r"overall.?confidence.?(\d+)%",
-r"analysis.?confidence.?(\d+)%",
-r"confidence.?(\d+)%",
-r"(\d+)%.?confidence",
-r"confident.?(\d+)%",
-],
-"price_confidence": [
-r"price.?confidence.?(\d+)%",
-r"price.?prediction.?confidence.?(\d+)%",
-r"target.?confidence.?(\d+)%",
-],
-"move_percentage": [
-r"([+-]?\d+.?\d*)%.?move",
-r"move.?([+-]?\d+.?\d*)%",
-r"expected.?([+-]?\d+.?\d)%",
-r"change.?([+-]?\d+.?\d)%",
-],
-"predicted_price": [
-r"predict.?$([\d,]+)(?:.\d+)?",
-r"predicted price.?$([\d,]+)(?:.\d+)?",
-r"will be.?$([\d,]+)(?:.\d+)?",
-r"target.?$([\d,]+)(?:.\d+)?",
-r"bitcoin.*?$([\d,]+)(?:.\d+)?",
-],
-}
-text_lower = prediction_text.lower()
-for key in ["higher", "lower", "confidence", "price_confidence", "move_percentage", "predicted_price"]:
-for pat in patterns[key]:
-m = re.findall(pat, text_lower, flags=re.IGNORECASE)
-if m:
-if key == "predicted_price":
-price_str = m[0].replace(',', '')
-probs["predicted_price"] = float(price_str)
-else:
-val = float(m[0])
-if key == "higher":
-probs["higher_pct"] = val
-elif key == "lower":
-probs["lower_pct"] = val
-elif key == "confidence":
-probs["confidence_pct"] = val
-elif key == "price_confidence":
-probs["price_confidence_pct"] = val
-elif key == "move_percentage":
-probs["move_percentage"] = val
-break
-total = probs["higher_pct"] + probs["lower_pct"]
-if total > 0:
-probs["higher_pct"] = probs["higher_pct"] * 100.0 / total
-probs["lower_pct"] = probs["lower_pct"] * 100.0 / total
-Fractions 0..1
-probs["higher_fraction"] = probs["higher_pct"] / 100.0
-probs["lower_fraction"] = probs["lower_pct"] / 100.0
-probs["confidence_fraction"] = probs["confidence_pct"] / 100.0
-except Exception as e:
-self._dbg("warning", f"Error extracting probabilities: {str(e)}")
-return probs
+        """.strip()
+        return ({"role": "system", "content": system_content},
+                {"role": "user", "content": user_content})
+
+    def _generate_technical_analysis_gpt5(self, analysis_data: Dict[str, Any]) -> str:
+        """
+        Call the model WITHOUT temperature/top_p/reasoning/text params.
+        Ask for JSON + narrative blocks. Return raw text.
+        """
+        if not self.gpt5_client:
+            return '{"status":"insufficient_data","notes":["no_client"]}'
+        asset_name = analysis_data.get("asset_name", "Asset")
+        system_msg, user_msg = self._build_messages(analysis_data, asset_name)
+        
+        # DEBUG: Print the full prompt being sent to OpenAI
+        print("\n" + "="*80)
+        print("🤖 FULL PROMPT BEING SENT TO OPENAI/CHATGPT")
+        print("="*80)
+        print("\n📋 SYSTEM MESSAGE:")
+        print("-" * 40)
+        print(system_msg["content"])
+        print("\n📊 USER MESSAGE (WITH ALL DATA POINTS):")
+        print("-" * 40)
+        print(user_msg["content"])
+        print("\n" + "="*80)
+        print("END OF PROMPT")
+        print("="*80 + "\n")
+        
+        # Responses API
+        try:
+            resp = self.gpt5_client.responses.create(
+                model=self.model_name,
+                input=[{"role": "system", "content": system_msg["content"]}, {"role": "user", "content": user_msg["content"]}],
+            )
+            return resp.output_text  # raw text with both blocks
+        except Exception as e:
+            self._dbg("warning", f"Responses API failed, will try Chat Completions. Error: {e}")
+        
+        # Fallback: Chat Completions (text)
+        try:
+            chat = self.gpt5_client.chat.completions.create(
+                model=self.model_name,
+                messages=[{"role": "system", "content": system_msg["content"]}, {"role": "user", "content": user_msg["content"]}],
+            )
+            return chat.choices[0].message.content or ""
+        except Exception as e:
+            return json.dumps({"status": "insufficient_data", "notes": [f"model_error:{str(e)}"]})
+
+    # ---------- parsing + probabilities + text composition ----------
+
+    def _split_dual_output(self, raw: str) -> Tuple[str, str]:
+        """Extract a JSON fenced block (json ... ) and the rest (narrative)."""
+        if not raw:
+            return "", ""
+        
+        # Prefer fenced ```json blocks
+        m = re.search(r"```json\s*(.*?)\s*```", raw, re.DOTALL)
+        if m:
+            json_block = m.group(1).strip()
+            narrative = raw[:m.start()] + raw[m.end():]
+            return json_block, narrative.strip()
+        
+        # Fallback: first JSON object in text (greedy braces balance heuristic)
+        first_brace = raw.find("{")
+        last_brace = raw.rfind("}")
+        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+            candidate = raw[first_brace:last_brace+1]
+            # Quick sanity: try to loads
+            try:
+                json.loads(candidate)
+                narrative = raw[:first_brace] + raw[last_brace+1:]
+                return candidate.strip(), narrative.strip()
+            except Exception:
+                pass
+        
+        # Nothing extractable; return raw as narrative
+        return "", raw.strip()
+
+    def _parse_json_response(self, response_text: str, current_price: float) -> Dict[str, Any]:
+        if not response_text:
+            return {"status": "insufficient_data", "notes": ["no_json_block_found"]}
+        try:
+            data = json.loads(response_text)
+            if not isinstance(data, dict):
+                return {"status": "insufficient_data", "notes": ["non_dict_json"]}
+            data["status"] = data.get("status") if data.get("status") in ("ok","insufficient_data") else "insufficient_data"
+            
+            # Normalize probabilities
+            p_up_val = self._safe_num(data.get("p_up"), 0.5)
+            p_down_val = self._safe_num(data.get("p_down"), 0.5)
+            p_up = float(p_up_val) if p_up_val is not None else 0.5
+            p_down = float(p_down_val) if p_down_val is not None else 0.5
+            p_up = max(0.0, min(1.0, p_up))
+            p_down = max(0.0, min(1.0, p_down))
+            total = p_up + p_down
+            if total == 0:
+                p_up, p_down = 0.5, 0.5
+            else:
+                p_up, p_down = p_up/total, p_down/total
+            data["p_up"], data["p_down"] = p_up, p_down
+            
+            # Compute expected % move if we have predicted_price
+            cp = float(current_price) if current_price is not None else None
+            pred = self._safe_num(data.get("predicted_price"), None)
+            if pred is not None and cp and cp > 0:
+                data["expected_pct_move"] = (float(pred) - cp) / cp * 100.0
+            
+            for key in ("conf_overall", "conf_price"):
+                if key in data and data[key] is not None:
+                    safe_val = self._safe_num(data[key], 0.5)
+                    data[key] = max(0.0, min(1.0, float(safe_val) if safe_val is not None else 0.5))
+            return data
+        except Exception as e:
+            return {"status": "insufficient_data", "notes": [f"json_parse_error:{e}"]}
+
+    def _parse_comprehensive_response(self, response: str) -> Dict[str, str]:
+        """Parse narrative into sections using your original markers."""
+        try:
+            sections: Dict[str, str] = {}
+            tech_start = response.find("[TECHNICAL_ANALYSIS_START]")
+            tech_end = response.find("[TECHNICAL_ANALYSIS_END]")
+            if tech_start != -1 and tech_end != -1:
+                sections["technical_summary"] = response[tech_start + len("[TECHNICAL_ANALYSIS_START]") : tech_end].strip()
+            
+            pred_start = response.find("[PRICE_PREDICTION_START]")
+            pred_end = response.find("[PRICE_PREDICTION_END]")
+            if pred_start != -1 and pred_end != -1:
+                sections["price_prediction"] = response[pred_start + len("[PRICE_PREDICTION_START]") : pred_end].strip()
+            
+            if not sections:
+                # fallback parsing (very lenient)
+                lines = response.split("\n")
+                current_section = None
+                current_content = []
+                for line in lines:
+                    line_lower = line.lower().strip()
+                    if "technical analysis" in line_lower:
+                        if current_section and current_content:
+                            sections[current_section] = "\n".join(current_content).strip()
+                        current_section = "technical_summary"
+                        current_content = []
+                    elif "price prediction" in line_lower:
+                        if current_section and current_content:
+                            sections[current_section] = "\n".join(current_content).strip()
+                        current_section = "price_prediction"
+                        current_content = []
+                    elif current_section:
+                        current_content.append(line)
+                if current_section and current_content:
+                    sections[current_section] = "\n".join(current_content).strip()
+            
+            return sections or {"technical_summary": response, "price_prediction": ""}
+        except Exception:
+            return {"technical_summary": response, "price_prediction": "Unable to parse prediction section"}
+
+    def _extract_probabilities_from_json(self, data: Dict[str, Any], current_price: float) -> Dict[str, Any]:
+        if not isinstance(data, dict) or data.get("status") != "ok":
+            return self._default_probs()
+        
+        p_up_val = self._safe_num(data.get("p_up"), 0.5)
+        p_down_val = self._safe_num(data.get("p_down"), 0.5)
+        conf_overall_val = self._safe_num(data.get("conf_overall"), 0.5)
+        conf_price_val = self._safe_num(data.get("conf_price"), 0.5)
+        
+        p_up = float(p_up_val) if p_up_val is not None else 0.5
+        p_down = float(p_down_val) if p_down_val is not None else 0.5
+        conf_overall = float(conf_overall_val) if conf_overall_val is not None else 0.5
+        conf_price = float(conf_price_val) if conf_price_val is not None else 0.5
+        
+        pred = self._safe_num(data.get("predicted_price"), None)
+        move_pct = 0.0
+        cp = float(current_price) if current_price else None
+        if pred is not None and cp and cp > 0:
+            move_pct = (float(pred) - cp) / cp * 100.0
+        
+        return {
+            "higher_fraction": p_up,
+            "lower_fraction": p_down,
+            "confidence_fraction": conf_overall,
+            "higher_pct": p_up * 100.0,
+            "lower_pct": p_down * 100.0,
+            "confidence_pct": conf_overall * 100.0,
+            "predicted_price": float(pred) if pred is not None else None,
+            "price_confidence_pct": conf_price * 100.0,
+            "move_percentage": float(move_pct),
+        }
+
+    def _default_probs(self) -> Dict[str, Any]:
+        return {
+            "higher_fraction": 0.5, "lower_fraction": 0.5, "confidence_fraction": 0.5,
+            "higher_pct": 50.0, "lower_pct": 50.0, "confidence_pct": 50.0,
+            "predicted_price": None, "price_confidence_pct": 50.0, "move_percentage": 0.0
+        }
+
+    def _safe_format_datetime(self, dt) -> str:
+        """Safely format a datetime value, handling NaT and other edge cases."""
+        try:
+            if pd.isna(dt):
+                return "N/A"
+            ts = pd.Timestamp(dt)
+            if pd.isna(ts) or str(ts) == 'NaT':
+                return "N/A"
+            return ts.strftime("%Y-%m-%d %H:%M")
+        except Exception:
+            return "N/A"
+
+    def _safe_format_daterange(self, start_dt, end_dt) -> str:
+        """Safely format a date range, handling NaT and other edge cases."""
+        try:
+            if pd.isna(start_dt) or pd.isna(end_dt):
+                return "N/A"
+            start_ts = pd.Timestamp(start_dt)
+            end_ts = pd.Timestamp(end_dt)
+            if pd.isna(start_ts) or pd.isna(end_ts) or str(start_ts) == 'NaT' or str(end_ts) == 'NaT':
+                return "N/A"
+            return f"{start_ts.strftime('%B %d')} to {end_ts.strftime('%B %d, %Y')}"
+        except Exception:
+            return "N/A"
+
+    def _safe_num(self, x: Any, default: Optional[float] = None) -> Optional[float]:
+        try:
+            if x is None:
+                return default
+            return float(x)
+        except Exception:
+            return default
+
+    # ---------- text composition + legacy regex fallback ----------
+
+    def _compose_text_from_model_json(self, data: Dict[str, Any], current_price: float) -> Tuple[str, str]:
+        if not isinstance(data, dict):
+            return ("Analysis not available", "Prediction not available")
+        
+        status = data.get("status", "insufficient_data")
+        as_of = data.get("as_of", "")
+        target_ts = data.get("target_ts", "")
+        pred = data.get("predicted_price", None)
+        p_up = data.get("p_up", 0.5); p_down = data.get("p_down", 0.5)
+        expected = data.get("expected_pct_move", None)
+        crit = data.get("critical_levels", {}) or {}
+        bull = crit.get("bullish_above", None)
+        bear = crit.get("bearish_below", None)
+        
+        if status != "ok":
+            notes = data.get("notes", [])
+            msg = "; ".join([str(n) for n in notes]) if notes else "insufficient data"
+            return (
+                f"Status: insufficient data\n\nNotes: {msg}",
+                f"Target: {target_ts}\n\n_No price prediction due to insufficient data._"
+            )
+        
+        bullets: List[str] = []
+        if bull is not None:
+            bullets.append(f"- Bullish above: ${bull:,.0f}")
+        if bear is not None:
+            bullets.append(f"- Bearish below: ${bear:,.0f}")
+        if expected is not None:
+            bullets.append(f"- Expected move: {expected:+.2f}% vs current (${current_price:,.0f})")
+        
+        ev = data.get("evidence", []) or []
+        for e in ev[:6]:
+            t = e.get("type","fact"); tf = e.get("timeframe",""); ts = e.get("ts",""); note = e.get("note","")
+            bullets.append(f"- {t.upper()} {tf} @ {ts}: {note}")
+        
+        tech_md = f"As of: {as_of}\n\n" + ("\n".join(bullets) if bullets else "No additional evidence provided.")
+        price_line = f"Predicted price at {target_ts}: " + (f"${pred:,.0f}" if pred is not None else "unavailable")
+        pred_md = f"{price_line}\n\n- P(higher): {p_up*100:.0f}%   - P(lower): {p_down*100:.0f}%   - AI confidence: {data.get('conf_overall',0.5)*100:.0f}%"
+        return tech_md, pred_md
+
+    def _compose_text_when_insufficient(self, reason: str, target_ts: str) -> Tuple[str, str]:
+        tech = f"Status: insufficient data\n\nNotes: {reason or 'missing inputs'}"
+        pred = f"Target: {target_ts}\n\n_No price prediction due to insufficient data."
+        return tech, pred
+
+    def _extract_probabilities(self, prediction_text: str) -> Dict[str, Any]:
+        """Legacy regex extraction from narrative price section."""
+        probs = {"higher_fraction": 0.5, "lower_fraction": 0.5, "confidence_fraction": 0.5,
+                "higher_pct": 50.0, "lower_pct": 50.0, "confidence_pct": 50.0, "predicted_price": None,
+                "price_confidence_pct": 50.0, "move_percentage": 0.0}
+        try:
+            patterns = {
+                "higher": [
+                    r"(\d+)%?\s*(?:probability|chance|likelihood).?(?:higher|up|increase)",
+                    r"(?:higher|up|increase).?(\d+)%",
+                    r"HIGHER.?(\d+)%",
+                    r"(\d+)%.?higher",
+                ],
+                "lower": [
+                    r"(\d+)%?\s*(?:probability|chance|likelihood).?(?:lower|down|decrease)",
+                    r"(?:lower|down|decrease).?(\d+)%",
+                    r"LOWER.?(\d+)%",
+                    r"(\d+)%.?lower",
+                ],
+                "confidence": [
+                    r"overall.?confidence.?(\d+)%",
+                    r"analysis.?confidence.?(\d+)%",
+                    r"confidence.?(\d+)%",
+                    r"(\d+)%.?confidence",
+                    r"confident.?(\d+)%",
+                ],
+                "price_confidence": [
+                    r"price.?confidence.?(\d+)%",
+                    r"price.?prediction.?confidence.?(\d+)%",
+                    r"target.?confidence.?(\d+)%",
+                ],
+                "move_percentage": [
+                    r"([+-]?\d+.?\d*)%.?move",
+                    r"move.?([+-]?\d+.?\d*)%",
+                    r"expected.?([+-]?\d+.?\d)%",
+                    r"change.?([+-]?\d+.?\d)%",
+                ],
+                "predicted_price": [
+                    r"predict.?$([\d,]+)(?:.\d+)?",
+                    r"predicted price.?$([\d,]+)(?:.\d+)?",
+                    r"will be.?$([\d,]+)(?:.\d+)?",
+                    r"target.?$([\d,]+)(?:.\d+)?",
+                    r"bitcoin.*?$([\d,]+)(?:.\d+)?",
+                ],
+            }
+            text_lower = prediction_text.lower()
+            for key in ["higher", "lower", "confidence", "price_confidence", "move_percentage", "predicted_price"]:
+                for pat in patterns[key]:
+                    m = re.findall(pat, text_lower, flags=re.IGNORECASE)
+                    if m:
+                        if key == "predicted_price":
+                            price_str = m[0].replace(',', '')
+                            probs["predicted_price"] = float(price_str)
+                        else:
+                            val = float(m[0])
+                            if key == "higher":
+                                probs["higher_pct"] = val
+                            elif key == "lower":
+                                probs["lower_pct"] = val
+                            elif key == "confidence":
+                                probs["confidence_pct"] = val
+                            elif key == "price_confidence":
+                                probs["price_confidence_pct"] = val
+                            elif key == "move_percentage":
+                                probs["move_percentage"] = val
+                        break
+            total = probs["higher_pct"] + probs["lower_pct"]
+            if total > 0:
+                probs["higher_pct"] = probs["higher_pct"] * 100.0 / total
+                probs["lower_pct"] = probs["lower_pct"] * 100.0 / total
+            
+            # Fractions 0..1
+            probs["higher_fraction"] = probs["higher_pct"] / 100.0
+            probs["lower_fraction"] = probs["lower_pct"] / 100.0
+            probs["confidence_fraction"] = probs["confidence_pct"] / 100.0
+        except Exception as e:
+            self._dbg("warning", f"Error extracting probabilities: {str(e)}")
+        return probs

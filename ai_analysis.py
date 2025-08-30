@@ -474,7 +474,7 @@ target_ts=analysis_data.get('target_time')
                 model=self.model_name,
                 messages=[sys_msg, user_msg],
                 temperature=0.1,
-                max_tokens=4000,
+                max_completion_tokens=4000,
             )
             return response.choices[0].message.content
 

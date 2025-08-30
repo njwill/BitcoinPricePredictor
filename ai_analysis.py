@@ -133,104 +133,104 @@ class AIAnalyzer:
             return {"status": "error", "error": str(e), "probabilities": self._default_probs(),
                     "technical_summary": tech, "price_prediction": pred}
 
-            # ---------- helpers: debug ----------
+    # ---------- helpers: debug ----------
 
-            def _dbg(self, level: str, msg: str):
-                if not self.debug:
-                    return
-                fn = getattr(st, level, None)
-                (fn or st.write)(msg)
+    def _dbg(self, level: str, msg: str):
+        if not self.debug:
+            return
+        fn = getattr(st, level, None)
+        (fn or st.write)(msg)
 
-            # ---------- helpers: dataframe hygiene ----------
+    # ---------- helpers: dataframe hygiene ----------
 
-            def _ensure_datetime_index(self, df: pd.DataFrame) -> pd.DataFrame:
-                if df is None or df.empty:
-                    return df
-                df = df.copy()
+    def _ensure_datetime_index(self, df: pd.DataFrame) -> pd.DataFrame:
+        if df is None or df.empty:
+            return df
+        df = df.copy()
 
-                # If data_fetcher reset index and left a 'Datetime' column
-                if df.index.dtype.kind in ['i', 'f']:
-                    df.reset_index(drop=True, inplace=True)
-                    date_cols = [c for c in df.columns if 'date' in c.lower() or 'time' in c.lower()]
-                    if date_cols:
-                        df.index = pd.to_datetime(df[date_cols[0]])
-                        df.drop(columns=[date_cols[0]], inplace=True)
-                    else:
-                        df.index = pd.date_range(start='2024-01-01', periods=len(df), freq='D')
+        # If data_fetcher reset index and left a 'Datetime' column
+        if df.index.dtype.kind in ['i', 'f']:
+            df.reset_index(drop=True, inplace=True)
+            date_cols = [c for c in df.columns if 'date' in c.lower() or 'time' in c.lower()]
+            if date_cols:
+                df.index = pd.to_datetime(df[date_cols[0]])
+                df.drop(columns=[date_cols[0]], inplace=True)
+            else:
+                df.index = pd.date_range(start='2024-01-01', periods=len(df), freq='D')
 
-                if not hasattr(df.index, "inferred_type") or "date" not in str(df.index.inferred_type):
-                    df.index = pd.to_datetime(df.index)
+        if not hasattr(df.index, "inferred_type") or "date" not in str(df.index.inferred_type):
+            df.index = pd.to_datetime(df.index)
 
-                if not df.index.is_monotonic_increasing:
-                    df = df.sort_index()
+        if not df.index.is_monotonic_increasing:
+            df = df.sort_index()
 
-                return df
+        return df
 
-            def _coerce_ohlcv_numeric(self, df: pd.DataFrame) -> pd.DataFrame:
-                if df is None or df.empty:
-                    return df
-                df = df.copy()
-                for col in ["Open", "High", "Low", "Close", "Volume"]:
-                    if col in df.columns:
-                        df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", ""), errors="coerce")
-                return df
+    def _coerce_ohlcv_numeric(self, df: pd.DataFrame) -> pd.DataFrame:
+        if df is None or df.empty:
+            return df
+        df = df.copy()
+        for col in ["Open", "High", "Low", "Close", "Volume"]:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col].astype(str).str.replace(",", ""), errors="coerce")
+        return df
 
-            def _limit_to_days(self, df: pd.DataFrame, days: int) -> pd.DataFrame:
-                if df is None or df.empty:
-                    return df
-                df = self._ensure_datetime_index(df)
-                try:
-                    max_val = df.index.max()
-                    if pd.isna(max_val):
-                        end = pd.Timestamp('now')
-                    else:
-                        end = pd.Timestamp(max_val)
-                except Exception:
-                    end = pd.Timestamp('now')
-                start = end - pd.Timedelta(days=days)
-                mask = df.index >= start
-                return df.loc[mask]
+    def _limit_to_days(self, df: pd.DataFrame, days: int) -> pd.DataFrame:
+        if df is None or df.empty:
+            return df
+        df = self._ensure_datetime_index(df)
+        try:
+            max_val = df.index.max()
+            if pd.isna(max_val):
+                end = pd.Timestamp('now')
+            else:
+                end = pd.Timestamp(max_val)
+        except Exception:
+            end = pd.Timestamp('now')
+        start = end - pd.Timedelta(days=days)
+        mask = df.index >= start
+        return df.loc[mask]
 
-            def _annualization_sqrt(self, index: pd.Index) -> float:
-                try:
-                    if len(index) < 2:
-                        return 1.0
-                    dt = (index[1] - index[0])
-                    seconds = dt.total_seconds() if hasattr(dt, "total_seconds") else float(dt)
-                    if seconds <= 0:
-                        return 1.0
-                    periods_per_year = (365 * 24 * 3600) / seconds
-                    return float(np.sqrt(periods_per_year))
-                except Exception:
-                    return 1.0
+    def _annualization_sqrt(self, index: pd.Index) -> float:
+        try:
+            if len(index) < 2:
+                return 1.0
+            dt = (index[1] - index[0])
+            seconds = dt.total_seconds() if hasattr(dt, "total_seconds") else float(dt)
+            if seconds <= 0:
+                return 1.0
+            periods_per_year = (365 * 24 * 3600) / seconds
+            return float(np.sqrt(periods_per_year))
+        except Exception:
+            return 1.0
 
-            def _infer_index_step(self, index: pd.Index) -> Optional[pd.Timedelta]:
-                if index is None or len(index) < 2:
-                    return None
-                diffs = pd.Series(index[1:]) - pd.Series(index[:-1])
-                diffs = diffs[diffs > pd.Timedelta(0)]
-                if diffs.empty:
-                    return None
-                return pd.to_timedelta(np.median(diffs.values))
+    def _infer_index_step(self, index: pd.Index) -> Optional[pd.Timedelta]:
+        if index is None or len(index) < 2:
+            return None
+        diffs = pd.Series(index[1:]) - pd.Series(index[:-1])
+        diffs = diffs[diffs > pd.Timedelta(0)]
+        if diffs.empty:
+            return None
+        return pd.to_timedelta(np.median(diffs.values))
 
-            def _determine_timezone(self, *indexes: Optional[pd.Index]):
-                for idx in indexes:
-                    if idx is not None and isinstance(idx, pd.DatetimeIndex) and idx.tz is not None:
-                        return idx.tz
-                return pytz.timezone("US/Eastern")
+    def _determine_timezone(self, *indexes: Optional[pd.Index]):
+        for idx in indexes:
+            if idx is not None and isinstance(idx, pd.DatetimeIndex) and idx.tz is not None:
+                return idx.tz
+        return pytz.timezone("US/Eastern")
 
-            # ---------- core prep ----------
+    # ---------- core prep ----------
 
-            def _prepare_analysis_data(
-                self,
-                data_3m: pd.DataFrame,
-                data_1w: pd.DataFrame,
-                indicators_3m: Dict[str, pd.Series],
-                indicators_1w: Dict[str, pd.Series],
-                current_price: float,
-                target_datetime: Optional[datetime],
-                asset_name: str,
-            ) -> Dict[str, Any]:
+    def _prepare_analysis_data(
+        self,
+        data_3m: pd.DataFrame,
+        data_1w: pd.DataFrame,
+        indicators_3m: Dict[str, pd.Series],
+        indicators_1w: Dict[str, pd.Series],
+        current_price: float,
+        target_datetime: Optional[datetime],
+        asset_name: str,
+    ) -> Dict[str, Any]:
                 try:
                     data_3m = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_3m))
                     data_1w = self._coerce_ohlcv_numeric(self._ensure_datetime_index(data_1w))

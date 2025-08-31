@@ -27,7 +27,7 @@ def get_technical_analyzer():
 
 @st.cache_resource
 def get_ai_analyzer():
-    from ai_analysis_enhanced import AIAnalyzer
+    from ai_analysis import AIAnalyzer
     return AIAnalyzer()
 
 @st.cache_resource

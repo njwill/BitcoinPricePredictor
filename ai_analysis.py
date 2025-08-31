@@ -868,61 +868,61 @@ class AIAnalyzer:
         tf3m = (analysis_data.get("enhanced_chart_data") or {}).get("3m", {}) or {}
         tf1w = (analysis_data.get("enhanced_chart_data") or {}).get("1w", {}) or {}
 
-    bars_3m = tf3m.get("bars", 0)
-    bars_1w = tf1w.get("bars", 0)
-    step_3m = tf3m.get("bar_step_seconds")
-    step_1w = tf1w.get("bar_step_seconds")
-    range_3m = tf3m.get("full_range", "N/A")
-    range_1w = tf1w.get("full_range", "N/A")
+        bars_3m = tf3m.get("bars", 0)
+        bars_1w = tf1w.get("bars", 0)
+        step_3m = tf3m.get("bar_step_seconds")
+        step_1w = tf1w.get("bar_step_seconds")
+        range_3m = tf3m.get("full_range", "N/A")
+        range_1w = tf1w.get("full_range", "N/A")
 
-    baseline = analysis_data.get("baseline", {}) or {}
-    baseline_pred = baseline.get("pred")
-    baseline_lower = baseline.get("lower")
-    baseline_upper = baseline.get("upper")
-    baseline_exp = baseline.get("exp_move_pct")
+        baseline = analysis_data.get("baseline", {}) or {}
+        baseline_pred = baseline.get("pred")
+        baseline_lower = baseline.get("lower")
+        baseline_upper = baseline.get("upper")
+        baseline_exp = baseline.get("exp_move_pct")
 
-    system_content = (
-        "You are a deterministic technical analyst. Use ONLY the structured arrays, deterministic FEATURES, "
-        "and baseline forecast provided. You must produce a thorough, quantitative narrative with tables "
-        "and at least 12 numbered evidence bullets. Explicitly compare 1w vs 3m for RSI, MACD, BB, and EMA. "
-        "Forbidden: news, macro, seasonality, or any external info. Every claim must be grounded in the data. "
-        "Do NOT leave placeholders; no angle brackets like <value> may appear in the final output. "
-        "Use exact numeric values with units where relevant. Keep the narrative between 200 and 800 words."
-    )
+        system_content = (
+            "You are a deterministic technical analyst. Use ONLY the structured arrays, deterministic FEATURES, "
+            "and baseline forecast provided. You must produce a thorough, quantitative narrative with tables "
+            "and at least 12 numbered evidence bullets. Explicitly compare 1w vs 3m for RSI, MACD, BB, and EMA. "
+            "Forbidden: news, macro, seasonality, or any external info. Every claim must be grounded in the data. "
+            "Do NOT leave placeholders; no angle brackets like <value> may appear in the final output. "
+            "Use exact numeric values with units where relevant. Keep the narrative between 200 and 800 words."
+        )
 
-    data_3m = analysis_data.get("data_3m", {})
-    data_1w = analysis_data.get("data_1w", {})
+        data_3m = analysis_data.get("data_3m", {})
+        data_1w = analysis_data.get("data_1w", {})
 
-    # JSON schema (unchanged apart from baseline fields already populated)
-    output_schema = {
-        "status": "ok or insufficient_data",
-        "asset": asset_name,
-        "as_of": analysis_data.get("current_time"),
-        "target_ts": analysis_data.get("target_time"),
-        "predicted_price": "number or null",
-        "baseline_pred": baseline_pred,
-        "baseline_band": {"lower": baseline_lower, "upper": baseline_upper, "exp_move_pct": baseline_exp},
-        "p_up": "float 0..1",
-        "p_down": "float 0..1 (p_up + p_down = 1)",
-        "conf_overall": "float 0..1",
-        "conf_price": "float 0..1",
-        "expected_pct_move": "signed float percent (optional; compute if omitted)",
-        "critical_levels": {"bullish_above": "number or null", "bearish_below": "number or null"},
-        "evidence": [
-            {
-                "type": "rsi|macd|bb|ema|price|volume|structure",
-                "timeframe": "3m|1w",
-                "ts": "YYYY-MM-DD HH:MM" or "recent",
-                "value": "number or object",
-                "note": "short factual note",
-            }
-        ],
-        "notes": ["if status=insufficient_data, list what's missing; else optional warnings"],
-    }
+        # JSON schema (unchanged apart from baseline fields already populated)
+        output_schema = {
+            "status": "ok or insufficient_data",
+            "asset": asset_name,
+            "as_of": analysis_data.get("current_time"),
+            "target_ts": analysis_data.get("target_time"),
+            "predicted_price": "number or null",
+            "baseline_pred": baseline_pred,
+            "baseline_band": {"lower": baseline_lower, "upper": baseline_upper, "exp_move_pct": baseline_exp},
+            "p_up": "float 0..1",
+            "p_down": "float 0..1 (p_up + p_down = 1)",
+            "conf_overall": "float 0..1",
+            "conf_price": "float 0..1",
+            "expected_pct_move": "signed float percent (optional; compute if omitted)",
+            "critical_levels": {"bullish_above": "number or null", "bearish_below": "number or null"},
+            "evidence": [
+                {
+                    "type": "rsi|macd|bb|ema|price|volume|structure",
+                    "timeframe": "3m|1w",
+                    "ts": "YYYY-MM-DD HH:MM" or "recent",
+                    "value": "number or object",
+                    "note": "short factual note",
+                }
+            ],
+            "notes": ["if status=insufficient_data, list what's missing; else optional warnings"],
+        }
 
-    # === Narrative template with hard requirements for content density ===
-    # We pre-fill the coverage table and baseline numbers so the output is not sparse even if the model is lazy.
-    narrative_template = f"""
+        # === Narrative template with hard requirements for content density ===
+        # We pre-fill the coverage table and baseline numbers so the output is not sparse even if the model is lazy.
+        narrative_template = f"""
 [TECHNICAL_ANALYSIS_START]
 ### Methodology & Coverage
 - **As-of:** {analysis_data.get('current_time')}  |  **Target:** {analysis_data.get('target_time')}  |  **Horizon:** ~{analysis_data.get('hours_until_target', 0):.2f}h
@@ -1013,16 +1013,16 @@ class AIAnalyzer:
 [PRICE_PREDICTION_END]
 """.strip()
 
-    # Strong output rules to stop the model from leaving placeholders
-    hard_rules = (
-        "OUTPUT RULES:\n"
-        "- Replace ALL '...' and ALL angle-bracket placeholders with real numbers/words from the data; no '<>' allowed.\n"
-        "- Every table cell must be filled; if unknown, compute from arrays/features or state 'N/A' explicitly.\n"
-        "- Provide at least 12 evidence bullets. Provide at least 3 bullets in 'Alignment & Conflicts' and 3 in 'Overview'.\n"
-        "- Use units: %, bps, bars, or USD as appropriate.\n"
-    )
+        # Strong output rules to stop the model from leaving placeholders
+        hard_rules = (
+            "OUTPUT RULES:\n"
+            "- Replace ALL '...' and ALL angle-bracket placeholders with real numbers/words from the data; no '<>' allowed.\n"
+            "- Every table cell must be filled; if unknown, compute from arrays/features or state 'N/A' explicitly.\n"
+            "- Provide at least 12 evidence bullets. Provide at least 3 bullets in 'Alignment & Conflicts' and 3 in 'Overview'.\n"
+            "- Use units: %, bps, bars, or USD as appropriate.\n"
+        )
 
-    user_content = f"""
+        user_content = f"""
 ASSET: {asset_name}
 
 DATA WINDOWS (strict):
@@ -1060,13 +1060,13 @@ STRICT RULES:
 
 {hard_rules}
 
-        YOU MUST RETURN **TWO** BLOCKS, IN THIS ORDER:
-        1) A VALID JSON object, in a fenced code block like:
-        ```json
-        {json.dumps(output_schema, indent=2)}
-        ```
-        2) A narrative block using EXACTLY the markers and structure above.
-        """.strip()
+            YOU MUST RETURN **TWO** BLOCKS, IN THIS ORDER:
+            1) A VALID JSON object, in a fenced code block like:
+            ```json
+            {json.dumps(output_schema, indent=2)}
+            ```
+            2) A narrative block using EXACTLY the markers and structure above.
+            """.strip()
 
         return ({"role": "system", "content": system_content}, {"role": "user", "content": user_content})
 

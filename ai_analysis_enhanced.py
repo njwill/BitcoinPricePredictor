@@ -866,16 +866,51 @@ class AIAnalyzer:
         pass
 
     def _parse_json_response(self, response_text, current_price):
-        # [Original implementation]
-        pass
+        """Parse JSON response from AI, return dict or None."""
+        try:
+            import json
+            # Try to find JSON in the response
+            json_start = response_text.find('{')
+            json_end = response_text.rfind('}') + 1
+            if json_start >= 0 and json_end > json_start:
+                json_text = response_text[json_start:json_end]
+                return json.loads(json_text)
+        except Exception:
+            pass
+        return {"status": "error", "message": "Could not parse JSON response"}
 
     def _parse_comprehensive_response(self, response):
         # [Original implementation]
         pass
 
     def _extract_probabilities_from_json(self, data, current_price):
-        # [Original implementation]
-        pass
+        """Extract probabilities from JSON data structure."""
+        if not isinstance(data, dict):
+            return self._default_probs()
+            
+        try:
+            # Extract from model_json if present
+            model_data = data.get("model_json", data)
+            
+            p_up = float(model_data.get("p_up", 0.5))
+            p_down = float(model_data.get("p_down", 0.5))
+            conf_overall = float(model_data.get("conf_overall", 0.5))
+            predicted_price = model_data.get("predicted_price")
+            move_pct = model_data.get("expected_pct_move", 0.0)
+            
+            return {
+                "higher_fraction": p_up,
+                "lower_fraction": p_down,
+                "confidence_fraction": conf_overall,
+                "higher_pct": p_up * 100.0,
+                "lower_pct": p_down * 100.0,
+                "confidence_pct": conf_overall * 100.0,
+                "predicted_price": predicted_price,
+                "price_confidence_pct": conf_overall * 100.0,
+                "move_percentage": float(move_pct) if move_pct is not None else 0.0,
+            }
+        except Exception:
+            return self._default_probs()
 
     def _default_probs(self):
         return {
@@ -907,8 +942,52 @@ class AIAnalyzer:
         pass
 
     def _compose_text_from_model_json(self, data, current_price):
-        # [Original implementation]
-        pass
+        """Compose text from model JSON data."""
+        if not isinstance(data, dict):
+            return ("Analysis not available", "Prediction not available")
+
+        status = data.get("status", "insufficient_data")
+        as_of = data.get("as_of", "")
+        target_ts = data.get("target_ts", "")
+        pred = data.get("predicted_price")
+        p_up = float(data.get("p_up", 0.5))
+        p_down = float(data.get("p_down", 0.5))
+        expected = data.get("expected_pct_move")
+        crit = data.get("critical_levels", {}) or {}
+        bull = crit.get("bullish_above")
+        bear = crit.get("bearish_below")
+
+        if status != "ok":
+            notes = data.get("notes", [])
+            msg = "; ".join([str(n) for n in notes]) if notes else "insufficient data"
+            return (
+                f"Status: insufficient data\n\nNotes: {msg}",
+                f"**Target:** `{target_ts}`\n\n_No price prediction due to insufficient data._",
+            )
+
+        bullets = []
+        if bull is not None:
+            bullets.append(f"- Bullish above: ${bull:,.0f}")
+        if bear is not None:
+            bullets.append(f"- Bearish below: ${bear:,.0f}")
+        if expected is not None:
+            bullets.append(f"- Expected move: {expected:+.2f}% vs current (${current_price:,.0f})")
+
+        ev = data.get("evidence", []) or []
+        for e in ev[:6]:
+            t = e.get("type", "fact")
+            tf = e.get("timeframe", "")
+            ts = e.get("ts", "")
+            note = e.get("note", "")
+            bullets.append(f"- {t.upper()} {tf} @ {ts}: {note}")
+
+        tech_md = f"As of: {as_of}\n\n" + ("\n".join(bullets) if bullets else "No additional evidence provided.")
+        price_line = f"Predicted price at {target_ts}: " + (f"${pred:,.0f}" if pred is not None else "unavailable")
+        pred_md = (
+            f"{price_line}\n\n- P(higher): {p_up*100:.0f}%   - P(lower): {p_down*100:.0f}%   "
+            f"- AI confidence: {float(data.get('conf_overall', 0.5))*100:.0f}%"
+        )
+        return tech_md, pred_md
 
     def _compose_text_when_insufficient(self, reason, target_ts):
         tech = f"Status: insufficient data\n\nNotes: {reason or 'missing inputs'}"

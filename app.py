@@ -439,7 +439,7 @@ def load_stored_analysis(analysis_hash: str):
                     price_prediction = 'Price prediction data available but not in expected format'
         elif isinstance(full_analysis, str):
             # Check if it's a string representation of a dict
-            if full_analysis.startswith("{'technical_summary'"):
+            if full_analysis.startswith("{'") and ("technical_summary" in full_analysis or "status" in full_analysis):
                 # Try to parse the dictionary string
                 try:
                     import ast

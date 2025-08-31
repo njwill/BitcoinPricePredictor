@@ -368,7 +368,58 @@ class AIAnalyzer:
                         # df.loc[outliers, col] = df[col].median() * 3
         return df
 
-    # ... (other helpers unchanged for brevity: _limit_to_days, _annualization_sqrt, _infer_index_step, _determine_timezone)
+    def _limit_to_days(self, df: pd.DataFrame, days: int) -> pd.DataFrame:
+        """Limit dataframe to last N days"""
+        if df is None or df.empty:
+            return df
+        cutoff = df.index[-1] - pd.Timedelta(days=days)
+        return df[df.index >= cutoff]
+    
+    def _annualization_sqrt(self, index: pd.DatetimeIndex) -> float:
+        """Calculate annualization factor based on data frequency"""
+        if len(index) < 2:
+            return 252**0.5  # Default daily
+        freq = pd.infer_freq(index)
+        if freq and 'D' in freq:
+            return 252**0.5  # Daily
+        elif freq and 'H' in freq:
+            return (252 * 24)**0.5  # Hourly
+        else:
+            return 252**0.5  # Default daily
+    
+    def _infer_index_step(self, index: pd.DatetimeIndex) -> Optional[pd.Timedelta]:
+        """Infer the time step from index"""
+        if len(index) < 2:
+            return None
+        return index[-1] - index[-2]
+    
+    def _determine_timezone(self, idx_1w: Optional[pd.DatetimeIndex], idx_3m: Optional[pd.DatetimeIndex]) -> pytz.BaseTzInfo:
+        """Determine appropriate timezone"""
+        eastern = pytz.timezone('US/Eastern')
+        for idx in [idx_1w, idx_3m]:
+            if idx is not None and len(idx) > 0 and idx[0].tz is not None:
+                return idx[0].tz
+        return eastern
+    
+    def _compose_text_when_insufficient(self, error_msg: str, target_ts: datetime) -> Tuple[str, str]:
+        """Generate fallback text when analysis fails"""
+        technical_summary = f"""**ANALYSIS TEMPORARILY UNAVAILABLE**
+
+Due to data processing issues, comprehensive technical analysis is currently unavailable.
+
+Error details: {error_msg}
+
+Please try refreshing the analysis or check data availability."""
+
+        price_prediction = f"""**PREDICTION TEMPORARILY UNAVAILABLE**
+
+Unable to generate price prediction due to technical issues.
+
+Target time: {target_ts.strftime('%Y-%m-%d %H:%M:%S') if target_ts else 'Unknown'}
+
+Please retry the analysis when data is available."""
+
+        return technical_summary, price_prediction
 
     # ---------- core prep ----------
     def _prepare_analysis_data(

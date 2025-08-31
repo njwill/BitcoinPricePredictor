@@ -1038,15 +1038,127 @@ class EnhancedAIAnalyzer:
                 return idx.tz
         return pytz.timezone("US/Eastern")
 
-    # [Include all other helper methods from original script: _prepare_analysis_data, 
-    # _compute_features, _prepare_enhanced_chart_data, _summarize_indicators, 
-    # _split_dual_output, _parse_json_response, _parse_comprehensive_response,
-    # _extract_probabilities_from_json, _default_probs, _safe_format_datetime,
-    # _safe_format_daterange, _safe_num, _clip01, _compose_text_from_model_json,
-    # _compose_text_when_insufficient, _extract_probabilities]
+    def _prepare_analysis_data(
+        self,
+        data_3m: pd.DataFrame,
+        data_1w: pd.DataFrame,
+        indicators_3m: Dict[str, pd.Series],
+        indicators_1w: Dict[str, pd.Series],
+        current_price: float,
+        target_datetime: Optional[datetime],
+        asset_name: str,
+    ) -> Dict[str, Any]:
+        """Prepare analysis data for AI processing"""
+        try:
+            # Basic data preparation
+            analysis_data = {
+                "asset": asset_name or "BTCUSD",
+                "current_price": current_price,
+                "target_datetime": target_datetime.isoformat() if target_datetime else None,
+                "data_3m_length": len(data_3m) if data_3m is not None else 0,
+                "data_1w_length": len(data_1w) if data_1w is not None else 0,
+                "indicators_3m": indicators_3m or {},
+                "indicators_1w": indicators_1w or {},
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            # Add latest indicator values
+            if indicators_3m:
+                analysis_data["latest_indicators_3m"] = {
+                    k: float(v.iloc[-1]) if len(v) > 0 and pd.notna(v.iloc[-1]) else None
+                    for k, v in indicators_3m.items()
+                }
+            
+            if indicators_1w:
+                analysis_data["latest_indicators_1w"] = {
+                    k: float(v.iloc[-1]) if len(v) > 0 and pd.notna(v.iloc[-1]) else None
+                    for k, v in indicators_1w.items()
+                }
+                
+            return analysis_data
+            
+        except Exception as e:
+            st.warning(f"Error preparing analysis data: {e}")
+            return {
+                "asset": asset_name or "BTCUSD",
+                "current_price": current_price,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
 
-    # These remain the same as in your original script, so I'm not duplicating them
-    # to save space, but they should all be included in the full implementation
+    def _compose_text_when_insufficient(self, error_msg: str, target_ts: str) -> Tuple[str, str]:
+        """Compose fallback text when analysis fails"""
+        technical_summary = f"""**TECHNICAL ANALYSIS UNAVAILABLE**
+
+Due to insufficient data or technical issues, a comprehensive analysis cannot be generated at this time.
+
+**Error Details:** {error_msg}
+
+Please try again later or check data availability."""
+
+        price_prediction = f"""**PRICE PREDICTION UNAVAILABLE**
+
+**Target:** `{target_ts}`
+
+Unable to generate price prediction due to data limitations or technical issues.
+
+**Confidence:** Low - Analysis not available"""
+        
+        return technical_summary, price_prediction
+
+    def _default_probs(self) -> Dict[str, float]:
+        """Return default probability values"""
+        return {
+            "higher_fraction": 0.5,
+            "lower_fraction": 0.5,
+            "confidence_fraction": 0.3,
+            "higher_pct": 50.0,
+            "lower_pct": 50.0,
+            "confidence_pct": 30.0,
+            "predicted_price": 0.0,
+            "price_confidence_pct": 30.0,
+            "move_percentage": 0.0
+        }
+
+    def _compose_text_from_model_json(self, parsed_json: Dict[str, Any], current_price: float) -> Tuple[str, str]:
+        """Compose text from parsed JSON response"""
+        try:
+            if not isinstance(parsed_json, dict):
+                return self._compose_text_when_insufficient("Invalid JSON format", "")
+            
+            model_json = parsed_json.get("model_json", {})
+            if not model_json:
+                return self._compose_text_when_insufficient("No model data available", "")
+            
+            # Extract basic info
+            predicted_price = model_json.get("predicted_price", current_price)
+            target_ts = model_json.get("target_ts", "")
+            
+            # Create technical summary
+            technical_summary = "**TECHNICAL ANALYSIS**\n\n"
+            technical_summary += f"**Current Price:** ${current_price:,.2f}\n\n"
+            
+            if "evidence" in model_json:
+                technical_summary += "**Key Technical Indicators:**\n"
+                for evidence in model_json["evidence"]:
+                    note = evidence.get("note", "")
+                    if note:
+                        technical_summary += f"• {note}\n"
+            
+            # Create price prediction
+            price_prediction = f"**PREDICTED PRICE:** ${predicted_price:,.2f}\n\n"
+            price_prediction += f"**Target:** `{target_ts}`\n\n"
+            
+            p_up = model_json.get("p_up", 0.5)
+            p_down = model_json.get("p_down", 0.5)
+            price_prediction += f"**Probability Assessment:**\n"
+            price_prediction += f"• Higher: {p_up*100:.0f}%\n"
+            price_prediction += f"• Lower: {p_down*100:.0f}%\n"
+            
+            return technical_summary, price_prediction
+            
+        except Exception as e:
+            return self._compose_text_when_insufficient(f"Error composing text: {str(e)}", "")
 
 # Usage example
 if __name__ == "__main__":

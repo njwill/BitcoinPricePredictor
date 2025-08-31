@@ -1453,9 +1453,7 @@ def main():
                     cleaned_summary = technical_summary.replace('\\n', '\n').strip()
                     
                     # Display the full content using st.markdown to properly render formatting
-                    # Escape potential math symbols to avoid KaTeX rendering
-                    escaped_summary = cleaned_summary.replace('$', '\$').replace('_', '\_')
-                    st.markdown(escaped_summary)
+                    st.markdown(cleaned_summary)
                 else:
                     st.write("Analysis not available")
                 
@@ -1466,9 +1464,7 @@ def main():
                     cleaned_prediction = price_prediction.replace('\\n', '\n').strip()
                     
                     # Display the full content using st.markdown to properly render formatting
-                    # Escape potential math symbols to avoid KaTeX rendering
-                    escaped_prediction = cleaned_prediction.replace('$', '\$').replace('_', '\_')
-                    st.markdown(escaped_prediction)
+                    st.markdown(cleaned_prediction)
                 else:
                     st.write("Prediction not available")
             

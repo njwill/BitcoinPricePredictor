@@ -863,151 +863,202 @@ class AIAnalyzer:
         return feats
 
     # ---------- prompt + model call ----------
-    def _build_messages(self, analysis_data: Dict[str, Any], asset_name: str) -> Tuple[Dict[str, str], Dict[str, str]]:
-        system_content = (
-            "You are a deterministic technical analyst. Use ONLY the structured arrays and features provided. "
-            "Analyze the FULL arrays (with timestamps) in ENHANCED ARRAYS to derive trends, slopes, peaks/troughs, divergences, and patterns. "
-            "Explicitly compare 1w and 3m for each indicator, noting alignments/conflicts and how 1w momentum influences 3m trend. "
-            "Forbidden: news, macro, on-chain, seasonality, weekdays, or any external info. "
-            "All claims must be quantitatively verifiable from the arrays or the deterministic features. "
-            "Incorporate the baseline forecast as a sanity check (you may adjust it with evidence); if you disagree, explain why with data. "
-            "If required arrays are missing/insufficient, output status='insufficient_data' with detailed notes."
-        )
+def _build_messages(self, analysis_data: Dict[str, Any], asset_name: str) -> Tuple[Dict[str, str], Dict[str, str]]:
+    # Pull a few values for the template tables (filled by us so the output is already richer)
+    tf3m = (analysis_data.get("enhanced_chart_data") or {}).get("3m", {}) or {}
+    tf1w = (analysis_data.get("enhanced_chart_data") or {}).get("1w", {}) or {}
 
-        data_3m = analysis_data.get("data_3m", {})
-        data_1w = analysis_data.get("data_1w", {})
+    bars_3m = tf3m.get("bars", 0)
+    bars_1w = tf1w.get("bars", 0)
+    step_3m = tf3m.get("bar_step_seconds")
+    step_1w = tf1w.get("bar_step_seconds")
+    range_3m = tf3m.get("full_range", "N/A")
+    range_1w = tf1w.get("full_range", "N/A")
 
-        # JSON schema (augmented)
-        output_schema = {
-            "status": "ok or insufficient_data",
-            "asset": asset_name,
-            "as_of": analysis_data.get("current_time"),
-            "target_ts": analysis_data.get("target_time"),
-            "predicted_price": "number or null",
-            "baseline_pred": analysis_data.get("baseline", {}).get("pred"),
-            "baseline_band": {
-                "lower": analysis_data.get("baseline", {}).get("lower"),
-                "upper": analysis_data.get("baseline", {}).get("upper"),
-                "exp_move_pct": analysis_data.get("baseline", {}).get("exp_move_pct"),
-            },
-            "p_up": "float 0..1",
-            "p_down": "float 0..1 (p_up + p_down = 1)",
-            "conf_overall": "float 0..1",
-            "conf_price": "float 0..1",
-            "expected_pct_move": "signed float percent (optional; compute if omitted)",
-            "critical_levels": {"bullish_above": "number or null", "bearish_below": "number or null"},
-            "evidence": [
-                {
-                    "type": "rsi|macd|bb|ema|price|volume|structure",
-                    "timeframe": "3m|1w",
-                    "ts": "YYYY-MM-DD HH:MM" or "recent",
-                    "value": "number or object",
-                    "note": "short factual note",
-                }
-            ],
-            "notes": ["if status=insufficient_data, list what's missing; else optional warnings"],
-        }
+    baseline = analysis_data.get("baseline", {}) or {}
+    baseline_pred = baseline.get("pred")
+    baseline_lower = baseline.get("lower")
+    baseline_upper = baseline.get("upper")
+    baseline_exp = baseline.get("exp_move_pct")
 
-        # Narrative template
-        baseline = analysis_data.get("baseline", {}) or {}
-        narrative_template = f"""
-        [TECHNICAL_ANALYSIS_START]
-        **COMPREHENSIVE TECHNICAL ANALYSIS**
+    system_content = (
+        "You are a deterministic technical analyst. Use ONLY the structured arrays, deterministic FEATURES, "
+        "and baseline forecast provided. You must produce a thorough, quantitative narrative with tables "
+        "and at least 12 numbered evidence bullets. Explicitly compare 1w vs 3m for RSI, MACD, BB, and EMA. "
+        "Forbidden: news, macro, seasonality, or any external info. Every claim must be grounded in the data. "
+        "Do NOT leave placeholders; no angle brackets like <value> may appear in the final output. "
+        "Use exact numeric values with units where relevant. Keep the narrative between 200 and 800 words."
+    )
 
-        **Current Price:** ${analysis_data.get('current_price'):,.2f}
+    data_3m = analysis_data.get("data_3m", {})
+    data_1w = analysis_data.get("data_1w", {})
 
-        **1. MULTI-TIMEFRAME OVERVIEW**
-        - 3m Chart: <facts from 3m arrays + features (slopes, r², HH/HL, SR)>
-        - 1w Chart: <facts from 1w arrays + features>
-        - Alignment: <how 1w aligns/conflicts with 3m>
+    # JSON schema (unchanged apart from baseline fields already populated)
+    output_schema = {
+        "status": "ok or insufficient_data",
+        "asset": asset_name,
+        "as_of": analysis_data.get("current_time"),
+        "target_ts": analysis_data.get("target_time"),
+        "predicted_price": "number or null",
+        "baseline_pred": baseline_pred,
+        "baseline_band": {"lower": baseline_lower, "upper": baseline_upper, "exp_move_pct": baseline_exp},
+        "p_up": "float 0..1",
+        "p_down": "float 0..1 (p_up + p_down = 1)",
+        "conf_overall": "float 0..1",
+        "conf_price": "float 0..1",
+        "expected_pct_move": "signed float percent (optional; compute if omitted)",
+        "critical_levels": {"bullish_above": "number or null", "bearish_below": "number or null"},
+        "evidence": [
+            {
+                "type": "rsi|macd|bb|ema|price|volume|structure",
+                "timeframe": "3m|1w",
+                "ts": "YYYY-MM-DD HH:MM" or "recent",
+                "value": "number or object",
+                "note": "short factual note",
+            }
+        ],
+        "notes": ["if status=insufficient_data, list what's missing; else optional warnings"],
+    }
 
-        **2. INDICATORS**
-        - RSI: <levels, slopes, percentiles, divergences; compare 1w vs 3m>
-        - MACD: <hist slopes, cross timing, flips; compare timeframes>
-        - BB: <width trends, price position; compare>
-        - EMA: <price vs EMA distance (bps), EMA slope; compare>
+    # === Narrative template with hard requirements for content density ===
+    # We pre-fill the coverage table and baseline numbers so the output is not sparse even if the model is lazy.
+    narrative_template = f"""
+[TECHNICAL_ANALYSIS_START]
+### Methodology & Coverage
+- **As-of:** {analysis_data.get('current_time')}  |  **Target:** {analysis_data.get('target_time')}  |  **Horizon:** ~{analysis_data.get('hours_until_target', 0):.2f}h
 
-        **3. STRUCTURE**
-        - Higher Highs/Lows vs Lower Highs/Lows (by timeframe)
-        - Support/Resistance (top 3 from data): <levels>
+| Timeframe | Bars | Step (s) | Range |
+|---|---:|---:|---|
+| 1w | {bars_1w} | {step_1w} | {range_1w} |
+| 3m | {bars_3m} | {step_3m} | {range_3m} |
 
-        **4. VOLUME**
-        - Percentile & trend; note price/volume divergences if present
+### Multi-Timeframe Overview (≥3 bullets; quantify with % or slopes)
+1. ...
+2. ...
+3. ...
 
-        **5. BASELINE CHECK**
-        - Baseline: ${baseline.get('pred')} (±{baseline.get('exp_move_pct')}%) "
-        - Band: [{baseline.get('lower')}, {baseline.get('upper')}] — <agree/adjust based on data>
+### Indicator Tables (fill with precise numbers; no placeholders)
 
-        **6. TRADING VIEW**
-        - Overall Bias: **BULLISH/BEARISH/NEUTRAL** with quantified evidence
-        - Key Levels: <explicit numbers>
+**RSI (levels, slopes, R², percentile)**
+| TF | Last | Slope(20) | R²(20) | Percentile(%) | Note |
+|---|---:|---:|---:|---:|---|
+| 1w |  |  |  |  |  |
+| 3m |  |  |  |  |  |
 
-        [TECHNICAL_ANALYSIS_END]
+**MACD (values, histogram slope & flips, cross timing)**
+| TF | MACD | Signal | Hist Slope(20) | R²(20) | BarsSinceCross | LastCross | Flips(50) |
+|---|---:|---:|---:|---:|---:|---|---:|
+| 1w |  |  |  |  |  |  |  |
+| 3m |  |  |  |  |  |  |  |
 
-        [PRICE_PREDICTION_START]
-        **PREDICTED PRICE:** I predict {asset_name} will be at $<PRICE> on {analysis_data.get('target_time')}
+**BB & EMA (width, price–EMA distance)**
+| TF | BB Width | Price vs EMA20 (bps) | EMA20 Slope(30) | Position vs Bands |
+|---|---:|---:|---:|---|
+| 1w |  |  |  |  |
+| 3m |  |  |  |  |
 
-        ⏰ **TIME & MAGNITUDE**
-        - Target: {analysis_data.get('target_time')}  |  Horizon: ~{analysis_data.get('hours_until_target'):.2f} hours
-        - Momentum: <from RSI/MACD slopes + structure>
-        - Expected Move: <from realized vol + features> (baseline {baseline.get('exp_move_pct')}%)
+### Structure & Levels
+- Swing structure counts **(HH/HL/LH/LL)** by timeframe and **Top-3 Support/Resistance** with exact prices.
 
-        1. **Probability HIGHER than ${analysis_data.get('current_price'):,.2f}: <X>%**
-        2. **Probability LOWER than ${analysis_data.get('current_price'):,.2f}: <Y>%**
-        3. **Overall Analysis Confidence: <Z>%**
-        4. **Price Prediction Confidence: <W>%**
-        5. **Expected % Move: <±M>%**
+### Volume
+- Volume percentile per timeframe and any price/volume divergences.
 
-        **Key Technical Factors (Quantified):**
-        - <bullet 1>
-        - <bullet 2>
-        - <bullet 3>
+### Alignment & Conflicts (≥3 bullets)
+1. ...
+2. ...
+3. ...
 
-        **Price Targets:**
-        - Upside: $<t1>, $<t2>
-        - Downside: $<b1>, $<b2>
+### Baseline Check
+- Baseline: **{baseline_pred}** (±{baseline_exp}%). Band: **[{baseline_lower}, {baseline_upper}]**. State whether you **agree or adjust**, and quantify by how much based on data.
 
-        **Critical Levels:**
-        - Bullish above: $<level>
-        - Bearish below: $<level>
-        [PRICE_PREDICTION_END]
-        """.strip()
+### Quantified Evidence (≥12 bullets across RSI, MACD, BB, EMA, Price, Volume, Structure)
+1. ...
+2. ...
+3. ...
+4. ...
+5. ...
+6. ...
+7. ...
+8. ...
+9. ...
+10. ...
+11. ...
+12. ...
 
-        user_content = f"""
-        ASSET: {asset_name}
+### Trading View
+- Overall Bias (**BULLISH/BEARISH/NEUTRAL**) with exact numeric justification.
+- Key levels (bullish-above / bearish-below) and why.
 
-        DATA WINDOWS (strict):
-        - 3m index range: {data_3m.get('start_date','N/A')} → {data_3m.get('end_date','N/A')}
-        - 1w index range: {data_1w.get('start_date','N/A')} → {data_1w.get('end_date','N/A')}
+[TECHNICAL_ANALYSIS_END]
 
-        TARGET: {analysis_data.get('target_time')}
-        AS_OF: {analysis_data.get('current_time')}
-        CURRENT_PRICE: {analysis_data.get('current_price')}
+[PRICE_PREDICTION_START]
+**PREDICTED PRICE:** I predict {asset_name} will be at **$<PRICE>** on {analysis_data.get('target_time')}.
+- Horizon: ~{analysis_data.get('hours_until_target', 0):.2f}h
+- Momentum & Trend: cite specific slopes/cross timings.
+- Expected Move (from realized vol/features): include number; consider baseline {baseline_exp}% for calibration.
 
-        DATA_NOTES:
-        {json.dumps(analysis_data.get('data_notes', []), indent=2)}
+1. **Probability HIGHER than ${analysis_data.get('current_price'):,.2f}: <X>%**
+2. **Probability LOWER than ${analysis_data.get('current_price'):,.2f}: <Y>%**
+3. **Overall Analysis Confidence: <Z>%**
+4. **Price Prediction Confidence: <W>%**
+5. **Expected % Move: <±M>%**
 
-        BASELINE_FORECAST:
-        {json.dumps(analysis_data.get('baseline', {}), indent=2)}
+**Scenario Targets**
+- **Bull case (if above bullish level):** two numbered targets with data justification.
+- **Bear case (if below bearish level):** two numbered targets with data justification.
 
-        INDICATOR SNAPSHOT:
-        {json.dumps(analysis_data.get('indicators', {}), indent=2)}
+**Critical Levels**
+- **Bullish above:** $<level>
+- **Bearish below:** $<level>
+[PRICE_PREDICTION_END]
+""".strip()
 
-        FEATURES (deterministic metrics):
-        {json.dumps(analysis_data.get('features', {}), indent=2)}
+    # Strong output rules to stop the model from leaving placeholders
+    hard_rules = (
+        "OUTPUT RULES:\n"
+        "- Replace ALL '...' and ALL angle-bracket placeholders with real numbers/words from the data; no '<>' allowed.\n"
+        "- Every table cell must be filled; if unknown, compute from arrays/features or state 'N/A' explicitly.\n"
+        "- Provide at least 12 evidence bullets. Provide at least 3 bullets in 'Alignment & Conflicts' and 3 in 'Overview'.\n"
+        "- Use units: %, bps, bars, or USD as appropriate.\n"
+    )
 
-        ENHANCED ARRAYS (timestamps + values; includes bar_step_seconds & bars):
-        {json.dumps(analysis_data.get('enhanced_chart_data', {}), indent=2)}
+    user_content = f"""
+ASSET: {asset_name}
 
-        STRICT RULES:
-        - Use ONLY these arrays/features; no external info.
-        - Quantify slopes (m), r², percentiles, cross timings, flips, and EMA distance (bps).
-        - Mandatory comparisons: for RSI/MACD/BB/EMA, compare 1w vs 3m and state alignment.
-        - Structure: use HH/HL/LH/LL counts and SR levels provided (or compute from arrays).
-        - Volume: use volume_percentile and price-volume behavior from arrays.
-        - Baseline: anchor on it; you may adjust with evidence. If you deviate, explain why.
-        - Predictions: give a numeric predicted_price; ensure p_up + p_down = 1.
-        - If arrays are empty/missing, return status='insufficient_data' with specifics.
+DATA WINDOWS (strict):
+- 3m index range: {data_3m.get('start_date','N/A')} → {data_3m.get('end_date','N/A')}
+- 1w index range: {data_1w.get('start_date','N/A')} → {data_1w.get('end_date','N/A')}
+
+TARGET: {analysis_data.get('target_time')}
+AS_OF: {analysis_data.get('current_time')}
+CURRENT_PRICE: {analysis_data.get('current_price')}
+
+DATA_NOTES:
+{json.dumps(analysis_data.get('data_notes', []), indent=2)}
+
+BASELINE_FORECAST:
+{json.dumps(baseline, indent=2)}
+
+INDICATOR SNAPSHOT:
+{json.dumps(analysis_data.get('indicators', {}), indent=2)}
+
+FEATURES (deterministic metrics):
+{json.dumps(analysis_data.get('features', {}), indent=2)}
+
+ENHANCED ARRAYS (timestamps + values; includes bar_step_seconds & bars):
+{json.dumps(analysis_data.get('enhanced_chart_data', {}), indent=2)}
+
+STRICT RULES:
+- Use ONLY these arrays/features; no external info.
+- Quantify slopes (m), r², percentiles, cross timings, flips, and EMA distance (bps).
+- Mandatory comparisons: for RSI/MACD/BB/EMA, compare 1w vs 3m and state alignment.
+- Structure: use HH/HL/LH/LL counts and SR levels provided (or compute from arrays).
+- Volume: use volume_percentile and price-volume behavior from arrays.
+- Baseline: anchor on it; you may adjust with evidence. If you deviate, explain why.
+- Predictions: give a numeric predicted_price; ensure p_up + p_down = 1.
+- If arrays are empty/missing, return status='insufficient_data' with specifics.
+
+{hard_rules}
 
         YOU MUST RETURN **TWO** BLOCKS, IN THIS ORDER:
         1) A VALID JSON object, in a fenced code block like:

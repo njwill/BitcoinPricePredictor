@@ -878,8 +878,17 @@ class AIAnalyzer:
         pass
 
     def _default_probs(self):
-        # [Original implementation]
-        pass
+        return {
+            "higher_fraction": 0.5,
+            "lower_fraction": 0.5,
+            "confidence_fraction": 0.5,
+            "higher_pct": 50.0,
+            "lower_pct": 50.0,
+            "confidence_pct": 50.0,
+            "predicted_price": None,
+            "price_confidence_pct": 50.0,
+            "move_percentage": 0.0,
+        }
 
     def _safe_format_datetime(self, dt):
         # [Original implementation]
@@ -907,5 +916,45 @@ class AIAnalyzer:
         return tech, pred
 
     def _extract_probabilities(self, prediction_text):
-        # [Original implementation]
-        pass
+        """Extract probabilities from prediction text using regex patterns."""
+        probs = {
+            "higher_fraction": 0.5,
+            "lower_fraction": 0.5,
+            "confidence_fraction": 0.5,
+            "higher_pct": 50.0,
+            "lower_pct": 50.0,
+            "confidence_pct": 50.0,
+            "predicted_price": None,
+            "price_confidence_pct": 50.0,
+            "move_percentage": 0.0,
+        }
+        
+        try:
+            text = prediction_text or ""
+            
+            # Simple regex patterns to extract percentages
+            import re
+            
+            # Look for probability patterns
+            higher_match = re.search(r'(\d+(?:\.\d+)?)%.*?(?:higher|up|increase)', text, re.IGNORECASE)
+            if higher_match:
+                probs["higher_pct"] = float(higher_match.group(1))
+                
+            lower_match = re.search(r'(\d+(?:\.\d+)?)%.*?(?:lower|down|decrease)', text, re.IGNORECASE)
+            if lower_match:
+                probs["lower_pct"] = float(lower_match.group(1))
+            
+            # Normalize if needed
+            total = probs["higher_pct"] + probs["lower_pct"]
+            if total > 0 and total != 100:
+                probs["higher_pct"] = probs["higher_pct"] * 100.0 / total
+                probs["lower_pct"] = probs["lower_pct"] * 100.0 / total
+            
+            # Convert to fractions
+            probs["higher_fraction"] = probs["higher_pct"] / 100.0
+            probs["lower_fraction"] = probs["lower_pct"] / 100.0
+            
+        except Exception:
+            pass  # Use defaults on any error
+            
+        return probs

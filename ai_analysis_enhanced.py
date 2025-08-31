@@ -902,8 +902,9 @@ class AIAnalyzer:
         pass
 
     def _compose_text_when_insufficient(self, reason, target_ts):
-        # [Original implementation]
-        pass
+        tech = f"Status: insufficient data\n\nNotes: {reason or 'missing inputs'}"
+        pred = f"**Target:** `{target_ts}`\n\n_No price prediction due to insufficient data._"
+        return tech, pred
 
     def _extract_probabilities(self, prediction_text):
         # [Original implementation]

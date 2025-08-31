@@ -1452,8 +1452,8 @@ def main():
                     # Remove any problematic characters and ensure proper formatting
                     cleaned_summary = technical_summary.replace('\\n', '\n').strip()
                     
-                    # Display the full content using st.markdown to properly render formatting
-                    st.markdown(cleaned_summary)
+                    # Display the full content using st.write which handles long content better
+                    st.write(cleaned_summary)
                 else:
                     st.write("Analysis not available")
                 
@@ -1463,8 +1463,8 @@ def main():
                 if isinstance(price_prediction, str) and price_prediction.strip():
                     cleaned_prediction = price_prediction.replace('\\n', '\n').strip()
                     
-                    # Display the full content using st.markdown to properly render formatting
-                    st.markdown(cleaned_prediction)
+                    # Display the full content using st.write which handles long content better
+                    st.write(cleaned_prediction)
                 else:
                     st.write("Prediction not available")
             

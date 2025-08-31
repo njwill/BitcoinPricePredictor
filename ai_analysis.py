@@ -30,7 +30,7 @@ class AIAnalyzer:
             self.debug = bool(debug)
 
         self.openai_key = os.getenv("OPENAI_API_KEY", "")
-        self.model_name = os.getenv("GPT5_MODEL", "gpt-5-nano")
+        self.model_name = os.getenv("GPT5_MODEL", "gpt-5")
 
         if not self.openai_key:
             st.error("OpenAI API key not found. Please set OPENAI_API_KEY environment variable.")
@@ -117,7 +117,6 @@ class AIAnalyzer:
             if status != "ok" and ("`" in pred_md and "Target:" in pred_md and "``" in pred_md):
                 pred_md = f"**Target:** `{target_ts_fallback}`\n\n_No price prediction due to insufficient data._"
 
-            
             return {
                 "status": status,
                 "model_json": parsed_json,
@@ -400,115 +399,115 @@ class AIAnalyzer:
         indicators_3m: Dict[str, pd.Series],
         indicators_1w: Dict[str, pd.Series],
     ) -> Dict[str, Any]:
-                try:
-                    enhanced: Dict[str, Any] = {}
+        try:
+            enhanced: Dict[str, Any] = {}
 
-                    full_3m = data_3m if data_3m is not None else pd.DataFrame()
-                    full_1w = data_1w if data_1w is not None else pd.DataFrame()
+            full_3m = data_3m if data_3m is not None else pd.DataFrame()
+            full_1w = data_1w if data_1w is not None else pd.DataFrame()
 
-                    full_3m_high = float(full_3m["High"].max()) if not full_3m.empty else None
-                    full_3m_low = float(full_3m["Low"].min()) if not full_3m.empty else None
-                    full_1w_high = float(full_1w["High"].max()) if not full_1w.empty else None
-                    full_1w_low = float(full_1w["Low"].min()) if not full_1w.empty else None
+            full_3m_high = float(full_3m["High"].max()) if not full_3m.empty else None
+            full_3m_low = float(full_3m["Low"].min()) if not full_3m.empty else None
+            full_1w_high = float(full_1w["High"].max()) if not full_1w.empty else None
+            full_1w_low = float(full_1w["Low"].min()) if not full_1w.empty else None
 
-                    display_from_3m = getattr(data_3m, "attrs", {}).get("display_from_index", 0) if data_3m is not None else 0
-                    display_from_1w = getattr(data_1w, "attrs", {}).get("display_from_index", 0) if data_1w is not None else 0
+            display_from_3m = getattr(data_3m, "attrs", {}).get("display_from_index", 0) if data_3m is not None else 0
+            display_from_1w = getattr(data_1w, "attrs", {}).get("display_from_index", 0) if data_1w is not None else 0
 
-                    recent_3m = full_3m.iloc[display_from_3m:] if not full_3m.empty else full_3m
-                    recent_1w = full_1w.iloc[display_from_1w:] if not full_1w.empty else full_1w
+            recent_3m = full_3m.iloc[display_from_3m:] if not full_3m.empty else full_3m
+            recent_1w = full_1w.iloc[display_from_1w:] if not full_1w.empty else full_1w
 
-                    tail_3m = recent_3m.tail(50) if not recent_3m.empty else recent_3m
-                    tail_1w = recent_1w.tail(30) if not recent_1w.empty else recent_1w
+            tail_3m = recent_3m.tail(50) if not recent_3m.empty else recent_3m
+            tail_1w = recent_1w.tail(30) if not recent_1w.empty else recent_1w
 
-                    enhanced["3m_data"] = {
-                        "timeframe": "3-month",
-                        "full_range": (
-                            self._safe_format_daterange(full_3m.index[0], full_3m.index[-1]) if not full_3m.empty else "N/A"
-                        ),
-                        "data_range": (
-                            self._safe_format_daterange(tail_3m.index[0], tail_3m.index[-1]) if not tail_3m.empty else "N/A"
-                        ),
-                        "period_highs_lows": {
-                            "period_high": full_3m_high,
-                            "period_low": full_3m_low,
-                            "recent_high": float(recent_3m["High"].max()) if not recent_3m.empty else None,
-                            "recent_low": float(recent_3m["Low"].min()) if not recent_3m.empty else None,
-                        },
-                        "recent_prices": (
-                            {
-                                "dates": [self._safe_format_datetime(d) for d in tail_3m.index],
-                                "open": tail_3m["Open"].round(2).tolist(),
-                                "high": tail_3m["High"].round(2).tolist(),
-                                "low": tail_3m["Low"].round(2).tolist(),
-                                "close": tail_3m["Close"].round(2).tolist(),
-                                "volume": tail_3m["Volume"].round(0).tolist(),
-                            } if not tail_3m.empty else {}
-                        ),
-                        "indicators": {},
-                    }
+            enhanced["3m_data"] = {
+                "timeframe": "3-month",
+                "full_range": (
+                    self._safe_format_daterange(full_3m.index[0], full_3m.index[-1]) if not full_3m.empty else "N/A"
+                ),
+                "data_range": (
+                    self._safe_format_daterange(tail_3m.index[0], tail_3m.index[-1]) if not tail_3m.empty else "N/A"
+                ),
+                "period_highs_lows": {
+                    "period_high": full_3m_high,
+                    "period_low": full_3m_low,
+                    "recent_high": float(recent_3m["High"].max()) if not recent_3m.empty else None,
+                    "recent_low": float(recent_3m["Low"].min()) if not recent_3m.empty else None,
+                },
+                "recent_prices": (
+                    {
+                        "dates": [self._safe_format_datetime(d) for d in tail_3m.index],
+                        "open": tail_3m["Open"].round(2).tolist(),
+                        "high": tail_3m["High"].round(2).tolist(),
+                        "low": tail_3m["Low"].round(2).tolist(),
+                        "close": tail_3m["Close"].round(2).tolist(),
+                        "volume": tail_3m["Volume"].round(0).tolist(),
+                    } if not tail_3m.empty else {}
+                ),
+                "indicators": {},
+            }
 
-                    for indicator in [
-                        "RSI","MACD","MACD_Signal","MACD_Histogram",
-                        "BB_Upper","BB_Lower","BB_Middle","EMA_20","SMA_50","SMA_200",
-                    ]:
-                        if indicators_3m and indicator in indicators_3m:
-                            values = indicators_3m[indicator].dropna().tail(50)
-                            enhanced["3m_data"]["indicators"][indicator] = values.round(4).tolist()
+            for indicator in [
+                "RSI","MACD","MACD_Signal","MACD_Histogram",
+                "BB_Upper","BB_Lower","BB_Middle","EMA_20","SMA_50","SMA_200",
+            ]:
+                if indicators_3m and indicator in indicators_3m:
+                    values = indicators_3m[indicator].dropna().tail(50)
+                    enhanced["3m_data"]["indicators"][indicator] = values.round(4).tolist()
 
-                    enhanced["1w_data"] = {
-                        "timeframe": "1-week",
-                        "full_range": (
-                            self._safe_format_daterange(full_1w.index[0], full_1w.index[-1]) if not full_1w.empty else "N/A"
-                        ),
-                        "data_range": (
-                            self._safe_format_daterange(tail_1w.index[0], tail_1w.index[-1]) if not tail_1w.empty else "N/A"
-                        ),
-                        "period_highs_lows": {
-                            "period_high": full_1w_high,
-                            "period_low": full_1w_low,
-                            "recent_high": float(recent_1w["High"].max()) if not recent_1w.empty else None,
-                            "recent_low": float(recent_1w["Low"].min()) if not recent_1w.empty else None,
-                        },
-                        "recent_prices": (
-                            {
-                                "dates": [self._safe_format_datetime(d) for d in tail_1w.index],
-                                "open": tail_1w["Open"].round(2).tolist(),
-                                "high": tail_1w["High"].round(2).tolist(),
-                                "low": tail_1w["Low"].round(2).tolist(),
-                                "close": tail_1w["Close"].round(2).tolist(),
-                                "volume": tail_1w["Volume"].round(0).tolist(),
-                            } if not tail_1w.empty else {}
-                        ),
-                        "indicators": {},
-                    }
+            enhanced["1w_data"] = {
+                "timeframe": "1-week",
+                "full_range": (
+                    self._safe_format_daterange(full_1w.index[0], full_1w.index[-1]) if not full_1w.empty else "N/A"
+                ),
+                "data_range": (
+                    self._safe_format_daterange(tail_1w.index[0], tail_1w.index[-1]) if not tail_1w.empty else "N/A"
+                ),
+                "period_highs_lows": {
+                    "period_high": full_1w_high,
+                    "period_low": full_1w_low,
+                    "recent_high": float(recent_1w["High"].max()) if not recent_1w.empty else None,
+                    "recent_low": float(recent_1w["Low"].min()) if not recent_1w.empty else None,
+                },
+                "recent_prices": (
+                    {
+                        "dates": [self._safe_format_datetime(d) for d in tail_1w.index],
+                        "open": tail_1w["Open"].round(2).tolist(),
+                        "high": tail_1w["High"].round(2).tolist(),
+                        "low": tail_1w["Low"].round(2).tolist(),
+                        "close": tail_1w["Close"].round(2).tolist(),
+                        "volume": tail_1w["Volume"].round(0).tolist(),
+                    } if not tail_1w.empty else {}
+                ),
+                "indicators": {},
+            }
 
-                    for indicator in [
-                        "RSI","MACD","MACD_Signal","MACD_Histogram",
-                        "BB_Upper","BB_Lower","BB_Middle","EMA_20","SMA_50","SMA_200",
-                    ]:
-                        if indicators_1w and indicator in indicators_1w:
-                            values = indicators_1w[indicator].dropna().tail(30)
-                            enhanced["1w_data"]["indicators"][indicator] = values.round(4).tolist()
+            for indicator in [
+                "RSI","MACD","MACD_Signal","MACD_Histogram",
+                "BB_Upper","BB_Lower","BB_Middle","EMA_20","SMA_50","SMA_200",
+            ]:
+                if indicators_1w and indicator in indicators_1w:
+                    values = indicators_1w[indicator].dropna().tail(30)
+                    enhanced["1w_data"]["indicators"][indicator] = values.round(4).tolist()
 
-                    v50 = full_3m["Volume"].tail(50).mean() if not full_3m.empty else None
-                    v10 = full_3m["Volume"].tail(10).mean() if not full_3m.empty else None
-                    v30 = full_1w["Volume"].tail(30).mean() if not full_1w.empty else None
-                    v5 = full_1w["Volume"].tail(5).mean() if not full_1w.empty else None
+            v50 = full_3m["Volume"].tail(50).mean() if not full_3m.empty else None
+            v10 = full_3m["Volume"].tail(10).mean() if not full_3m.empty else None
+            v30 = full_1w["Volume"].tail(30).mean() if not full_1w.empty else None
+            v5 = full_1w["Volume"].tail(5).mean() if not full_1w.empty else None
 
-                    enhanced["volume_analysis"] = {
-                        "3m_avg_volume_tail50": float(v50) if v50 is not None else None,
-                        "3m_volume_trend": ("increasing" if (v10 is not None and v50 is not None and v10 > v50) else
-                                            ("decreasing" if (v10 is not None and v50 is not None and v10 < v50) else None)),
-                        "1w_avg_volume_tail30": float(v30) if v30 is not None else None,
-                        "1w_volume_trend": ("increasing" if (v5 is not None and v30 is not None and v5 > v30) else
-                                            ("decreasing" if (v5 is not None and v30 is not None and v5 < v30) else None)),
-                    }
+            enhanced["volume_analysis"] = {
+                "3m_avg_volume_tail50": float(v50) if v50 is not None else None,
+                "3m_volume_trend": ("increasing" if (v10 is not None and v50 is not None and v10 > v50) else
+                                    ("decreasing" if (v10 is not None and v50 is not None and v10 < v50) else None)),
+                "1w_avg_volume_tail30": float(v30) if v30 is not None else None,
+                "1w_volume_trend": ("increasing" if (v5 is not None and v30 is not None and v5 > v30) else
+                                    ("decreasing" if (v5 is not None and v30 is not None and v5 < v30) else None)),
+            }
 
-                    return enhanced
+            return enhanced
 
-                except Exception as e:
-                    st.warning(f"Error preparing enhanced chart data: {str(e)}")
-                    return {}
+        except Exception as e:
+            st.warning(f"Error preparing enhanced chart data: {str(e)}")
+            return {}
 
     def _summarize_indicators(
         self,
@@ -566,13 +565,9 @@ class AIAnalyzer:
 
     def _build_messages(self, analysis_data: Dict[str, Any], asset_name: str) -> Tuple[Dict[str, str], Dict[str, str]]:
         system_content = (
-            "You are a deterministic technical analyst. Use ONLY the structured arrays provided in the ENHANCED ARRAYS, FEATURES, INDICATOR SNAPSHOT, and VOLUME_ANALYSIS sections. "
-            "Analyze the FULL arrays (e.g., entire RSI, MACD, BB, EMA histories) to derive trends, slopes, peaks/troughs, divergences, and patterns. "
-            "Explicitly compare 1-week (1w) and 3-month (3m) arrays for each indicator, noting alignments, conflicts, and how short-term momentum influences longer-term trends. "
-            "Forbidden: news, macro, on-chain, session effects (market open/close), weekdays, seasonality, or inferences beyond given timestamps and data. "
-            "All claims must be quantitatively verifiable from the arrays (e.g., compute averages, slopes, or crossovers directly). "
-            "If any required arrays are missing, empty, or insufficient for full analysis (e.g., no full RSI array for divergence detection), output status='insufficient_data' with detailed 'notes'. "
-            "Prioritize depth: synthesize across indicators and timeframes for the most comprehensive, evidence-based analysis possible."
+            "You are a deterministic technical analyst. Use ONLY the structured arrays provided. "
+            "Forbidden: news, macro, on-chain, session effects (market open/close), weekdays, seasonality, etc. "
+            "Do not infer beyond given timestamps. If required arrays are missing/empty, output status='insufficient_data'."
         )
 
         data_3m = analysis_data.get("data_3m", {})
@@ -593,118 +588,113 @@ class AIAnalyzer:
             "critical_levels": {"bullish_above": "number or null", "bearish_below": "number or null"},
             "evidence": [
                 {"type":"rsi|macd|bb|ema|price|volume|structure",
-                 "timeframe":"3m|1w","ts":"YYYY-MM-DD HH:MM" or "recent","value":"number or object","note":"short factual note, e.g., 'RSI divergence: price low at 98286 with RSI 37.9 vs prior low RSI 37.8'"}
+                 "timeframe":"3m|1w","ts":"YYYY-mm-dd HH:MM","value":"number or object","note":"short factual note"}
             ],
-            "notes": ["if status=insufficient_data, list what's missing; else optional warnings"]
+            "notes": ["if status=insufficient_data, list what's missing"]
         }
 
-        # Narrative section template (improved)
+        # Narrative section template (your original)
         narrative_template = """
-        [TECHNICAL_ANALYSIS_START]
-        **COMPREHENSIVE TECHNICAL ANALYSIS**
+[TECHNICAL_ANALYSIS_START]
+**COMPREHENSIVE TECHNICAL ANALYSIS**
 
-        **Current Price: ${current_price:,.2f}**
+**Current Price: ${current_price:,.2f}**
 
-        **1. MULTI-TIMEFRAME OVERVIEW**
-        - 3-Month Chart Analysis: <facts from full 3m arrays, e.g., price ranged 98286-124457; recent RSI trend: last 5 values averaging X, sloping Y>
-        - 1-Week Chart Analysis: <facts from full 1w arrays, e.g., recent prices show Z% volatility; MACD histogram increasing over last 10 bars>
-        - Timeframe Alignment: <e.g., 1w bullish MACD crossover aligns with 3m downtrend, suggesting short-term rebound in longer bearish context>
+**1. MULTI-TIMEFRAME OVERVIEW**
+- 3-Month Chart Analysis: <facts only from arrays>
+- 1-Week Chart Analysis: <facts only from arrays>
+- Timeframe Alignment: <consistency or conflict>
 
-        **2. TECHNICAL INDICATORS ANALYSIS**
-        - RSI Analysis: <full array levels, trends, divergences; compare 1w vs 3m, e.g., 1w RSI at 43.7 (rising from avg 35) vs 3m at 37.9 (falling from avg 50)>
-        - MACD Analysis: <full histogram slopes, crossovers; compare timeframes, e.g., 1w bullish crossover with positive histogram slope X vs 3m bearish>
-        - Bollinger Bands: <width trends from full arrays, position; compare, e.g., 3m squeeze (width decreased 20%) vs 1w expansion>
-        - EMA Analysis: <price vs full EMA_20 trends/slopes; compare, e.g., 1w EMA slope -62 vs 3m -2023 indicates steeper long-term decline>
+**2. TECHNICAL INDICATORS ANALYSIS**
+- RSI Analysis: <levels/divergences>
+- MACD Analysis: <crossovers/histogram>
+- Bollinger Bands: <within/upper/lower, squeeze/expansion>
+- EMA Analysis: <price vs EMA_20>
 
-        **3. ADVANCED PATTERN ANALYSIS**
-        - Patterns & Candles: <from recent_prices and highs/lows, e.g., 1w shows higher lows in last 5 bars; else 'none observed from data'>
-        - Support/Resistance: <explicit levels from period_highs_lows/recent_highs_lows, e.g., 3m support at 98286>
+**3. ADVANCED PATTERN ANALYSIS**
+- Patterns & Candles: <if evident in arrays; else 'none observed'>
+- Support/Resistance: <explicit levels from highs/lows>
 
-        **4. DIVERGENCE & FAILURE SWINGS**
-        - RSI/MACD divergences and failure swings: <scan full arrays, e.g., 3m MACD bearish divergence: lower highs in MACD while price highs similar>
-        - Volume divergences: <from volume_analysis and recent_prices, e.g., 1w increasing volume on price up bars supports bullishness>
+**4. DIVERGENCE & FAILURE SWINGS**
+- RSI/MACD divergences and failure swings: <only if visible>
+- Volume divergences: <only if visible>
 
-        **5. TRENDLINE & STRUCTURE**
-        - Higher highs/lows or lower highs/lows: <from full price/indicator arrays, compared across timeframes>
-        - Key levels: <derived from BB, highs/lows>
+**5. TRENDLINE & STRUCTURE**
+- Higher highs/lows or lower highs/lows
+- Key levels
 
-        **6. TRADING RECOMMENDATION**
-        - Overall Bias: **BULLISH/BEARISH/NEUTRAL** <based on timeframe alignment and indicator majority>
-        - Entry/Stop/Targets: <levels from arrays, e.g., entry above 1w BB_upper at X, stop below 3m recent_low>
-        [TECHNICAL_ANALYSIS_END]
+**6. TRADING RECOMMENDATION**
+- Overall Bias: **BULLISH/BEARISH/NEUTRAL**
+- Entry/Stop/Targets: <levels based on arrays>
+[TECHNICAL_ANALYSIS_END]
 
-        [PRICE_PREDICTION_START]
-        **PREDICTED PRICE: I predict {asset} will be at $<PRICE> on {target_formatted}** <derived from trends, e.g., projecting EMA slope over days to target>
+[PRICE_PREDICTION_START]
+**PREDICTED PRICE: I predict {asset} will be at $<PRICE> on {target_formatted}**
 
-        ⏰ **DATA-BASED TIME ANALYSIS:**
-        - Exact Target: {target_ts}
-        - Momentum Direction: <from full RSI/MACD arrays, compared 1w/3m>
-        - Trend Strength: <from EMA slopes, histogram averages; compare timeframes>
-        - Volume Analysis: <full trends from arrays, e.g., 1w increasing supports momentum>
-        - Expected Path: <data-grounded, e.g., short-term 1w bounce to test 3m resistance>
+⏰ **DATA-BASED TIME ANALYSIS:**
+- Exact Target: {target_ts}
+- Momentum Direction: <from RSI/MACD arrays>
+- Trend Strength: <from EMA/price action>
+- Volume Analysis: <from volume arrays>
+- Expected Path: <data-grounded path>
 
-        1. **Probability HIGHER than ${current_price:,.2f}: <X>%** <based on # bullish indicators>
-        2. **Probability LOWER than ${current_price:,.2f}: <Y>%**
-        3. **Overall Analysis Confidence: <Z>%** <high if arrays align>
-        4. **Price Prediction Confidence: <W>%** <based on trend consistency>
-        5. **Expected % Move: <±M>%**
+1. **Probability HIGHER than ${current_price:,.2f}: <X>%**
+2. **Probability LOWER than ${current_price:,.2f}: <Y>%**
+3. **Overall Analysis Confidence: <Z>%**
+4. **Price Prediction Confidence: <W>%**
+5. **Expected % Move: <±M>%**
 
-        **Key Technical Factors from the Actual Data:**
-        - Factor 1: <e.g., 3m RSI oversold at 37.9, compared to 1w 43.7 suggesting rebound>
-        - Factor 2: <e.g., MACD 1w bullish crossover vs 3m bearish>
-        - Factor 3: <more from full arrays/comparisons>
+**Key Technical Factors from the Actual Data:**
+- Factor 1…
+- Factor 2…
+- Factor 3…
 
-        **Price Targets Based on Chart Analysis:**
-        - Upside Target 1: $<amount> <e.g., 3m BB_upper>
-        - Upside Target 2: $<amount> <e.g., period_high extension>
-        - Downside Target 1: $<amount> <e.g., 1w recent_low>
-        - Downside Target 2: $<amount>
+**Price Targets Based on Chart Analysis:**
+- Upside Target 1: $<amount>
+- Upside Target 2: $<amount>
+- Downside Target 1: $<amount>
+- Downside Target 2: $<amount>
 
-        **Critical Levels from the Data:**
-        - Bullish above: $<level> <from arrays>
-        - Bearish below: $<level>
-        [PRICE_PREDICTION_END]
-        """.strip()
+**Critical Levels from the Data:**
+- Bullish above: $<level>
+- Bearish below: $<level>
+[PRICE_PREDICTION_END]
+""".strip()
 
         user_content = f"""
-        ASSET: {asset_name}
+ASSET: {asset_name}
 
-        DATA WINDOWS (do not infer beyond them):
-        - 3m index range: {data_3m.get('start_date','N/A')} → {data_3m.get('end_date','N/A')}
-        - 1w index range: {data_1w.get('start_date','N/A')} → {data_1w.get('end_date','N/A')}
+DATA WINDOWS (do not infer beyond them):
+- 3m index range: {data_3m.get('start_date','N/A')} → {data_3m.get('end_date','N/A')}
+- 1w index range: {data_1w.get('start_date','N/A')} → {data_1w.get('end_date','N/A')}
 
-        TARGET (timestamp string; do not alter): {analysis_data.get('target_time')}
-        AS_OF (timestamp string; do not alter): {analysis_data.get('current_time')}
-        CURRENT_PRICE (use exactly this number): {analysis_data.get('current_price')}
+TARGET (timestamp string; do not alter): {analysis_data.get('target_time')}
+AS_OF (timestamp string; do not alter): {analysis_data.get('current_time')}
+CURRENT_PRICE (use exactly this number): {analysis_data.get('current_price')}
 
-        INDICATOR SNAPSHOT:
-        {json.dumps(analysis_data.get('indicators', {}), indent=2)}
+INDICATOR SNAPSHOT:
+{json.dumps(analysis_data.get('indicators', {}), indent=2)}
 
-        FEATURES:
-        {json.dumps(analysis_data.get('features', {}), indent=2)}
+FEATURES:
+{json.dumps(analysis_data.get('features', {}), indent=2)}
 
-        ENHANCED ARRAYS:
-        {json.dumps(analysis_data.get('enhanced_chart_data', {}), indent=2)}
+ENHANCED ARRAYS:
+{json.dumps(analysis_data.get('enhanced_chart_data', {}), indent=2)}
 
-        STRICT RULES:
-        - Use ONLY these arrays for all analysis. Do NOT use session effects, news, or any outside info.
-        - For trend analysis: Scan FULL ENHANCED ARRAYS to compute metrics like RSI averages over the last 10/20/50 periods, MACD histogram slopes (e.g., average change over last 5 bars), BB width trends (expansion/squeeze via array differences), EMA slopes, and price action patterns (e.g., higher highs/lows from period_highs_lows and recent_prices).
-        - Mandatory comparisons: For each indicator (RSI, MACD, BB, EMA), compare 1w vs 3m values/trends (e.g., "1w RSI rising while 3m RSI falling indicates short-term reversal potential"). Assess timeframe alignment (e.g., both bullish = strong trend; conflicting = caution).
-        - Divergences/Failures: Scan arrays for RSI/MACD divergences (e.g., price highs with lower RSI peaks) and failure swings (e.g., RSI failing to break prior highs/lows). Only claim if verifiable in data.
-        - Volume: Use volume_analysis and recent_prices.volume to assess trends/divergences (e.g., price up on decreasing volume = weakness).
-        - Predictions: Derive predicted_price from array-derived trends (e.g., project EMA slope or BB extensions). Confidences/probabilities must be based on quantitative factors (e.g., high conf if indicators align across timeframes). p_up + p_down = 1. expected_pct_move = (predicted_price - current_price) / current_price * 100 if provided.
-        - If arrays are empty/missing, return status='insufficient_data' with 'notes' listing specifics (e.g., "Missing full MACD array for 1w").
-        - All levels/claims must be verifiable from these arrays.
+STRICT RULES:
+- Use ONLY these arrays. Do NOT use session effects, news, or any outside info.
+- If required arrays are empty/missing, return status='insufficient_data' with 'notes'.
+- All levels/claims must be verifiable from these arrays.
 
-        YOU MUST RETURN **TWO** BLOCKS, IN THIS ORDER:
+YOU MUST RETURN **TWO** BLOCKS, IN THIS ORDER:
 
-        1) A VALID JSON object, in a fenced code block like:
-        ```json
-        {json.dumps(output_schema, indent=2)}
-Fill all applicable fields with numbers (not strings) where appropriate. Evidence must reference full arrays and comparisons.
+1) A VALID JSON object, in a fenced code block like:
+```json
+{json.dumps(output_schema, indent=2)}
+Fill all applicable fields with numbers (not strings) where appropriate.
 
 A narrative block using EXACTLY the following section markers and structure,
-filling in concrete values from the arrays. This is the display copy for the app. Use quantitative facts only (e.g., "RSI averaged 45 over last 10 3m bars vs 50 in 1w").
+filling in concrete values from the arrays. This is the display copy for the app:
 
 {narrative_template.format(
 current_price=analysis_data.get('current_price'),
@@ -712,7 +702,8 @@ asset=asset_name,
 target_formatted=analysis_data.get('target_time'),
 target_ts=analysis_data.get('target_time')
 )}
-        """.strip()
+""".strip()
+
         return ({"role": "system", "content": system_content},
                 {"role": "user", "content": user_content})
 
@@ -723,11 +714,24 @@ target_ts=analysis_data.get('target_time')
         """
         if not self.gpt5_client:
             return '{"status":"insufficient_data","notes":["no_client"]}'
+
         asset_name = analysis_data.get("asset_name", "Asset")
         system_msg, user_msg = self._build_messages(analysis_data, asset_name)
-        
-        # Debug output removed to prevent UI display issues
-        
+
+        # DEBUG: Print the full prompt being sent to OpenAI
+        print("\n" + "="*80)
+        print("🤖 FULL PROMPT BEING SENT TO OPENAI/CHATGPT")
+        print("="*80)
+        print("\n📋 SYSTEM MESSAGE:")
+        print("-" * 40)
+        print(system_msg["content"])
+        print("\n📊 USER MESSAGE (WITH ALL DATA POINTS):")
+        print("-" * 40)
+        print(user_msg["content"])
+        print("\n" + "="*80)
+        print("END OF PROMPT")
+        print("="*80 + "\n")
+
         # Responses API
         try:
             resp = self.gpt5_client.responses.create(
@@ -737,7 +741,7 @@ target_ts=analysis_data.get('target_time')
             return resp.output_text  # raw text with both blocks
         except Exception as e:
             self._dbg("warning", f"Responses API failed, will try Chat Completions. Error: {e}")
-        
+
         # Fallback: Chat Completions (text)
         try:
             chat = self.gpt5_client.chat.completions.create(
@@ -751,17 +755,17 @@ target_ts=analysis_data.get('target_time')
     # ---------- parsing + probabilities + text composition ----------
 
     def _split_dual_output(self, raw: str) -> Tuple[str, str]:
-        """Extract a JSON fenced block (json ... ) and the rest (narrative)."""
+        """Extract a JSON fenced block (```json ... ```) and the rest (narrative)."""
         if not raw:
             return "", ""
-        
+
         # Prefer fenced ```json blocks
-        m = re.search(r"```json\s*(.*?)\s*```", raw, re.DOTALL)
+        m = re.search(r"```json\s*(\{.*?\})\s*```", raw, flags=re.DOTALL | re.IGNORECASE)
         if m:
             json_block = m.group(1).strip()
             narrative = raw[:m.start()] + raw[m.end():]
             return json_block, narrative.strip()
-        
+
         # Fallback: first JSON object in text (greedy braces balance heuristic)
         first_brace = raw.find("{")
         last_brace = raw.rfind("}")
@@ -774,19 +778,21 @@ target_ts=analysis_data.get('target_time')
                 return candidate.strip(), narrative.strip()
             except Exception:
                 pass
-        
+
         # Nothing extractable; return raw as narrative
         return "", raw.strip()
 
     def _parse_json_response(self, response_text: str, current_price: float) -> Dict[str, Any]:
         if not response_text:
             return {"status": "insufficient_data", "notes": ["no_json_block_found"]}
+
         try:
             data = json.loads(response_text)
             if not isinstance(data, dict):
                 return {"status": "insufficient_data", "notes": ["non_dict_json"]}
+
             data["status"] = data.get("status") if data.get("status") in ("ok","insufficient_data") else "insufficient_data"
-            
+
             # Normalize probabilities
             p_up_val = self._safe_num(data.get("p_up"), 0.5)
             p_down_val = self._safe_num(data.get("p_down"), 0.5)
@@ -800,17 +806,18 @@ target_ts=analysis_data.get('target_time')
             else:
                 p_up, p_down = p_up/total, p_down/total
             data["p_up"], data["p_down"] = p_up, p_down
-            
+
             # Compute expected % move if we have predicted_price
             cp = float(current_price) if current_price is not None else None
             pred = self._safe_num(data.get("predicted_price"), None)
             if pred is not None and cp and cp > 0:
                 data["expected_pct_move"] = (float(pred) - cp) / cp * 100.0
-            
+
             for key in ("conf_overall", "conf_price"):
                 if key in data and data[key] is not None:
                     safe_val = self._safe_num(data[key], 0.5)
                     data[key] = max(0.0, min(1.0, float(safe_val) if safe_val is not None else 0.5))
+
             return data
         except Exception as e:
             return {"status": "insufficient_data", "notes": [f"json_parse_error:{e}"]}
@@ -819,16 +826,17 @@ target_ts=analysis_data.get('target_time')
         """Parse narrative into sections using your original markers."""
         try:
             sections: Dict[str, str] = {}
+
             tech_start = response.find("[TECHNICAL_ANALYSIS_START]")
             tech_end = response.find("[TECHNICAL_ANALYSIS_END]")
             if tech_start != -1 and tech_end != -1:
                 sections["technical_summary"] = response[tech_start + len("[TECHNICAL_ANALYSIS_START]") : tech_end].strip()
-            
+
             pred_start = response.find("[PRICE_PREDICTION_START]")
             pred_end = response.find("[PRICE_PREDICTION_END]")
             if pred_start != -1 and pred_end != -1:
                 sections["price_prediction"] = response[pred_start + len("[PRICE_PREDICTION_START]") : pred_end].strip()
-            
+
             if not sections:
                 # fallback parsing (very lenient)
                 lines = response.split("\n")
@@ -850,7 +858,7 @@ target_ts=analysis_data.get('target_time')
                         current_content.append(line)
                 if current_section and current_content:
                     sections[current_section] = "\n".join(current_content).strip()
-            
+
             return sections or {"technical_summary": response, "price_prediction": ""}
         except Exception:
             return {"technical_summary": response, "price_prediction": "Unable to parse prediction section"}
@@ -858,7 +866,7 @@ target_ts=analysis_data.get('target_time')
     def _extract_probabilities_from_json(self, data: Dict[str, Any], current_price: float) -> Dict[str, Any]:
         if not isinstance(data, dict) or data.get("status") != "ok":
             return self._default_probs()
-        
+
         p_up_val = self._safe_num(data.get("p_up"), 0.5)
         p_down_val = self._safe_num(data.get("p_down"), 0.5)
         conf_overall_val = self._safe_num(data.get("conf_overall"), 0.5)
@@ -868,13 +876,13 @@ target_ts=analysis_data.get('target_time')
         p_down = float(p_down_val) if p_down_val is not None else 0.5
         conf_overall = float(conf_overall_val) if conf_overall_val is not None else 0.5
         conf_price = float(conf_price_val) if conf_price_val is not None else 0.5
-        
         pred = self._safe_num(data.get("predicted_price"), None)
+
         move_pct = 0.0
         cp = float(current_price) if current_price else None
         if pred is not None and cp and cp > 0:
             move_pct = (float(pred) - cp) / cp * 100.0
-        
+
         return {
             "higher_fraction": p_up,
             "lower_fraction": p_down,
@@ -905,7 +913,7 @@ target_ts=analysis_data.get('target_time')
             return ts.strftime("%Y-%m-%d %H:%M")
         except Exception:
             return "N/A"
-
+    
     def _safe_format_daterange(self, start_dt, end_dt) -> str:
         """Safely format a date range, handling NaT and other edge cases."""
         try:
@@ -932,7 +940,7 @@ target_ts=analysis_data.get('target_time')
     def _compose_text_from_model_json(self, data: Dict[str, Any], current_price: float) -> Tuple[str, str]:
         if not isinstance(data, dict):
             return ("Analysis not available", "Prediction not available")
-        
+
         status = data.get("status", "insufficient_data")
         as_of = data.get("as_of", "")
         target_ts = data.get("target_ts", "")
@@ -942,84 +950,85 @@ target_ts=analysis_data.get('target_time')
         crit = data.get("critical_levels", {}) or {}
         bull = crit.get("bullish_above", None)
         bear = crit.get("bearish_below", None)
-        
+
         if status != "ok":
             notes = data.get("notes", [])
             msg = "; ".join([str(n) for n in notes]) if notes else "insufficient data"
             return (
-                f"Status: insufficient data\n\nNotes: {msg}",
-                f"Target: {target_ts}\n\n_No price prediction due to insufficient data._"
+                f"**Status:** _insufficient data_\n\n**Notes:** {msg}",
+                f"**Target:** `{target_ts}`\n\n_No price prediction due to insufficient data._"
             )
-        
+
         bullets: List[str] = []
         if bull is not None:
-            bullets.append(f"- Bullish above: ${bull:,.0f}")
+            bullets.append(f"- **Bullish above:** ${bull:,.0f}")
         if bear is not None:
-            bullets.append(f"- Bearish below: ${bear:,.0f}")
+            bullets.append(f"- **Bearish below:** ${bear:,.0f}")
         if expected is not None:
-            bullets.append(f"- Expected move: {expected:+.2f}% vs current (${current_price:,.0f})")
-        
+            bullets.append(f"- **Expected move:** {expected:+.2f}% vs current (${current_price:,.0f})")
         ev = data.get("evidence", []) or []
         for e in ev[:6]:
             t = e.get("type","fact"); tf = e.get("timeframe",""); ts = e.get("ts",""); note = e.get("note","")
-            bullets.append(f"- {t.upper()} {tf} @ {ts}: {note}")
-        
-        tech_md = f"As of: {as_of}\n\n" + ("\n".join(bullets) if bullets else "No additional evidence provided.")
-        price_line = f"Predicted price at {target_ts}: " + (f"${pred:,.0f}" if pred is not None else "unavailable")
-        pred_md = f"{price_line}\n\n- P(higher): {p_up*100:.0f}%   - P(lower): {p_down*100:.0f}%   - AI confidence: {data.get('conf_overall',0.5)*100:.0f}%"
+            bullets.append(f"- **{t.upper()} {tf} @ {ts}:** {note}")
+
+        tech_md = f"**As of:** `{as_of}`\n\n" + ("\n".join(bullets) if bullets else "_No additional evidence provided._")
+        price_line = f"**Predicted price at `{target_ts}`:** " + (f"**${pred:,.0f}**" if pred is not None else "unavailable")
+        pred_md = f"{price_line}\n\n- **P(higher)**: {p_up*100:.0f}%   - **P(lower)**: {p_down*100:.0f}%   - **AI confidence**: {data.get('conf_overall',0.5)*100:.0f}%"
         return tech_md, pred_md
 
     def _compose_text_when_insufficient(self, reason: str, target_ts: str) -> Tuple[str, str]:
-        tech = f"Status: insufficient data\n\nNotes: {reason or 'missing inputs'}"
-        pred = f"Target: {target_ts}\n\n_No price prediction due to insufficient data."
+        tech = f"**Status:** _insufficient data_\n\n**Notes:** {reason or 'missing inputs'}"
+        pred = f"**Target:** `{target_ts}`\n\n_No price prediction due to insufficient data._"
         return tech, pred
 
     def _extract_probabilities(self, prediction_text: str) -> Dict[str, Any]:
         """Legacy regex extraction from narrative price section."""
         probs = {"higher_fraction": 0.5, "lower_fraction": 0.5, "confidence_fraction": 0.5,
-                "higher_pct": 50.0, "lower_pct": 50.0, "confidence_pct": 50.0, "predicted_price": None,
-                "price_confidence_pct": 50.0, "move_percentage": 0.0}
+                 "higher_pct": 50.0, "lower_pct": 50.0, "confidence_pct": 50.0, "predicted_price": None,
+                 "price_confidence_pct": 50.0, "move_percentage": 0.0}
         try:
             patterns = {
                 "higher": [
-                    r"(\d+)%?\s*(?:probability|chance|likelihood).?(?:higher|up|increase)",
-                    r"(?:higher|up|increase).?(\d+)%",
-                    r"HIGHER.?(\d+)%",
-                    r"(\d+)%.?higher",
+                    r"(\d+)%?\s*(?:probability|chance|likelihood).*?(?:higher|up|increase)",
+                    r"(?:higher|up|increase).*?(\d+)%",
+                    r"HIGHER.*?(\d+)%",
+                    r"(\d+)%.*?higher",
                 ],
                 "lower": [
-                    r"(\d+)%?\s*(?:probability|chance|likelihood).?(?:lower|down|decrease)",
-                    r"(?:lower|down|decrease).?(\d+)%",
-                    r"LOWER.?(\d+)%",
-                    r"(\d+)%.?lower",
+                    r"(\d+)%?\s*(?:probability|chance|likelihood).*?(?:lower|down|decrease)",
+                    r"(?:lower|down|decrease).*?(\d+)%",
+                    r"LOWER.*?(\d+)%",
+                    r"(\d+)%.*?lower",
                 ],
                 "confidence": [
-                    r"overall.?confidence.?(\d+)%",
-                    r"analysis.?confidence.?(\d+)%",
-                    r"confidence.?(\d+)%",
-                    r"(\d+)%.?confidence",
-                    r"confident.?(\d+)%",
+                    r"overall.*?confidence.*?(\d+)%",
+                    r"analysis.*?confidence.*?(\d+)%",
+                    r"confidence.*?(\d+)%",
+                    r"(\d+)%.*?confidence",
+                    r"confident.*?(\d+)%",
                 ],
                 "price_confidence": [
-                    r"price.?confidence.?(\d+)%",
-                    r"price.?prediction.?confidence.?(\d+)%",
-                    r"target.?confidence.?(\d+)%",
+                    r"price.*?confidence.*?(\d+)%",
+                    r"price.*?prediction.*?confidence.*?(\d+)%",
+                    r"target.*?confidence.*?(\d+)%",
                 ],
                 "move_percentage": [
-                    r"([+-]?\d+.?\d*)%.?move",
-                    r"move.?([+-]?\d+.?\d*)%",
-                    r"expected.?([+-]?\d+.?\d)%",
-                    r"change.?([+-]?\d+.?\d)%",
+                    r"([+-]?\d+\.?\d*)%.*?move",
+                    r"move.*?([+-]?\d+\.?\d*)%",
+                    r"expected.*?([+-]?\d+\.?\d*)%",
+                    r"change.*?([+-]?\d+\.?\d*)%",
                 ],
                 "predicted_price": [
-                    r"predict.?$([\d,]+)(?:.\d+)?",
-                    r"predicted price.?$([\d,]+)(?:.\d+)?",
-                    r"will be.?$([\d,]+)(?:.\d+)?",
-                    r"target.?$([\d,]+)(?:.\d+)?",
-                    r"bitcoin.*?$([\d,]+)(?:.\d+)?",
+                    r"predict.*?\$([\d,]+)(?:\.\d+)?",
+                    r"predicted price.*?\$([\d,]+)(?:\.\d+)?",
+                    r"will be.*?\$([\d,]+)(?:\.\d+)?",
+                    r"target.*?\$([\d,]+)(?:\.\d+)?",
+                    r"bitcoin.*?\$([\d,]+)(?:\.\d+)?",
                 ],
             }
+
             text_lower = prediction_text.lower()
+
             for key in ["higher", "lower", "confidence", "price_confidence", "move_percentage", "predicted_price"]:
                 for pat in patterns[key]:
                     m = re.findall(pat, text_lower, flags=re.IGNORECASE)
@@ -1040,15 +1049,18 @@ target_ts=analysis_data.get('target_time')
                             elif key == "move_percentage":
                                 probs["move_percentage"] = val
                         break
+
             total = probs["higher_pct"] + probs["lower_pct"]
             if total > 0:
                 probs["higher_pct"] = probs["higher_pct"] * 100.0 / total
                 probs["lower_pct"] = probs["lower_pct"] * 100.0 / total
-            
+
             # Fractions 0..1
             probs["higher_fraction"] = probs["higher_pct"] / 100.0
             probs["lower_fraction"] = probs["lower_pct"] / 100.0
             probs["confidence_fraction"] = probs["confidence_pct"] / 100.0
+
         except Exception as e:
             self._dbg("warning", f"Error extracting probabilities: {str(e)}")
+
         return probs

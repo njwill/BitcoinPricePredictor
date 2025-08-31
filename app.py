@@ -415,6 +415,28 @@ def load_stored_analysis(analysis_hash: str):
             # Extract clean content from dictionary
             technical_summary = full_analysis.get('technical_summary', 'Analysis not available')
             price_prediction = full_analysis.get('price_prediction', 'Prediction not available')
+            
+            # If technical_summary is still a dict, it might contain the actual analysis data
+            if isinstance(technical_summary, dict):
+                # Check if this is the entire analysis response object
+                if 'technical_summary' in technical_summary:
+                    technical_summary = technical_summary['technical_summary']
+                elif 'status' in technical_summary and 'model_json' in technical_summary:
+                    # This appears to be the full analysis object, extract technical_summary
+                    technical_summary = technical_summary.get('technical_summary', 'Analysis data available but not properly formatted')
+                else:
+                    # If no nested technical_summary, show a message instead of raw dict
+                    technical_summary = 'Technical analysis data available but not in expected format'
+            
+            # Same for price_prediction
+            if isinstance(price_prediction, dict):
+                if 'price_prediction' in price_prediction:
+                    price_prediction = price_prediction['price_prediction']
+                elif 'status' in price_prediction and 'model_json' in price_prediction:
+                    # This appears to be the full analysis object, extract price_prediction
+                    price_prediction = price_prediction.get('price_prediction', 'Price prediction data available but not properly formatted')
+                else:
+                    price_prediction = 'Price prediction data available but not in expected format'
         elif isinstance(full_analysis, str):
             # Check if it's a string representation of a dict
             if full_analysis.startswith("{'technical_summary'"):

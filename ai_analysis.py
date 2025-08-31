@@ -25,7 +25,7 @@ class AIAnalyzer:
 
     def __init__(self, debug: Optional[bool] = None):
         if debug is None:
-            self.debug = os.getenv("AI_ANALYZER_DEBUG", "0") == "1"
+            self.debug = True  # Temporarily force debug to see what's happening
         else:
             self.debug = bool(debug)
 
@@ -117,6 +117,10 @@ class AIAnalyzer:
             if status != "ok" and ("`" in pred_md and "Target:" in pred_md and "``" in pred_md):
                 pred_md = f"**Target:** `{target_ts_fallback}`\n\n_No price prediction due to insufficient data._"
 
+            # Temporary debug to see what content is being returned
+            self._dbg("info", f"Technical Summary Content: {tech_md[:200]}...")
+            self._dbg("info", f"Price Prediction Content: {pred_md[:200]}...")
+            
             return {
                 "status": status,
                 "model_json": parsed_json,

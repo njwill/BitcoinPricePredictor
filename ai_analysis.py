@@ -863,10 +863,10 @@ class AIAnalyzer:
         return feats
 
     # ---------- prompt + model call ----------
-def _build_messages(self, analysis_data: Dict[str, Any], asset_name: str) -> Tuple[Dict[str, str], Dict[str, str]]:
-    # Pull a few values for the template tables (filled by us so the output is already richer)
-    tf3m = (analysis_data.get("enhanced_chart_data") or {}).get("3m", {}) or {}
-    tf1w = (analysis_data.get("enhanced_chart_data") or {}).get("1w", {}) or {}
+    def _build_messages(self, analysis_data: Dict[str, Any], asset_name: str) -> Tuple[Dict[str, str], Dict[str, str]]:
+        # Pull a few values for the template tables (filled by us so the output is already richer)
+        tf3m = (analysis_data.get("enhanced_chart_data") or {}).get("3m", {}) or {}
+        tf1w = (analysis_data.get("enhanced_chart_data") or {}).get("1w", {}) or {}
 
     bars_3m = tf3m.get("bars", 0)
     bars_1w = tf1w.get("bars", 0)

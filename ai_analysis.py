@@ -1070,6 +1070,39 @@ class AIAnalyzer:
         - Entry/Stop/Targets: <levels from arrays>
         [TECHNICAL_ANALYSIS_END]
 
+        [SIMPLE_EXPLANATION_START]
+        **📚 SIMPLE MAN'S EXPLANATION**
+
+        **What These Indicators Actually Mean:**
+
+        **🔄 RSI (Relative Strength Index):**
+        - **What it is:** Measures if Bitcoin is "overbought" (too expensive) or "oversold" (too cheap)
+        - **How to read it:** 0-30 = oversold (good time to buy), 70-100 = overbought (might fall soon), 30-70 = neutral
+        - **Current reading:** <explain current RSI levels and what they mean for regular people>
+
+        **📈 MACD (Moving Average Convergence Divergence):**
+        - **What it is:** Shows the relationship between two moving averages to spot trend changes
+        - **How to read it:** When MACD line crosses above signal line = bullish (price might go up), below = bearish (price might go down)
+        - **Current reading:** <explain current MACD situation in simple terms>
+
+        **🎯 Bollinger Bands:**
+        - **What it is:** Shows if Bitcoin is trading in a "normal" price range or breaking out
+        - **How to read it:** Price touching upper band = might be overbought, touching lower band = might be oversold, squeezing bands = big move coming
+        - **Current reading:** <explain where price is relative to the bands>
+
+        **📊 EMA (Exponential Moving Average):**
+        - **What it is:** The average price over recent periods, giving more weight to recent prices
+        - **How to read it:** Price above EMA = uptrend, below EMA = downtrend, EMA slope shows trend strength
+        - **Current reading:** <explain current EMA situation>
+
+        **📦 Volume Analysis:**
+        - **What it is:** How much Bitcoin is being traded
+        - **How to read it:** High volume + price increase = strong move, low volume = weak move, volume confirms trends
+        - **Current reading:** <explain current volume trends>
+
+        **Why This Matters:** <Tie all indicators together to explain the overall market sentiment and what it means for someone considering buying/selling Bitcoin>
+        [SIMPLE_EXPLANATION_END]
+
         [PRICE_PREDICTION_START]
         **PREDICTED PRICE: I predict {asset_name} will be at $<PRICE> on {analysis_data.get('target_time')}**
 
@@ -1290,6 +1323,11 @@ class AIAnalyzer:
             tech_end = response.find("[TECHNICAL_ANALYSIS_END]")
             if tech_start != -1 and tech_end != -1 and tech_end > tech_start:
                 sections["technical_summary"] = response[tech_start + len("[TECHNICAL_ANALYSIS_START]") : tech_end].strip()
+
+            simple_start = response.find("[SIMPLE_EXPLANATION_START]")
+            simple_end = response.find("[SIMPLE_EXPLANATION_END]")
+            if simple_start != -1 and simple_end != -1 and simple_end > simple_start:
+                sections["simple_explanation"] = response[simple_start + len("[SIMPLE_EXPLANATION_START]") : simple_end].strip()
 
             pred_start = response.find("[PRICE_PREDICTION_START]")
             pred_end = response.find("[PRICE_PREDICTION_END]")

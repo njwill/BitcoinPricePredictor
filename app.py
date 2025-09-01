@@ -475,6 +475,40 @@ def load_stored_analysis(analysis_hash: str):
                 st.write("Analysis not available")
             
             st.markdown("<br>", unsafe_allow_html=True)
+            
+            # Simple Man's Explanation section for stored analysis
+            st.subheader("📚 Simple Man's Explanation")
+            # Extract simple explanation from stored analysis
+            if isinstance(full_analysis, dict):
+                simple_explanation = full_analysis.get('simple_explanation', 'Educational explanation not available')
+                # Handle nested dictionary case
+                if isinstance(simple_explanation, dict):
+                    if 'simple_explanation' in simple_explanation:
+                        simple_explanation = simple_explanation['simple_explanation']
+                    else:
+                        simple_explanation = 'Educational explanation data available but not in expected format'
+            elif isinstance(full_analysis, str):
+                # Check if it's a string representation of a dict
+                if full_analysis.startswith("{'") and "simple_explanation" in full_analysis:
+                    try:
+                        import ast
+                        parsed_dict = ast.literal_eval(full_analysis)
+                        simple_explanation = parsed_dict.get('simple_explanation', 'Educational explanation not available')
+                    except:
+                        simple_explanation = 'Educational explanation not available'
+                else:
+                    simple_explanation = 'Educational explanation not available'
+            else:
+                simple_explanation = 'Educational explanation not available'
+            
+            if isinstance(simple_explanation, str) and simple_explanation.strip():
+                cleaned_explanation = simple_explanation.replace('\\n', '\n').strip()
+                escaped_explanation = cleaned_explanation.replace('$', '\\$').replace('_', '\\_')
+                st.markdown(escaped_explanation)
+            else:
+                st.write("Educational explanation not available")
+            
+            st.markdown("<br>", unsafe_allow_html=True)
             # Show target date if available
             target_formatted = "Target Date"
             if prediction_data.get('target_datetime'):
@@ -1478,6 +1512,17 @@ def main():
                     st.write(cleaned_summary)
                 else:
                     st.write("Analysis not available")
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                
+                # Simple Man's Explanation section
+                st.subheader("📚 Simple Man's Explanation")
+                simple_explanation = analysis.get('simple_explanation', 'Educational explanation not available')
+                if isinstance(simple_explanation, str) and simple_explanation.strip():
+                    cleaned_explanation = simple_explanation.replace('\\n', '\n').strip()
+                    st.write(cleaned_explanation)
+                else:
+                    st.write("Educational explanation not available")
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.subheader(f"🎯 {target_formatted} Price Prediction")

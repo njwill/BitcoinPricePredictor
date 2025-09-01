@@ -51,7 +51,7 @@ class AIAnalyzer:
             self.debug = bool(debug)
 
         self.openai_key = os.getenv("OPENAI_API_KEY", "")
-        self.model_name = os.getenv("GPT5_MODEL", "gpt-5")
+        self.model_name = os.getenv("GPT5_MODEL", "gpt-5-nano")
         self.gpt = OpenAIWrapper(self.openai_key, self.model_name, debug=self.debug)
         self._last_current_price: Optional[float] = None
 

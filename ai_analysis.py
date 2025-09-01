@@ -14,6 +14,9 @@ import numpy as np
 import pandas as pd
 import pytz
 
+# --- Import OpenAI client from separate module ---
+from openai_client import OpenAIWrapper
+
 # --- Streamlit-safe import (falls back to console logger) ---
 try:  # noqa: SIM105
     import streamlit as st  # type: ignore
@@ -29,14 +32,9 @@ except Exception:  # pragma: no cover
             print("[info]", *a)
     st = _DummySt()  # type: ignore
 
-# --- OpenAI client wrapper (tolerant to API/SDK differences) ---
-try:
-    from openai import OpenAI  # Official SDK (>=1.0)
-except Exception:  # pragma: no cover
-    OpenAI = None  # type: ignore
 
 
-class _OpenAIWrapper:
+# Removed _OpenAIWrapper class - now imported from openai_client.py
     def __init__(self, api_key: Optional[str], model: str, debug: bool = False):
         self.model = model
         self.debug = debug
@@ -145,7 +143,7 @@ class AIAnalyzer:
 
         self.openai_key = os.getenv("OPENAI_API_KEY", "")
         self.model_name = os.getenv("GPT5_MODEL", "gpt-5")
-        self.gpt = _OpenAIWrapper(self.openai_key, self.model_name, debug=self.debug)
+        self.gpt = OpenAIWrapper(self.openai_key, self.model_name, debug=self.debug)
         self._last_current_price: Optional[float] = None
 
     # ---------- public API ----------

@@ -486,6 +486,21 @@ def load_stored_analysis(analysis_hash: str):
                     target_formatted = target_dt.strftime('%a %b %d, %Y at %I:%M %p ET')
                 except:
                     target_formatted = prediction_data['target_datetime']
+
+            # --- NEW: Simple Man Explanation (if present in saved analysis) ---
+            simple_explanation = None
+            if isinstance(full_analysis, dict):
+                # pull the field if it exists (handles nested dicts defensively)
+                simple_explanation = full_analysis.get('simple_explanation')
+                if isinstance(simple_explanation, dict) and 'simple_explanation' in simple_explanation:
+                    simple_explanation = simple_explanation['simple_explanation']
+
+            if isinstance(simple_explanation, str) and simple_explanation.strip():
+                st.subheader("🧠 Simple Man Explanation")
+                cleaned_simple = simple_explanation.replace('\\n', '\n').strip()
+                escaped_simple = cleaned_simple.replace('$', '\\$').replace('_', '\\_')  # keep KaTeX calm
+                st.markdown(escaped_simple)
+            # --- END NEW ---
             
             st.subheader(f"🎯 {target_formatted} Price Prediction")
             if isinstance(price_prediction, str) and price_prediction.strip():
@@ -1479,6 +1494,15 @@ def main():
                 else:
                     st.write("Analysis not available")
                 
+                # --- NEW: Simple Man Explanation (live run) ---
+                simple_explanation_live = analysis.get('simple_explanation')
+                if isinstance(simple_explanation_live, str) and simple_explanation_live.strip():
+                    st.subheader("🧠 Simple Man Explanation")
+                    cleaned_simple_live = simple_explanation_live.replace('\\n', '\n').strip()
+                    escaped_simple_live = cleaned_simple_live.replace('$', '\\$').replace('_', '\\_')
+                    st.markdown(escaped_simple_live)
+                # --- END NEW ---
+
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.subheader(f"🎯 {target_formatted} Price Prediction")
                 price_prediction = analysis.get('price_prediction', 'Prediction not available')

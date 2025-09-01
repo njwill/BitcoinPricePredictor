@@ -51,7 +51,7 @@ class AIAnalyzer:
             self.debug = bool(debug)
 
         self.openai_key = os.getenv("OPENAI_API_KEY", "")
-        self.model_name = os.getenv("GPT5_MODEL", "gpt-5")
+        self.model_name = os.getenv("GPT5_MODEL", "gpt-5-nano")
         self.gpt = OpenAIWrapper(self.openai_key, self.model_name, debug=self.debug)
         self._last_current_price: Optional[float] = None
 
@@ -148,16 +148,12 @@ class AIAnalyzer:
             if status != "ok" and ("Target:" in pred_md) and not re.search(r"`[^`]+`", pred_md):
                 pred_md = f"**Target:** `{target_ts_fallback}`\n\n_No price prediction due to insufficient data._"
 
-            # NEW: build the Simple Man Explanation (purely additive; does not alter other sections)
-            simple_md = self._compose_simple_explanation(analysis_data, probs)
-
             return {
                 "status": status,
                 "model_json": parsed_json,
                 "probabilities": probs,
                 "technical_summary": tech_md,
                 "price_prediction": pred_md,
-                "simple_explanation": simple_md,  # <-- NEW FIELD
                 "timestamp": datetime.now().isoformat(),
             }
 
@@ -1074,6 +1070,39 @@ class AIAnalyzer:
         - Entry/Stop/Targets: <levels from arrays>
         [TECHNICAL_ANALYSIS_END]
 
+        [SIMPLE_EXPLANATION_START]
+        **📚 SIMPLE MAN'S EXPLANATION**
+
+        **What These Indicators Actually Mean:**
+
+        **🔄 RSI (Relative Strength Index):**
+        - **What it is:** Measures if Bitcoin is "overbought" (too expensive) or "oversold" (too cheap)
+        - **How to read it:** 0-30 = oversold (good time to buy), 70-100 = overbought (might fall soon), 30-70 = neutral
+        - **Current reading:** <explain current RSI levels and what they mean for regular people>
+
+        **📈 MACD (Moving Average Convergence Divergence):**
+        - **What it is:** Shows the relationship between two moving averages to spot trend changes
+        - **How to read it:** When MACD line crosses above signal line = bullish (price might go up), below = bearish (price might go down)
+        - **Current reading:** <explain current MACD situation in simple terms>
+
+        **🎯 Bollinger Bands:**
+        - **What it is:** Shows if Bitcoin is trading in a "normal" price range or breaking out
+        - **How to read it:** Price touching upper band = might be overbought, touching lower band = might be oversold, squeezing bands = big move coming
+        - **Current reading:** <explain where price is relative to the bands>
+
+        **📊 EMA (Exponential Moving Average):**
+        - **What it is:** The average price over recent periods, giving more weight to recent prices
+        - **How to read it:** Price above EMA = uptrend, below EMA = downtrend, EMA slope shows trend strength
+        - **Current reading:** <explain current EMA situation>
+
+        **📦 Volume Analysis:**
+        - **What it is:** How much Bitcoin is being traded
+        - **How to read it:** High volume + price increase = strong move, low volume = weak move, volume confirms trends
+        - **Current reading:** <explain current volume trends>
+
+        **Why This Matters:** <Tie all indicators together to explain the overall market sentiment and what it means for someone considering buying/selling Bitcoin>
+        [SIMPLE_EXPLANATION_END]
+
         [PRICE_PREDICTION_START]
         **PREDICTED PRICE: I predict {asset_name} will be at $<PRICE> on {analysis_data.get('target_time')}**
 
@@ -1295,6 +1324,11 @@ class AIAnalyzer:
             if tech_start != -1 and tech_end != -1 and tech_end > tech_start:
                 sections["technical_summary"] = response[tech_start + len("[TECHNICAL_ANALYSIS_START]") : tech_end].strip()
 
+            simple_start = response.find("[SIMPLE_EXPLANATION_START]")
+            simple_end = response.find("[SIMPLE_EXPLANATION_END]")
+            if simple_start != -1 and simple_end != -1 and simple_end > simple_start:
+                sections["simple_explanation"] = response[simple_start + len("[SIMPLE_EXPLANATION_START]") : simple_end].strip()
+
             pred_start = response.find("[PRICE_PREDICTION_START]")
             pred_end = response.find("[PRICE_PREDICTION_END]")
             if pred_start != -1 and pred_end != -1 and pred_end > pred_start:
@@ -1512,119 +1546,6 @@ class AIAnalyzer:
             f"- AI confidence: {float(data.get('conf_overall', 0.5))*100:.0f}%"
         )
         return tech_md, pred_md
-
-    def _compose_simple_explanation(self, analysis_data: Dict[str, Any], probs: Dict[str, Any]) -> str:
-        """
-        Plain-English add-on for the UI. No price numbers, just what the dashboard is checking and
-        what today's read implies, written simply and consistently. Safe to call in all states.
-        """
-        asset = analysis_data.get("asset_name", "Asset")
-        target_ts = analysis_data.get("target_time", "")
-        inds = analysis_data.get("indicators", {}) or {}
-        feats = analysis_data.get("features", {}) or {}
-        vol = (analysis_data.get("enhanced_chart_data", {}) or {}).get("volume_analysis", {}) or {}
-
-        # Probabilities (keep it simple; no prices)
-        up_pct   = probs.get("higher_pct")
-        down_pct = probs.get("lower_pct")
-        conf_pct = probs.get("confidence_pct")
-
-        # Snapshots (no numbers—just states)
-        rsi_1w = (inds.get("RSI") or {}).get("1w_current")
-        rsi_3m = (inds.get("RSI") or {}).get("3m_current")
-        macd_1w = (inds.get("MACD_1w") or {}).get("crossover")  # 'bullish' / 'bearish' / None
-        macd_3m = (inds.get("MACD_3m") or {}).get("crossover")
-        bbpos_1w = (inds.get("BB_1w") or {}).get("position")    # 'within_bands'|'above_upper'|'below_lower'|None
-        bbpos_3m = (inds.get("BB_3m") or {}).get("position")
-        ema_1w = (inds.get("EMA_20_1w") or {}).get("trend")     # 'bullish' | 'bearish' | None
-        ema_3m = (inds.get("EMA_20_3m") or {}).get("trend")
-
-        # Helpful slopes (sign only; no values)
-        rsi_slope_1w = feats.get("rsi_slope_short_1w")
-        rsi_slope_3m = feats.get("rsi_slope_short_3m")
-        macd_hist_slope_1w = feats.get("macd_hist_slope_1w")
-        macd_hist_slope_3m = feats.get("macd_hist_slope_3m")
-        bb_width_slope_1w = feats.get("bb_width_slope_1w")
-        bb_width_slope_3m = feats.get("bb_width_slope_3m")
-
-        vol_trend_1w = vol.get("1w_volume_trend")   # 'increasing'|'decreasing'|None
-        vol_trend_3m = vol.get("3m_volume_trend")
-
-        def _above50(v: Optional[float]) -> Optional[bool]:
-            return None if v is None else (v > 50.0)
-
-        def _dir_word(x, up="rising", down="falling"):
-            if x is None: return "steady"
-            return up if x > 0 else down
-
-        def _bbpos_word(p):
-            if p == "above_upper": return "strong up-pressure (walking the top band)"
-            if p == "below_lower": return "down-pressure (hugging the lower band)"
-            if p == "within_bands": return "inside the normal range"
-            return "n/a"
-
-        def _ema_word(t):
-            if t == "bullish": return "above its short-term average"
-            if t == "bearish": return "below its short-term average"
-            return "n/a"
-
-        # Build short, human paragraphs (no prices)
-        short_now = []
-        short_now.append(f"- **Tilt into target**: Higher {up_pct:.0f}% vs Lower {down_pct:.0f}% (model confidence {conf_pct:.0f}%)." if (up_pct is not None and down_pct is not None and conf_pct is not None) else "- **Tilt into target**: Available when the model provides it.")
-
-        # 1-week read
-        rsi1 = _above50(rsi_1w)
-        rsi1_txt = "buyers have the edge" if rsi1 is True else ("sellers have the edge" if rsi1 is False else "RSI unavailable")
-        rsi1_slope = _dir_word(rsi_slope_1w)
-        macd1_txt = f"{macd_1w or 'n/a'} crossover; histogram {_dir_word(macd_hist_slope_1w)}"
-        bb1_txt = _bbpos_word(bbpos_1w)
-        ema1_txt = _ema_word(ema_1w)
-        vol1_txt = {"increasing":"participation is **picking up**","decreasing":"participation is **cooling**"}.get(vol_trend_1w, "participation is typical")
-
-        short_now.append(f"- **Short-term (1-week)**: RSI ~ 50 ⇒ {rsi1_txt} and {rsi1_slope}. MACD shows {macd1_txt}. Bollinger says price is {bb1_txt}. Price is {ema1_txt}. Volume trend: {vol1_txt}.")
-
-        # 3-month read
-        rsi3 = _above50(rsi_3m)
-        rsi3_txt = "buyers still have the background edge" if rsi3 is True else ("sellers have the background edge" if rsi3 is False else "RSI unavailable")
-        rsi3_slope = _dir_word(rsi_slope_3m)
-        macd3_txt = f"{macd_3m or 'n/a'} crossover; histogram {_dir_word(macd_hist_slope_3m)}"
-        bb3_txt = _bbpos_word(bbpos_3m)
-        ema3_txt = _ema_word(ema_3m)
-        vol3_txt = {"increasing":"participation is **building**","decreasing":"participation is **fading**"}.get(vol_trend_3m, "participation is typical")
-
-        short_now.append(f"- **Bigger picture (3-month)**: RSI ~ 50 ⇒ {rsi3_txt} and {rsi3_slope}. MACD shows {macd3_txt}. Bollinger says price is {bb3_txt}. Price is {ema3_txt}. Volume trend: {vol3_txt}.")
-
-        # Alignment hint (no levels)
-        align_hint = "Both windows agree, which strengthens the read." if (ema_1w == ema_3m and ema_1w in ("bullish","bearish")) else "Short-term and bigger-picture are mixed—treat moves as mean-reversion until they align."
-        short_now.append(f"- **Timeframe check**: {align_hint}")
-
-        # Definitions (stable, short)
-        defs = [
-            "- **EMA20 (trend/mean)**: Are we above or below the short-term average? Above = bullish bias; below = bearish bias.",
-            "- **Bollinger Bands (volatility)**: Bands widen in high volatility and pinch before big moves. The middle band is the mean—reclaims often precede continuation.",
-            "- **RSI (momentum)**: Above 50 favors buyers; below 50 favors sellers. The *slope* matters more than a single number.",
-            "- **MACD (trend momentum)**: Bullish crossover + rising histogram = momentum building; bearish + falling = momentum fading.",
-            "- **Volume / OBV (participation)**: Rising participation confirms moves; fading participation warns of weak follow-through.",
-            "- **Support & Resistance (structure)**: Recent swing lows/highs where moves commonly pause or reverse. Break-and-hold above/below often starts the next leg."
-        ]
-
-        md = []
-        md.append("### Simple Man Explanation")
-        if target_ts:
-            md.append(f"_A plain-English read of what this page is measuring and what the current signals imply into **{target_ts}**._")
-        md.append("")
-        md.append("**TL;DR**")
-        md.extend(short_now)
-        md.append("")
-        md.append("**What this page is actually checking**")
-        md.extend(defs)
-        md.append("")
-        md.append("**How to use it**")
-        md.append("- If **1-week** and **3-month** mostly agree, you have wind at your back (trend trades work better).")
-        md.append("- If they **disagree**, treat rallies/dips as **mean-reversion** into the bigger timeframe’s average until alignment returns.")
-        md.append("- Rising volume strengthens a move; fading volume says be picky and take profits faster.")
-        md.append("- No single tool is gospel—trend (EMA/Bollinger), momentum (RSI/MACD), and participation (Volume/OBV) should tell the **same story**.")
-        return "\n".join(md)
 
     def _compose_text_when_insufficient(self, reason: str, target_ts: str) -> Tuple[str, str]:
         tech = f"Status: insufficient data\n\nNotes: {reason or 'missing inputs'}"

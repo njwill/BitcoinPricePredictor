@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-# ai_analysis_fixed.py
-# Robust rewrite of your AIAnalyzer to avoid breakages, add safer parsing, and
-# make OpenAI calls more resilient across SDK versions.
+# ai_analysis_fixed.py — upgraded
+# - Full rewrite with robust JSON parsing (last fenced block), safer prep,
+#   richer engineered features, dynamic tails, divergence-ready pivots,
+#   SMA cross, ATR/OBV, volume thresholds, and target/bars metadata.
 
 import os
 import json
 import re
+import contextlib
 from typing import Dict, Any, Optional, List, Tuple
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
@@ -22,19 +24,13 @@ try:  # noqa: SIM105
     import streamlit as st  # type: ignore
 except Exception:  # pragma: no cover
     class _DummySt:
-        def write(self, *a, **k):
-            print(*a)
-        def warning(self, *a, **k):
-            print("[warning]", *a)
-        def error(self, *a, **k):
-            print("[error]", *a)
-        def info(self, *a, **k):
-            print("[info]", *a)
+        def write(self, *a, **k): print(*a)
+        def warning(self, *a, **k): print("[warning]", *a)
+        def error(self, *a, **k): print("[error]", *a)
+        def info(self, *a, **k): print("[info]", *a)
     st = _DummySt()  # type: ignore
 
 
-
-# Removed _OpenAIWrapper class - now imported from openai_client.py
 class AIAnalyzer:
     """
     AIAnalyzer — strict, data-only technical analysis + narrative + point forecast.
@@ -46,6 +42,12 @@ class AIAnalyzer:
       - 'model_json' (parsed JSON block)
       - 'status' ('ok' | 'insufficient_data' | 'error')
     """
+
+    # --------- config knobs ----------
+    MAX_POINTS_PER_SERIES: int = 600  # cap full arrays to avoid prompt bloat
+    VOLUME_TREND_RATIO_THRESH: float = 0.07  # 7% threshold for up/down trend
+    PIVOT_LOOKBACK: int = 3  # pivot window for swing detection
+    ATR_PERIOD: int = 14
 
     def __init__(self, debug: Optional[bool] = None):
         if debug is None:
@@ -103,11 +105,11 @@ class AIAnalyzer:
             # Ask for BOTH: JSON block + narrative section blocks
             raw = self._generate_technical_analysis_gpt5(analysis_data)
 
-            # Split/parse outputs
+            # Split/parse outputs (use *last* fenced json block to avoid catching examples)
             json_text, narrative_text = self._split_dual_output(raw)
             parsed_json = self._parse_json_response(json_text, self._last_current_price or current_price)
 
-            # Extract rich sections (like older script)
+            # Extract rich sections
             sections = self._parse_comprehensive_response(narrative_text) if narrative_text else {}
 
             # Build probabilities
@@ -249,6 +251,138 @@ class AIAnalyzer:
                 return idx.tz
         return pytz.timezone("US/Eastern")
 
+    # ---------- math helpers ----------
+
+    def _rolling_slope(self, s: pd.Series, n: int) -> Optional[float]:
+        try:
+            s = s.dropna()
+            if len(s) < n:
+                return None
+            y = s.iloc[-n:].astype(float).values
+            x = np.arange(n, dtype=float)
+            x = (x - x.mean())
+            denom = (x ** 2).sum()
+            if denom == 0:
+                return None
+            slope = float(((x * (y - y.mean())).sum()) / denom)
+            return slope
+        except Exception:
+            return None
+
+    def _count_zero_cross(self, s: pd.Series) -> int:
+        try:
+            s = s.dropna().astype(float)
+            if s.empty:
+                return 0
+            sign = np.sign(s.values)
+            cross = np.where(np.diff(sign) != 0)[0]
+            return int(len(cross))
+        except Exception:
+            return 0
+
+    def _bars_since_cross(self, a: pd.Series, b: pd.Series) -> Optional[int]:
+        try:
+            a = a.dropna()
+            b = b.dropna()
+            n = min(len(a), len(b))
+            if n < 2:
+                return None
+            diff = (a.iloc[-n:].values - b.iloc[-n:].values)
+            sign = np.sign(diff)
+            changes = np.where(np.diff(sign) != 0)[0]
+            if len(changes) == 0:
+                # If never crossed, bars since cross is len-1 if sign is defined; else None
+                return None
+            last_change = changes[-1]
+            bars_since = (n - 1) - (last_change + 1)  # bars since change happened
+            return int(max(0, bars_since))
+        except Exception:
+            return None
+
+    def _percentile_of_range(self, value: float, low: float, high: float) -> Optional[float]:
+        try:
+            if value is None or low is None or high is None:
+                return None
+            span = float(high - low)
+            if span <= 0:
+                return None
+            return float((value - low) / span * 100.0)
+        except Exception:
+            return None
+
+    def _distance_pct(self, value: Optional[float], ref: Optional[float]) -> Optional[float]:
+        try:
+            if value is None or ref is None or ref == 0:
+                return None
+            return float((value - ref) / ref * 100.0)
+        except Exception:
+            return None
+
+    def _true_range(self, df: pd.DataFrame) -> pd.Series:
+        try:
+            high = df["High"].astype(float)
+            low = df["Low"].astype(float)
+            close = df["Close"].astype(float)
+            prev_close = close.shift(1)
+            tr = pd.concat([(high - low).abs(), (high - prev_close).abs(), (low - prev_close).abs()], axis=1).max(axis=1)
+            return tr
+        except Exception:
+            return pd.Series(dtype=float)
+
+    def _atr(self, df: pd.DataFrame, n: int) -> Optional[float]:
+        try:
+            tr = self._true_range(df)
+            if tr.empty:
+                return None
+            return float(tr.rolling(n, min_periods=max(2, n // 2)).mean().iloc[-1])
+        except Exception:
+            return None
+
+    def _obv(self, df: pd.DataFrame) -> Optional[float]:
+        try:
+            close = df["Close"].astype(float)
+            vol = df["Volume"].astype(float)
+            obv = np.where(close.diff().fillna(0) > 0, vol, np.where(close.diff().fillna(0) < 0, -vol, 0)).cumsum()
+            return float(obv.iloc[-1])
+        except Exception:
+            return None
+
+    def _zigzag_labels(self, close: pd.Series, k: int = 3) -> Dict[str, Any]:
+        """
+        Simple pivot detector using local extrema over window k.
+        Returns last few pivots and structure labels (HH/HL/LH/LL).
+        """
+        result: Dict[str, Any] = {"pivots": [], "last_structure": None}
+        try:
+            if close is None or close.dropna().empty:
+                return result
+            c = close.astype(float)
+            # Local extrema
+            highs = (c.shift(k) < c) & (c.shift(-k) < c)
+            lows = (c.shift(k) > c) & (c.shift(-k) > c)
+            pivots = []
+            for i in range(len(c)):
+                if highs.iloc[i]:
+                    pivots.append(("H", float(c.iloc[i]), str(close.index[i])))
+                elif lows.iloc[i]:
+                    pivots.append(("L", float(c.iloc[i]), str(close.index[i])))
+            result["pivots"] = pivots[-6:]  # keep last few
+
+            # Determine last structure label comparing the last two pivots of same type
+            last_H = [p for p in pivots if p[0] == "H"]
+            last_L = [p for p in pivots if p[0] == "L"]
+            label = None
+            if len(last_H) >= 2:
+                label = "HH" if last_H[-1][1] > last_H[-2][1] else "LH"
+            if len(last_L) >= 2:
+                low_label = "HL" if last_L[-1][1] > last_L[-2][1] else "LL"
+                # Combine if we have both
+                label = f"{label}/{low_label}" if label else low_label
+            result["last_structure"] = label
+            return result
+        except Exception:
+            return result
+
     # ---------- core prep ----------
 
     def _prepare_analysis_data(
@@ -306,29 +440,40 @@ class AIAnalyzer:
                             f"{latest_close_1w:,.2f} by {rel_diff*100:.1f}%.",
                         )
 
+            # Summaries (safe)
             def _summary(df: pd.DataFrame, label: str) -> Dict[str, Any]:
+                out: Dict[str, Any] = {"period": label}
                 if df is None or df.empty:
-                    return {}
+                    return out
+                # Guard against missing columns:
+                for col in ("Open", "High", "Low", "Close", "Volume"):
+                    if col not in df.columns:
+                        out["note"] = f"missing_column:{col}"
+                        return out
                 start_price = float(df["Close"].iloc[0])
                 ann_sqrt = self._annualization_sqrt(df.index)
-                return {
-                    "period": label,
+                out.update({
                     "start_price": start_price,
-                    "high": float(df["High"].max()) if "High" in df.columns else None,
-                    "low": float(df["Low"].min()) if "Low" in df.columns else None,
+                    "high": float(df["High"].max()),
+                    "low": float(df["Low"].min()),
                     "price_change_pct": float((actual_current_price - start_price) / max(1e-9, start_price) * 100.0),
                     "volatility_ann_pct": float(df["Close"].pct_change().std() * ann_sqrt * 100.0),
-                    "avg_volume": float(df["Volume"].mean()) if "Volume" in df.columns else None,
+                    "avg_volume": float(df["Volume"].mean()),
                     "start_date": str(df.index[0]),
                     "end_date": str(df.index[-1]),
-                }
+                })
+                return out
 
             data_3m_summary = _summary(window_3m, "3 months") if not window_3m.empty else {}
             data_1w_summary = _summary(window_1w, "1 week") if not window_1w.empty else {}
 
-            indicators_summary = self._summarize_indicators(indicators_3m, indicators_1w, actual_current_price)
+            # Engineered features (deep)
+            features = self._compute_features(window_3m, window_1w, indicators_3m, indicators_1w, actual_current_price)
+
+            # Enhanced arrays (now include FULL arrays with caps + dynamic tails for plotting)
             enhanced_data = self._prepare_enhanced_chart_data(window_3m, window_1w, indicators_3m, indicators_1w)
 
+            # Refine highs/lows from enhanced
             if enhanced_data.get("3m_data", {}).get("period_highs_lows") and data_3m_summary:
                 data_3m_summary["high"] = enhanced_data["3m_data"]["period_highs_lows"].get("period_high")
                 data_3m_summary["low"] = enhanced_data["3m_data"]["period_highs_lows"].get("period_low")
@@ -336,13 +481,23 @@ class AIAnalyzer:
                 data_1w_summary["high"] = enhanced_data["1w_data"]["period_highs_lows"].get("period_high")
                 data_1w_summary["low"] = enhanced_data["1w_data"]["period_highs_lows"].get("period_low")
 
-            features = self._compute_features(window_3m, window_1w, indicators_3m, indicators_1w)
+            # Indicator snapshot (point-in-time)
+            indicators_summary = self._summarize_indicators(
+                indicators_3m, indicators_1w, actual_current_price, window_3m, window_1w
+            )
+
+            # Horizon metadata
+            base_df = window_1w if not window_1w.empty else window_3m
+            step = self._infer_index_step(base_df.index) or pd.Timedelta(minutes=1)
+            bars_to_target = int(max(1, round((target - base_df.index[-1]) / step))) if len(base_df.index) else 1
 
             return {
                 "asset_name": asset_name,
                 "current_time": current_time.isoformat(),
                 "target_time": target.isoformat(),
                 "hours_until_target": (target - current_time).total_seconds() / 3600.0,
+                "index_step_minutes": int(step.total_seconds() // 60),
+                "bars_to_target": bars_to_target,
                 "data_3m": data_3m_summary,
                 "data_1w": data_1w_summary,
                 "indicators": indicators_summary,
@@ -361,6 +516,7 @@ class AIAnalyzer:
         data_1w: pd.DataFrame,
         ind_3m: Dict[str, pd.Series],
         ind_1w: Dict[str, pd.Series],
+        current_price: float,
     ) -> Dict[str, Any]:
         feats: Dict[str, Any] = {}
 
@@ -386,29 +542,91 @@ class AIAnalyzer:
                 pass
             return None
 
-        if data_1w is not None and not data_1w.empty:
-            feats["ret_1w_last5bars"] = last_n_returns(data_1w, 5)
-            feats["vol_ann_1w_pct"] = float(
-                data_1w["Close"].pct_change().std() * self._annualization_sqrt(data_1w.index) * 100.0
-            )
-        if ind_1w:
-            feats["bb_width_1w"] = bb_width(ind_1w)
-            feats["ema20_slope_1w"] = ema_slope(ind_1w, 5)
-            feats["rsi_last_1w"] = (
-                float(ind_1w["RSI"].iloc[-1]) if "RSI" in ind_1w and not np.isnan(ind_1w["RSI"].iloc[-1]) else None
-            )
+        # ----- Price-based features, volatility, ATR, OBV -----
+        for lbl, df in (("1w", data_1w), ("3m", data_3m)):
+            if df is not None and not df.empty:
+                feats[f"ret_{lbl}_last5bars"] = last_n_returns(df, 5)
+                feats[f"vol_ann_{lbl}_pct"] = float(
+                    df["Close"].pct_change().std() * self._annualization_sqrt(df.index) * 100.0
+                )
+                feats[f"atr_{lbl}"] = self._atr(df, self.ATR_PERIOD)
+                feats[f"obv_{lbl}"] = self._obv(df)
+                # Price percentile within period range
+                try:
+                    low = float(df["Low"].min())
+                    high = float(df["High"].max())
+                    feats[f"close_percentile_{lbl}"] = self._percentile_of_range(float(df["Close"].iloc[-1]), low, high)
+                except Exception:
+                    feats[f"close_percentile_{lbl}"] = None
 
-        if data_3m is not None and not data_3m.empty:
-            feats["ret_3m_last5bars"] = last_n_returns(data_3m, 5)
-            feats["vol_ann_3m_pct"] = float(
-                data_3m["Close"].pct_change().std() * self._annualization_sqrt(data_3m.index) * 100.0
-            )
-        if ind_3m:
-            feats["bb_width_3m"] = bb_width(ind_3m)
-            feats["ema20_slope_3m"] = ema_slope(ind_3m, 5)
-            feats["rsi_last_3m"] = (
-                float(ind_3m["RSI"].iloc[-1]) if "RSI" in ind_3m and not np.isnan(ind_3m["RSI"].iloc[-1]) else None
-            )
+                # Zigzag / structure labels
+                zz = self._zigzag_labels(df["Close"], k=self.PIVOT_LOOKBACK)
+                feats[f"structure_{lbl}"] = zz
+
+        # ----- Indicator-derived features (slopes, counts, crossbars) -----
+        def enrich_indicator_features(inds: Dict[str, pd.Series], lbl: str):
+            if not inds:
+                return
+            # RSI last, slopes & stats
+            rsi_last = float(inds["RSI"].dropna().iloc[-1]) if "RSI" in inds and not inds["RSI"].empty else None
+            feats[f"rsi_last_{lbl}"] = rsi_last
+            for n in (10, 20, 50):
+                try:
+                    feats[f"rsi_mean_{lbl}_{n}"] = float(inds["RSI"].tail(n).mean()) if "RSI" in inds else None
+                    feats[f"rsi_slope_{lbl}_{n}"] = self._rolling_slope(inds["RSI"], n) if "RSI" in inds else None
+                    feats[f"rsi_above70_count_{lbl}_{n}"] = int((inds["RSI"].tail(n) > 70).sum()) if "RSI" in inds else None
+                    feats[f"rsi_below30_count_{lbl}_{n}"] = int((inds["RSI"].tail(n) < 30).sum()) if "RSI" in inds else None
+                except Exception:
+                    pass
+
+            # MACD histogram slope & zero-cross counts, bars since signal cross
+            if "MACD" in inds and "MACD_Signal" in inds:
+                macd = inds["MACD"].astype(float)
+                sig = inds["MACD_Signal"].astype(float)
+                hist = macd - sig
+                for n in (10, 20, 50):
+                    feats[f"macd_hist_slope_{lbl}_{n}"] = self._rolling_slope(hist, n)
+                    feats[f"macd_hist_zero_cross_count_{lbl}_{n}"] = self._count_zero_cross(hist.tail(n))
+                feats[f"macd_bars_since_signal_cross_{lbl}"] = self._bars_since_cross(macd, sig)
+
+            # Bollinger Band width current and z-score vs 50
+            width = bb_width(inds)
+            feats[f"bb_width_{lbl}"] = width
+            try:
+                if "BB_Upper" in inds and "BB_Lower" in inds:
+                    w = (inds["BB_Upper"] - inds["BB_Lower"]).astype(float)
+                    mu = float(w.tail(50).mean()) if len(w) >= 5 else None
+                    sd = float(w.tail(50).std()) if len(w) >= 5 else None
+                    feats[f"bb_width_z_{lbl}"] = float((w.iloc[-1] - mu) / sd) if mu is not None and sd and sd > 0 else None
+            except Exception:
+                feats[f"bb_width_z_{lbl}"] = None
+
+            # EMA/SMA distances
+            for ma_key in ("EMA_20", "SMA_50", "SMA_200"):
+                try:
+                    if ma_key in inds and not inds[ma_key].empty:
+                        feats[f"dist_pct_close_to_{ma_key}_{lbl}"] = self._distance_pct(current_price, float(inds[ma_key].iloc[-1]))
+                except Exception:
+                    feats[f"dist_pct_close_to_{ma_key}_{lbl}"] = None
+
+            # SMA 50/200 cross state
+            if "SMA_50" in inds and "SMA_200" in inds:
+                try:
+                    fast, slow = inds["SMA_50"].astype(float), inds["SMA_200"].astype(float)
+                    n = min(len(fast), len(slow))
+                    if n >= 2:
+                        state_now = "golden" if fast.iloc[-1] >= slow.iloc[-1] else "death"
+                        bars_since = self._bars_since_cross(fast, slow)
+                        feats[f"sma_50_200_state_{lbl}"] = state_now
+                        feats[f"sma_50_200_bars_since_cross_{lbl}"] = bars_since
+                except Exception:
+                    pass
+
+            # EMA slope (retain original quick slope)
+            feats[f"ema20_slope_{lbl}"] = ema_slope(inds, 5)
+
+        enrich_indicator_features(ind_1w, "1w")
+        enrich_indicator_features(ind_3m, "3m")
 
         return feats
 
@@ -438,9 +656,26 @@ class AIAnalyzer:
             recent_3m = full_3m.iloc[display_from_3m:] if not full_3m.empty else full_3m
             recent_1w = full_1w.iloc[display_from_1w:] if not full_1w.empty else full_1w
 
-            tail_3m = recent_3m.tail(50) if not recent_3m.empty else recent_3m
-            tail_1w = recent_1w.tail(30) if not recent_1w.empty else recent_1w
+            # Dynamic tails based on inferred step → cover comparable *time* windows
+            step_3m = self._infer_index_step(recent_3m.index) or pd.Timedelta(days=1)
+            step_1w = self._infer_index_step(recent_1w.index) or pd.Timedelta(hours=1)
+            def _tail_for_days(df: pd.DataFrame, step: pd.Timedelta, days: int) -> pd.DataFrame:
+                if df.empty:
+                    return df
+                bars = int(max(1, round(pd.Timedelta(days=days) / step)))
+                return df.tail(min(bars, len(df)))
 
+            tail_3m = _tail_for_days(recent_3m, step_3m, days=60)  # last ~2 months
+            tail_1w = _tail_for_days(recent_1w, step_1w, days=5)   # last ~5 days
+
+            # Helper to serialize arrays with caps
+            def _series_to_list(s: pd.Series, cap: int = self.MAX_POINTS_PER_SERIES) -> List[float]:
+                s = s.dropna().astype(float)
+                if len(s) > cap:
+                    s = s.tail(cap)
+                return s.round(4).tolist()
+
+            # Build 3m block
             enhanced["3m_data"] = {
                 "timeframe": "3-month",
                 "full_range": (
@@ -467,25 +702,12 @@ class AIAnalyzer:
                     if not tail_3m.empty
                     else {}
                 ),
-                "indicators": {},
+                # NEW: indicators_full contains FULL arrays (capped). indicators_tail kept for plots.
+                "indicators": {},         # kept for backward-compat (now FULL arrays, capped)
+                "indicators_tail": {},    # dynamic-tail arrays (time-windowed)
             }
 
-            for indicator in [
-                "RSI",
-                "MACD",
-                "MACD_Signal",
-                "MACD_Histogram",
-                "BB_Upper",
-                "BB_Lower",
-                "BB_Middle",
-                "EMA_20",
-                "SMA_50",
-                "SMA_200",
-            ]:
-                if indicators_3m and indicator in indicators_3m:
-                    values = indicators_3m[indicator].dropna().tail(50)
-                    enhanced["3m_data"]["indicators"][indicator] = values.round(4).tolist()
-
+            # Build 1w block
             enhanced["1w_data"] = {
                 "timeframe": "1-week",
                 "full_range": (
@@ -513,42 +735,58 @@ class AIAnalyzer:
                     else {}
                 ),
                 "indicators": {},
+                "indicators_tail": {},
             }
 
-            for indicator in [
-                "RSI",
-                "MACD",
-                "MACD_Signal",
-                "MACD_Histogram",
-                "BB_Upper",
-                "BB_Lower",
-                "BB_Middle",
-                "EMA_20",
-                "SMA_50",
-                "SMA_200",
-            ]:
-                if indicators_1w and indicator in indicators_1w:
-                    values = indicators_1w[indicator].dropna().tail(30)
-                    enhanced["1w_data"]["indicators"][indicator] = values.round(4).tolist()
+            def _fill_inds(dst_full: Dict[str, Any], dst_tail: Dict[str, Any], inds: Dict[str, pd.Series], tail_cap: int):
+                for indicator in [
+                    "RSI",
+                    "MACD",
+                    "MACD_Signal",
+                    "MACD_Histogram",
+                    "BB_Upper",
+                    "BB_Lower",
+                    "BB_Middle",
+                    "EMA_20",
+                    "SMA_50",
+                    "SMA_200",
+                ]:
+                    if inds and indicator in inds and inds[indicator] is not None:
+                        s = inds[indicator]
+                        # full (capped)
+                        dst_full[indicator] = _series_to_list(s, cap=self.MAX_POINTS_PER_SERIES)
+                        # tail (time-windowed)
+                        dst_tail[indicator] = _series_to_list(s.tail(tail_cap), cap=tail_cap)
 
+            # For tails, match recent price arrays len
+            tail_cap_3m = len(tail_3m) if not tail_3m.empty else 0
+            tail_cap_1w = len(tail_1w) if not tail_1w.empty else 0
+
+            _fill_inds(enhanced["3m_data"]["indicators"], enhanced["3m_data"]["indicators_tail"], indicators_3m, tail_cap_3m)
+            _fill_inds(enhanced["1w_data"]["indicators"], enhanced["1w_data"]["indicators_tail"], indicators_1w, tail_cap_1w)
+
+            # Volume analysis with ratio thresholds
             v50 = full_3m.get("Volume", pd.Series(dtype=float)).tail(50).mean() if not full_3m.empty else None
             v10 = full_3m.get("Volume", pd.Series(dtype=float)).tail(10).mean() if not full_3m.empty else None
             v30 = full_1w.get("Volume", pd.Series(dtype=float)).tail(30).mean() if not full_1w.empty else None
             v5 = full_1w.get("Volume", pd.Series(dtype=float)).tail(5).mean() if not full_1w.empty else None
 
+            def _trend_ratio(short: Optional[float], long: Optional[float]) -> Optional[str]:
+                if short is None or long is None or long == 0:
+                    return None
+                ratio = (short / long) - 1.0
+                if ratio > self.VOLUME_TREND_RATIO_THRESH:
+                    return "increasing"
+                if ratio < -self.VOLUME_TREND_RATIO_THRESH:
+                    return "decreasing"
+                return "flat"
+
             enhanced["volume_analysis"] = {
                 "3m_avg_volume_tail50": float(v50) if v50 is not None else None,
-                "3m_volume_trend": (
-                    "increasing" if (v10 is not None and v50 is not None and v10 > v50) else (
-                        "decreasing" if (v10 is not None and v50 is not None and v10 < v50) else None
-                    )
-                ),
+                "3m_volume_trend": _trend_ratio(v10, v50),
                 "1w_avg_volume_tail30": float(v30) if v30 is not None else None,
-                "1w_volume_trend": (
-                    "increasing" if (v5 is not None and v30 is not None and v5 > v30) else (
-                        "decreasing" if (v5 is not None and v30 is not None and v5 < v30) else None
-                    )
-                ),
+                "1w_volume_trend": _trend_ratio(v5, v30),
+                "threshold_used": self.VOLUME_TREND_RATIO_THRESH,
             }
 
             return enhanced
@@ -562,6 +800,8 @@ class AIAnalyzer:
         indicators_3m: Dict[str, pd.Series],
         indicators_1w: Dict[str, pd.Series],
         current_price: float,
+        data_3m: Optional[pd.DataFrame] = None,
+        data_1w: Optional[pd.DataFrame] = None,
     ) -> Dict[str, Any]:
         summary: Dict[str, Any] = {"current_price": float(current_price)}
         try:
@@ -580,6 +820,7 @@ class AIAnalyzer:
                 "1w_current": float(rsi_1w_last) if not np.isnan(rsi_1w_last) else None,
             }
 
+            # MACD crossover state
             if indicators_3m and "MACD" in indicators_3m and "MACD_Signal" in indicators_3m:
                 macd_3m = indicators_3m["MACD"].iloc[-1]
                 signal_3m = indicators_3m["MACD_Signal"].iloc[-1]
@@ -600,6 +841,7 @@ class AIAnalyzer:
                         "crossover": "bullish" if macd_1w > signal_1w else "bearish",
                     }
 
+            # Bollinger position
             for timeframe, inds in [("3m", indicators_3m), ("1w", indicators_1w)]:
                 if inds and all(k in inds for k in ["BB_Upper", "BB_Lower", "BB_Middle"]):
                     upper = inds["BB_Upper"].iloc[-1]
@@ -616,6 +858,7 @@ class AIAnalyzer:
                             else ("below_lower" if cp < lower else "within_bands"),
                         }
 
+            # EMA trend snapshot
             for timeframe, inds in [("3m", indicators_3m), ("1w", indicators_1w)]:
                 if inds and "EMA_20" in inds:
                     ema_20 = inds["EMA_20"].iloc[-1]
@@ -626,6 +869,16 @@ class AIAnalyzer:
                             "trend": "bullish" if cp > ema_20 else "bearish",
                         }
 
+            # SMA 50/200 cross snapshot (state only; details in features)
+            for timeframe, inds in [("3m", indicators_3m), ("1w", indicators_1w)]:
+                if inds and "SMA_50" in inds and "SMA_200" in inds:
+                    try:
+                        fast = float(inds["SMA_50"].iloc[-1])
+                        slow = float(inds["SMA_200"].iloc[-1])
+                        summary[f"SMA_50_200_{timeframe}"] = "golden" if fast >= slow else "death"
+                    except Exception:
+                        pass
+
         except Exception as e:
             st.warning(f"Error summarizing indicators: {e}")
 
@@ -634,20 +887,24 @@ class AIAnalyzer:
     # ---------- prompt + model call ----------
 
     def _build_messages(self, analysis_data: Dict[str, Any], asset_name: str) -> Tuple[Dict[str, str], Dict[str, str]]:
+        # NOTE: Updated wording so the model prefers FULL arrays when available
         system_content = (
-            "You are a deterministic technical analyst. Use ONLY the structured arrays provided in the ENHANCED ARRAYS, FEATURES, INDICATOR SNAPSHOT, and VOLUME_ANALYSIS sections. "
-            "Analyze the FULL arrays (e.g., entire RSI, MACD, BB, EMA histories) to derive trends, slopes, peaks/troughs, divergences, and patterns. "
-            "Explicitly compare 1-week (1w) and 3-month (3m) arrays for each indicator, noting alignments, conflicts, and how short-term momentum influences longer-term trends. "
-            "Forbidden: news, macro, on-chain, session effects (market open/close), weekdays, seasonality, or inferences beyond given timestamps and data. "
-            "All claims must be quantitatively verifiable from the arrays (e.g., compute averages, slopes, or crossovers directly). "
-            "If any required arrays are missing, empty, or insufficient for full analysis (e.g., no full RSI array for divergence detection), output status='insufficient_data' with detailed 'notes'. "
+            "You are a deterministic technical analyst. Use ONLY the structured arrays and statistics provided in the "
+            "ENHANCED ARRAYS, FEATURES, INDICATOR SNAPSHOT, and VOLUME_ANALYSIS sections. "
+            "Analyze the FULL arrays (e.g., entire RSI, MACD, BB, EMA histories) when present; otherwise use tail arrays "
+            "and the precomputed statistics to derive trends, slopes, peaks/troughs, divergences, and patterns. "
+            "Explicitly compare 1-week (1w) and 3-month (3m) for each indicator, noting alignments/conflicts and how "
+            "short-term momentum influences longer-term trends. "
+            "Forbidden: news, macro, on-chain, session effects, weekdays, seasonality, or inferences beyond given data. "
+            "All claims must be quantitatively verifiable from provided arrays/stats (e.g., averages, slopes, crossovers). "
+            "If required arrays are missing or insufficient, output status='insufficient_data' with detailed 'notes'. "
             "Prioritize depth: synthesize across indicators and timeframes for the most comprehensive, evidence-based analysis possible."
         )
 
         data_3m = analysis_data.get("data_3m", {})
         data_1w = analysis_data.get("data_1w", {})
 
-        # JSON schema (example only, model must return a VALID JSON object)
+        # JSON schema example (the model must return a VALID JSON object)
         output_schema = {
             "status": "ok or insufficient_data",
             "asset": asset_name,
@@ -664,7 +921,7 @@ class AIAnalyzer:
                 {
                     "type": "rsi|macd|bb|ema|price|volume|structure",
                     "timeframe": "3m|1w",
-                    "ts": "YYYY-MM-DD HH:MM" or "recent",
+                    "ts": "YYYY-MM-DD HH:MM or recent",
                     "value": "number or object",
                     "note": "short factual note, e.g., 'RSI divergence: price low at 98286 with RSI 37.9 vs prior low RSI 37.8'",
                 }
@@ -672,12 +929,12 @@ class AIAnalyzer:
             "notes": ["if status=insufficient_data, list what's missing; else optional warnings"],
         }
 
-        # Narrative section template (improved) — note: the model should FILL these with real values
+        # Narrative section template (unchanged format; fills concrete values)
         narrative_template = f"""
         [TECHNICAL_ANALYSIS_START]
         **COMPREHENSIVE TECHNICAL ANALYSIS**
 
-        **Current Price: ${{analysis_data.get('current_price'):,.2f}}**
+        **Current Price: ${analysis_data.get('current_price'):,.2f}**
 
         **1. MULTI-TIMEFRAME OVERVIEW**
         - 3-Month Chart Analysis: <facts from full 3m arrays>
@@ -713,12 +970,12 @@ class AIAnalyzer:
         ⏰ **DATA-BASED TIME ANALYSIS:**
         - Exact Target: {analysis_data.get('target_time')}
         - Momentum Direction: <from full RSI/MACD arrays>
-        - Trend Strength: <from EMA slopes, hist averages>
-        - Volume Analysis: <trends>
+        - Trend Strength: <from EMA slopes, hist averages, ATR>
+        - Volume Analysis: <trends/OBV>
         - Expected Path: <data-grounded path>
 
-        1. **Probability HIGHER than ${{analysis_data.get('current_price'):,.2f}}: <X>%**
-        2. **Probability LOWER than ${{analysis_data.get('current_price'):,.2f}}: <Y>%**
+        1. **Probability HIGHER than ${analysis_data.get('current_price'):,.2f}: <X>%**
+        2. **Probability LOWER than ${analysis_data.get('current_price'):,.2f}: <Y>%**
         3. **Overall Analysis Confidence: <Z>%**
         4. **Price Prediction Confidence: <W>%**
         5. **Expected % Move: <±M>%**
@@ -749,6 +1006,8 @@ class AIAnalyzer:
 
         TARGET (timestamp string; do not alter): {analysis_data.get('target_time')}
         AS_OF (timestamp string; do not alter): {analysis_data.get('current_time')}
+        INDEX_STEP_MINUTES: {analysis_data.get('index_step_minutes')}
+        BARS_TO_TARGET: {analysis_data.get('bars_to_target')}
         CURRENT_PRICE (use exactly this number): {analysis_data.get('current_price')}
 
         INDICATOR SNAPSHOT:
@@ -761,11 +1020,11 @@ class AIAnalyzer:
         {json.dumps(analysis_data.get('enhanced_chart_data', {}), indent=2)}
 
         STRICT RULES:
-        - Use ONLY these arrays for all analysis. Do NOT use session effects, news, or any outside info.
-        - For trend analysis: Scan FULL ENHANCED ARRAYS to compute metrics like RSI averages over the last 10/20/50 periods, MACD histogram slopes, BB width trends, EMA slopes, and price action patterns.
-        - Mandatory comparisons: For each indicator (RSI, MACD, BB, EMA), compare 1w vs 3m values/trends. Assess timeframe alignment.
-        - Divergences/Failures: Only claim if verifiable in data.
-        - Volume: Use volume_analysis and recent_prices.volume for trends/divergences.
+        - Use ONLY these arrays/stats for all analysis. Do NOT use session effects, news, or any outside info.
+        - Prefer FULL arrays in ENHANCED ARRAYS -> *.indicators (capped) when present; otherwise use *.indicators_tail plus FEATURES.
+        - Mandatory comparisons: For each indicator (RSI, MACD, BB, EMA), compare 1w vs 3m trends/levels. Assess timeframe alignment.
+        - Divergences/Failures: Only claim if verifiable in arrays/pivots.
+        - Volume: Use volume_analysis, OBV, and recent_prices.volume for trends/divergences.
         - Predictions: Derive predicted_price from array-derived trends. p_up + p_down = 1.
         - If arrays are empty/missing, return status='insufficient_data' with 'notes' listing specifics.
 
@@ -803,15 +1062,25 @@ class AIAnalyzer:
     # ---------- parsing + probabilities + text composition ----------
 
     def _split_dual_output(self, raw: str) -> Tuple[str, str]:
-        """Extract a JSON fenced block (```json ... ```) and the rest (narrative)."""
+        """
+        Extract a JSON fenced block (```json ... ```) and the rest (narrative).
+        Uses the *last* fenced json code block to avoid grabbing examples in the prompt.
+        """
         if not raw:
             return "", ""
 
-        # Prefer fenced ```json blocks
-        m = re.search(r"```json\s*(.*?)\s*```", raw, re.DOTALL | re.IGNORECASE)
-        if m:
-            json_block = m.group(1).strip()
-            narrative = (raw[: m.start()] + raw[m.end() :]).strip()
+        # Prefer fenced ```json blocks — take LAST match
+        matches = list(re.finditer(r"```json[^\n]*\n(.*?)\n```", raw, re.DOTALL | re.IGNORECASE))
+        if matches:
+            json_block = matches[-1].group(1).strip()
+            narrative = (raw[: matches[-1].start()] + raw[matches[-1].end() :]).strip()
+            return json_block, narrative
+
+        # Also accept ```jsonc or ```JSON variants — take LAST
+        matches = list(re.finditer(r"```jsonc?[^\n]*\n(.*?)\n```", raw, re.DOTALL | re.IGNORECASE))
+        if matches:
+            json_block = matches[-1].group(1).strip()
+            narrative = (raw[: matches[-1].start()] + raw[matches[-1].end() :]).strip()
             return json_block, narrative
 
         # Fallback: first JSON object in text (greedy braces balance heuristic)
@@ -1140,7 +1409,3 @@ class AIAnalyzer:
         except Exception as e:
             self._dbg("warning", f"Error extracting probabilities: {e}")
         return probs
-
-
-# Optional: import contextlib for safe suppress above
-import contextlib  # keep at end to avoid masking top imports in some environments
